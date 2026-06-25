@@ -864,9 +864,6 @@ body {
 #battle-screen.is-answering #enemy-info-row {
   margin-bottom: 0;
 }
-#battle-screen.is-answering #enemy-hp-section {
-  padding: 6px 8px;
-}
 
 /* 敵ダメージシェイク */
 @keyframes kf-enemy-shake {
