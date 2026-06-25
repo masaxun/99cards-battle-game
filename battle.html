@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>バトル - 九九カードバトル</title>
+  <link rel="stylesheet" href="src/css/battle.css">
+</head>
+<body>
+<div id="battle-screen">
+
+  <!-- 敵HP（最上部） -->
+  <div id="enemy-hp-section">
+    <span class="section-tag">ENEMY</span>
+    <div id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
+    <div id="enemy-hp-text"></div>
+  </div>
+
+  <!-- 敵スプライト：名前→イラスト→行動メッセージ の順 -->
+  <div id="enemy-sprite-section">
+    <div id="enemy-info-row">
+      <span id="enemy-name"></span>
+      <span id="enemy-badges"></span>
+    </div>
+    <div id="enemy-sprite-wrap">
+      <div id="enemy-damage-pop"></div>
+      <div id="enemy-sprite"></div>
+    </div>
+    <div id="enemy-action-msg" class="fb-hidden">
+      <div class="enemy-action-label">ENEMY ACTION</div>
+      <div id="enemy-action-text"></div>
+    </div>
+  </div>
+
+  <!-- プレイヤー行動フィードバック -->
+  <div id="message-area">
+    <div id="feedback-area">
+      <div class="feedback-label">PLAYER RESULT</div>
+      <div id="feedback-formula"></div>
+      <div id="feedback-reading"></div>
+      <div id="feedback-correction"></div>
+      <div id="feedback-hint"></div>
+      <div id="feedback-combo"></div>
+    </div>
+  </div>
+
+  <!-- 手札 -->
+  <div id="hand-cards"></div>
+
+  <!-- プレイヤー情報（手札直下） -->
+  <div id="player-section">
+    <div id="player-left">
+      <span class="section-tag">PLAYER</span>
+      <div id="hearts-area"></div>
+    </div>
+    <div id="player-right">
+      <div id="deck-count"></div>
+      <button id="change-hand-btn">🃏 手札交換（❤️−1）</button>
+    </div>
+  </div>
+
+  <!-- コンボ表示 -->
+  <div id="combo-area" class="fb-hidden"></div>
+
+  <!-- 回答スロット：カード回答・敵攻撃かいひ を同一位置に表示 -->
+  <div id="interaction-slot">
+
+    <!-- こたえ入力パネル（カード選択時） -->
+    <div id="answer-panel" class="hidden">
+      <div id="answer-question-row">
+        <div id="selected-question"></div>
+        <input type="number" inputmode="numeric" id="answer-input" placeholder="こたえ">
+      </div>
+      <div id="answer-reading-row">
+        <div id="selected-reading"></div>
+        <div class="answer-reading-spacer"></div>
+      </div>
+      <div id="answer-buttons">
+        <button id="submit-answer-btn">こうげき！</button>
+        <button id="cancel-btn">キャンセル</button>
+      </div>
+    </div>
+
+    <!-- 敵攻撃パネル（ボス攻撃・ザコ反撃） -->
+    <div id="enemy-attack-panel" class="hidden">
+      <div id="attack-label"></div>
+      <div id="attack-hp-warning"></div>
+      <div id="attack-question-row">
+        <div id="attack-question"></div>
+        <input type="number" inputmode="numeric" id="attack-answer-input" placeholder="こたえ">
+      </div>
+      <div id="attack-reading-row">
+        <div id="attack-reading"></div>
+        <div class="answer-reading-spacer"></div>
+      </div>
+      <button id="submit-attack-btn">かいひ！</button>
+    </div>
+
+  </div>
+
+</div><!-- /battle-screen -->
+
+<!-- 結果オーバーレイ -->
+<div id="result-overlay" class="hidden">
+  <div id="result-box">
+    <div id="result-title"></div>
+    <div id="result-detail"></div>
+    <div id="result-mistakes"></div>
+    <button id="result-back-btn">もどる</button>
+  </div>
+</div>
+
+<div id="flash-overlay"></div>
+
+<script src="src/js/common/storage.js"></script>
+<script src="src/js/common/data/areas.js"></script>
+<script src="src/js/common/data/cardDefs.js"></script>
+<script src="src/js/common/data/yomi.js"></script>
+<script src="src/js/common/gameState.js"></script>
+<script src="src/js/battle/battle.js"></script>
+<script src="src/js/battle/battleUI.js"></script>
+</body>
+</html>

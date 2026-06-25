@@ -1,0 +1,805 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: sans-serif;
+  background: #0d0d12;
+  color: #eee;
+  min-height: 100vh;
+}
+
+.hidden { display: none !important; }
+
+/* レイアウト高さを維持したまま非表示にする（display:noneによる縦揺れを防ぐ） */
+.fb-hidden { visibility: hidden; }
+
+/* ============================================================
+   全体レイアウト
+   ============================================================ */
+
+#battle-screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+/* 背景画像レイヤー（fixed・全画面） */
+#battle-screen::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -2;
+}
+
+/* 暗めオーバーレイ（背景画像の上・UI下） */
+#battle-screen::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 28, 0.55);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* はじまりの道 通常戦 */
+#battle-screen.battle-bg-hajimari::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_hajimari_v01.webp");
+}
+
+/* はじまりの道 ぬし戦 */
+#battle-screen.battle-bg-hajimari-boss::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_hajimari_boss_v01.webp");
+}
+
+.section-tag {
+  font-size: 10px;
+  font-weight: bold;
+  color: #666;
+  letter-spacing: 1px;
+  padding: 2px 4px;
+  background: rgba(14, 14, 20, 0.80);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   敵HP（最上部）
+   ============================================================ */
+
+#enemy-hp-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 12, 18, 0.85);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+#enemy-hp-bar {
+  flex: 1;
+  height: 14px;
+  background: rgba(20, 20, 28, 0.80);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+#enemy-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c0392b, #e74c3c);
+  border-radius: 7px;
+  transition: width 0.4s ease;
+}
+
+#enemy-hp-text {
+  font-size: 13px;
+  color: #ccc;
+  white-space: nowrap;
+  min-width: 64px;
+  text-align: right;
+}
+
+/* ============================================================
+   敵スプライト + 名前 + バッジ + 行動メッセージ
+   ============================================================ */
+
+#enemy-sprite-section {
+  background: rgba(10, 12, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(2px);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+
+/* 名前・バッジ行（スプライトの上） */
+#enemy-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+#enemy-name {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+#enemy-badges {
+  font-size: 13px;
+  color: #f0c040;
+}
+
+/* スプライトラッパー（ダメージポップ用に relative） */
+#enemy-sprite-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+#enemy-sprite {
+  display: inline-block;
+  line-height: 0;
+}
+
+.enemy-image {
+  max-width: 150px;
+  max-height: 150px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.enemy-image.enemy-boss {
+  max-width: 180px;
+  max-height: 180px;
+}
+
+/* ダメージポップ（敵スプライト付近に浮かぶ） */
+#enemy-damage-pop {
+  position: absolute;
+  top: -8px;
+  right: -20px;
+  background: #c0392b;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 14px;
+  pointer-events: none;
+  opacity: 0;
+  white-space: nowrap;
+}
+
+#enemy-damage-pop.pop-animate {
+  animation: kf-damage-pop 2.0s ease forwards;
+}
+
+/* 敵行動メッセージ（スプライト直下・中央） */
+#enemy-action-msg {
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  background: rgba(8, 10, 18, 0.78);
+  color: #bbb;
+  text-align: center;
+  min-height: 48px; /* fb-hidden 時も高さを確保 */
+}
+
+/* ENEMY ACTION ラベル（PLAYER RESULT と対になる小ラベル） */
+#enemy-action-msg .enemy-action-label {
+  font-size: 9px;
+  font-weight: bold;
+  color: #ff8844;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+
+/* 敵行動タイプ別スタイル（色相を保ちつつ黒系に寄せる） */
+.enemy-action-guard   { background: rgba(6, 10, 32, 0.88); color: #6699ff; }
+.enemy-action-powerUp { background: rgba(24, 8, 0, 0.88); color: #ff8844; }
+.enemy-action-opening { background: rgba(6, 20, 0, 0.88); color: #88ee44; }
+.enemy-action-counter,
+.enemy-action-bossAttack { background: rgba(28, 0, 0, 0.88); color: #ff4444; font-weight: bold; }
+.enemy-action-none    { background: rgba(8, 10, 18, 0.78); color: #888; font-size: 12px; }
+
+/* ============================================================
+   プレイヤー結果フィードバック（青系・ENEMY ACTION と区別）
+   ============================================================ */
+
+#message-area {
+  /* 高さは #feedback-area が常にスペースを確保するため min-height 不要 */
+}
+
+#feedback-area {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(6, 8, 14, 0.76);
+  backdrop-filter: blur(2px);
+  border-left: 3px solid #3498db;
+  min-height: 80px;
+}
+
+.feedback-label {
+  font-size: 9px;
+  font-weight: bold;
+  color: #3498db;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+#feedback-formula {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.feedback-correct { color: #2ecc71; }
+.feedback-wrong   { color: #e74c3c; }
+
+#feedback-reading {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+#feedback-correction {
+  font-size: 12px;
+  color: #f39c12;
+  margin-top: 4px;
+}
+
+#feedback-hint {
+  font-size: 12px;
+  color: #e74c3c;
+  margin-top: 4px;
+}
+
+/* ============================================================
+   敵攻撃パネル（赤系・ENEMY ATTACK）
+   ============================================================ */
+
+#enemy-attack-panel {
+  background: rgba(16, 4, 4, 0.82);
+  backdrop-filter: blur(2px);
+  border: 2px solid #e74c3c;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+#attack-label {
+  font-weight: bold;
+  font-size: 15px;
+  color: #ff6655;
+  margin-bottom: 4px;
+}
+
+#attack-hp-warning {
+  font-size: 13px;
+  color: #ff8844;
+  margin-bottom: 10px;
+}
+
+#attack-question {
+  justify-self: stretch;
+}
+
+#attack-reading {
+  font-size: 12px;
+  color: #aaa;
+  justify-self: stretch;
+  margin-bottom: 4px;
+}
+
+#attack-answer-input {
+  width: 120px;
+  max-width: none;
+  padding: 8px;
+  font-size: 24px;
+  text-align: center;
+  border-radius: 8px;
+  border: 2px solid #e74c3c;
+  background: #fff;
+  color: #222;
+}
+
+#submit-attack-btn {
+  width: 100%;
+  padding: 10px;
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#submit-attack-btn:hover { background: #a93226; }
+
+/* ============================================================
+   手札
+   ============================================================ */
+
+#hand-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.card {
+  border-radius: 8px;
+  padding: 24px 4px 6px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background-color: rgba(10, 12, 18, 0.82);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: transform 0.1s, border-color 0.15s, opacity 0.15s;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* カード背景画像の上に薄い黒オーバーレイ（文字可読性確保） */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+/* バッジ・式をオーバーレイより手前に */
+.card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.card:not(.card-disabled):hover { transform: translateY(-4px); }
+
+.card-selected {
+  border-color: #f1c40f !important;
+  transform: translateY(-4px);
+}
+
+.card-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 隙あり対象カード強調 */
+.card-opening-highlight {
+  border-color: #88ee44 !important;
+  box-shadow: 0 0 8px #88ee4466;
+}
+
+.card-badge {
+  font-size: 10px;
+  color: #aaa;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.90);
+}
+
+.card-formula {
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.90);
+}
+
+/* 属性カラー（background-color のみ指定：背景画像と共存させるため shorthand を使わない） */
+.element-fire  { background-color: rgba(20, 6, 0, 0.85); border-color: #e74c3c44; }
+.element-water { background-color: rgba(0, 8, 22, 0.85); border-color: #3498db44; }
+.element-grass { background-color: rgba(0, 18, 0, 0.85); border-color: #27ae6044; }
+.element-light { background-color: rgba(20, 18, 0, 0.85); border-color: #f1c40f44; }
+
+/* ============================================================
+   カード背景画像
+   ============================================================ */
+
+.card-bg-mul-none  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_none_v01.png"); }
+.card-bg-mul-fire  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_fire_v01.png"); }
+.card-bg-mul-water { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_water_v01.png"); }
+.card-bg-mul-grass { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_grass_v01.png"); }
+.card-bg-mul-light { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_light_v01.png"); }
+.card-bg-mul-dark  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_dark_v01.png"); }
+.card-bg-add       { background-image: url("../../assets/images/cards/backgrounds/card_bg_add_v01.png"); }
+.card-bg-heal      { background-image: url("../../assets/images/cards/backgrounds/card_bg_heal_v01.png"); }
+
+/* ============================================================
+   プレイヤー情報
+   ============================================================ */
+
+#player-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 2px;
+}
+
+#player-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#hearts-area { display: flex; gap: 1px; }
+.heart { font-size: 18px; }
+
+#player-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#deck-count {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.deck-label {
+  margin-right: 2px;
+  color: #8888aa;
+}
+
+.deck-pip {
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.deck-pip.filled {
+  background: linear-gradient(180deg, #d4c89e, #9e8e6a);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.deck-pip.empty {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.deck-number {
+  margin-left: 4px;
+  color: #aaa;
+}
+
+#change-hand-btn {
+  padding: 7px 10px;
+  background: rgba(14, 14, 22, 0.80);
+  color: #bbb;
+  border: 1px solid rgba(70, 70, 90, 0.50);
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#change-hand-btn:not(:disabled):hover { background: rgba(22, 22, 34, 0.88); }
+#change-hand-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ============================================================
+   コンボ + こたえ入力
+   ============================================================ */
+
+#combo-area {
+  display: none; /* コンボは PLAYER RESULT 内に統合したため非表示 */
+}
+
+/* PLAYER RESULT 内のコンボ行 */
+#feedback-combo {
+  font-size: 12px;
+  font-weight: bold;
+  color: #f39c12;
+  margin-top: 4px;
+}
+
+/* PLAYER RESULT 初期プレースホルダー */
+.feedback-placeholder {
+  color: #3a3a58;
+  font-size: 13px;
+  font-weight: normal;
+}
+
+/* 回答スロット：カード回答・敵攻撃かいひ が同一位置に出るコンテナ */
+#interaction-slot {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 式＋入力欄・読み表示を2カラムグリッドで揃える */
+#answer-question-row,
+#attack-question-row,
+#answer-reading-row,
+#attack-reading-row {
+  display: grid;
+  grid-template-columns: 230px 120px;
+  column-gap: 10px;
+  align-items: center;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 2px;
+}
+
+.answer-reading-spacer {
+  width: 120px;
+}
+
+#answer-panel {
+  background: rgba(8, 10, 16, 0.76);
+  backdrop-filter: blur(2px);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+#selected-question {
+  justify-self: stretch;
+}
+
+#selected-reading {
+  font-size: 12px;
+  color: #8888aa;
+  justify-self: stretch;
+  margin-bottom: 4px;
+}
+
+#answer-input {
+  width: 120px;
+  max-width: none;
+  padding: 8px;
+  font-size: 24px;
+  text-align: center;
+  border-radius: 8px;
+  border: 2px solid #3498db;
+  background: #fff;
+  color: #222;
+}
+
+#answer-buttons {
+  display: flex;
+  gap: 8px;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#submit-answer-btn {
+  flex: 2;
+  padding: 10px;
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#submit-answer-btn:hover { background: #a93226; }
+
+/* カード種別ごとのボタン色 */
+#submit-answer-btn.action-mul { background: #c07800; }
+#submit-answer-btn.action-mul:hover { background: #a06000; }
+
+#submit-answer-btn.action-add { background: #c0392b; }
+#submit-answer-btn.action-add:hover { background: #a93226; }
+
+#submit-answer-btn.action-sub { background: #1e7e34; }
+#submit-answer-btn.action-sub:hover { background: #166128; }
+
+#cancel-btn {
+  flex: 1;
+  padding: 10px;
+  background: rgba(40, 40, 52, 0.92);
+  color: #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#cancel-btn:hover { background: rgba(56, 56, 72, 0.96); }
+
+/* 式分解レイアウト（4カラムグリッド: 左数字 / 演算子 / 右数字 / = ） */
+.formula-layout {
+  display: grid;
+  grid-template-columns: 1fr 0.7fr 1fr 0.7fr;
+  align-items: center;
+  width: 100%;
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.formula-part {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 読み分解レイアウト（式カラムに対応） */
+.formula-reading-layout {
+  display: grid;
+  grid-template-columns: 1fr 0.7fr 1fr 0.7fr;
+  width: 100%;
+}
+
+.reading-part {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 足し算・引き算の読みは1行テキスト */
+.formula-reading-simple {
+  padding-left: 4px;
+}
+
+/* ============================================================
+   結果オーバーレイ
+   ============================================================ */
+
+#result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+#result-box {
+  background: rgba(10, 12, 18, 0.97);
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+}
+
+#result-title  { font-size: 34px; font-weight: bold; margin-bottom: 10px; }
+#result-detail { font-size: 13px; color: #ccc; margin-bottom: 18px; }
+
+.result-area-name    { font-size: 13px; color: #8888aa; margin-bottom: 4px; }
+.result-stage-label  { font-size: 16px; font-weight: bold; color: #eee; margin-bottom: 4px; }
+.result-next-hint    { font-size: 13px; color: #f39c12; margin-bottom: 8px; }
+.result-hearts-label { font-size: 11px; color: #8888aa; margin-top: 8px; margin-bottom: 2px; }
+.result-hearts       { font-size: 22px; letter-spacing: 2px; }
+#result-mistakes { text-align: left; margin-bottom: 18px; }
+
+.mistakes-heading {
+  font-size: 14px;
+  font-weight: bold;
+  color: #f39c12;
+  margin-bottom: 6px;
+}
+
+.mistake-row {
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(40, 40, 60, 0.50);
+  color: #ddd;
+}
+
+.no-mistakes {
+  font-size: 16px;
+  color: #2ecc71;
+  font-weight: bold;
+  text-align: center;
+}
+
+#result-back-btn {
+  padding: 12px 36px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#result-back-btn:hover { background: #2980b9; }
+
+/* ============================================================
+   演出アニメーション
+   ============================================================ */
+
+/* ダメージポップ（敵スプライト付近） */
+@keyframes kf-damage-pop {
+  0%   { opacity: 0; transform: translateY(4px) scale(0.9); }
+  12%  { opacity: 1; transform: translateY(0) scale(1.08); }
+  70%  { opacity: 1; transform: translateY(-16px) scale(1.08); }
+  100% { opacity: 0; transform: translateY(-28px) scale(0.95); }
+}
+
+/* 画面フラッシュオーバーレイ（UI全体を一瞬だけ色づけ） */
+#flash-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: transparent;
+}
+
+@keyframes kf-flash-white {
+  0%, 100% { background: transparent; }
+  30%      { background: rgba(46, 46, 80, 0.35); }
+}
+@keyframes kf-flash-green {
+  0%, 100% { background: transparent; }
+  30%      { background: rgba(26, 46, 34, 0.40); }
+}
+@keyframes kf-flash-miss {
+  0%, 100% { background: transparent; }
+  30%      { background: rgba(46, 26, 26, 0.40); }
+}
+@keyframes kf-flash-fire {
+  0%, 100% { background: transparent; }
+  30%      { background: rgba(46, 30, 10, 0.40); }
+}
+@keyframes kf-flash-water {
+  0%, 100% { background: transparent; }
+  30%      { background: rgba(14, 30, 50, 0.40); }
+}
+@keyframes kf-flash-grass {
+  0%, 100% { background: transparent; }
+  30%      { background: rgba(14, 46, 26, 0.40); }
+}
+@keyframes kf-flash-light {
+  0%, 100% { background: transparent; }
+  30%      { background: rgba(46, 42, 16, 0.40); }
+}
+
+#flash-overlay.flash-white { animation: kf-flash-white 0.4s ease forwards; }
+#flash-overlay.flash-green { animation: kf-flash-green 0.4s ease forwards; }
+#flash-overlay.flash-miss  { animation: kf-flash-miss  0.35s ease forwards; }
+#flash-overlay.flash-fire  { animation: kf-flash-fire  0.45s ease forwards; }
+#flash-overlay.flash-water { animation: kf-flash-water 0.45s ease forwards; }
+#flash-overlay.flash-grass { animation: kf-flash-grass 0.45s ease forwards; }
+#flash-overlay.flash-light { animation: kf-flash-light 0.45s ease forwards; }
+
+/* 敵ダメージシェイク */
+@keyframes kf-enemy-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-10px); }
+  40%      { transform: translateX(10px); }
+  60%      { transform: translateX(-6px); }
+  80%      { transform: translateX(6px); }
+}
+
+#enemy-sprite.enemy-shake {
+  animation: kf-enemy-shake 0.5s ease;
+}
+
+/* 敵行動前モーション */
+@keyframes kf-enemy-preaction {
+  0%   { transform: translateY(0) scale(1); }
+  45%  { transform: translateY(-12px) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+#enemy-sprite.enemy-preaction {
+  animation: kf-enemy-preaction 0.5s ease;
+}

@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# 作業用・内部ドキュメント
+etc/
+docs/
+案件概要.md
+意思決定ログ.md
+気づき.md
+進捗ログ.md
+未決事項.md
+用語集.md

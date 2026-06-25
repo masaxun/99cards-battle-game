@@ -1,0 +1,849 @@
+(function () {
+  "use strict";
+
+  var Battle = window.Kuku99.Battle;
+  var Areas = window.Kuku99.Areas;
+  var GameState = window.Kuku99.GameState;
+  var Yomi = window.Kuku99.Yomi;
+
+  var session = null;
+  var selectedCardUid = null;
+  var finalized = false;
+  var feedbackTimer = null;
+  var enemyMsgTimer = null;
+  var interactionLocked = false;
+  var feedbackPersistent = false;
+
+  // ============================================================
+  // 定数
+  // ============================================================
+
+  var ELEMENT_ICONS = { fire: "🔥", water: "💧", grass: "🌿", light: "✨", none: "【無】" };
+
+  var STAGE_IMAGE_PATHS = {
+    normal1: "assets/images/enemies/slime/enemy_normal1_slime_none_v01.png",
+    normal2: "assets/images/enemies/bat/enemy_normal2_bat_none_v01.png",
+    normal3: "assets/images/enemies/golem/enemy_normal3_golem_none_v01.png",
+    boss:    "assets/images/enemies/dragon/enemy_boss_dragon_none_v01.png"
+  };
+  var STAGE_FALLBACK_SPRITES = { normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉" };
+  var STAGE_NAMES   = { normal1: "スライム", normal2: "バット", normal3: "ゴーレム", boss: "のぬし" };
+  var STAGE_LABELS  = { normal1: "通常戦1", normal2: "通常戦2", normal3: "通常戦3", boss: "ぬし戦" };
+
+  var IDLE_REACTIONS_NORMAL = [
+    "敵がうなった",
+    "敵がにらんだ",
+    "敵が静かに動いた"
+  ];
+  var IDLE_REACTIONS_BOSS = [
+    "ボスがうなった",
+    "ボスが低くうなり声をあげた",
+    "ボスが静かに力をためている…"
+  ];
+
+  var ELEMENT_FLASH_CLASS = {
+    fire:  "flash-fire",
+    water: "flash-water",
+    grass: "flash-grass",
+    light: "flash-light",
+    none:  "flash-white"
+  };
+
+  // ============================================================
+  // 初期化
+  // ============================================================
+
+  function getParams() {
+    var search = location.search.slice(1);
+    var result = {};
+    if (!search) return result;
+    search.split("&").forEach(function (pair) {
+      var eq = pair.indexOf("=");
+      if (eq > 0) {
+        result[decodeURIComponent(pair.slice(0, eq))] = decodeURIComponent(pair.slice(eq + 1));
+      }
+    });
+    return result;
+  }
+
+  function init() {
+    var params = getParams();
+    var areaId = params.areaId || "hajimari";
+    var stage  = params.stage  || "normal1";
+
+    var gameState = GameState.load();
+    var areaDef   = Areas.getAreaById(areaId);
+    if (!areaDef) {
+      document.body.textContent = "エリアが見つかりません: " + areaId;
+      return;
+    }
+
+    session = Battle.createBattleSession(areaDef, stage, gameState);
+
+    applyBattleBg(areaId, stage);
+
+    document.getElementById("submit-answer-btn").addEventListener("click", onSubmitAnswer);
+    document.getElementById("cancel-btn").addEventListener("click", onCancelCard);
+    document.getElementById("change-hand-btn").addEventListener("click", onChangeHand);
+    document.getElementById("submit-attack-btn").addEventListener("click", onSubmitAttack);
+    document.getElementById("result-back-btn").addEventListener("click", onResultBack);
+
+    document.getElementById("answer-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") onSubmitAnswer();
+    });
+    document.getElementById("attack-answer-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") onSubmitAttack();
+    });
+
+    render();
+    resetToPlaceholder();
+  }
+
+  // ============================================================
+  // 背景
+  // ============================================================
+
+  function applyBattleBg(areaId, stage) {
+    var el = document.getElementById("battle-screen");
+    el.classList.remove("battle-bg-hajimari", "battle-bg-hajimari-boss");
+    if (areaId === "hajimari" && stage === "boss") {
+      el.classList.add("battle-bg-hajimari-boss");
+    } else if (areaId === "hajimari") {
+      el.classList.add("battle-bg-hajimari");
+    }
+  }
+
+  // ============================================================
+  // 描画
+  // ============================================================
+
+  function render() {
+    renderEnemyHP();
+    renderEnemySprite();
+    renderEnemyAttackPanel();
+    renderHand();
+    renderPlayerSection();
+    renderCombo();
+    renderAnswerPanel();
+  }
+
+  function renderEnemyHP() {
+    var hp    = session.enemyHp;
+    var maxHp = session.enemyMaxHp;
+    var pct   = maxHp > 0 ? Math.max(0, Math.round(hp / maxHp * 100)) : 0;
+    document.getElementById("enemy-hp-fill").style.width = pct + "%";
+    document.getElementById("enemy-hp-text").textContent = hp + " / " + maxHp;
+  }
+
+  function renderEnemySprite() {
+    var stage = session.stage;
+    var spriteEl = document.getElementById("enemy-sprite");
+    var imgPath = STAGE_IMAGE_PATHS[stage];
+    if (imgPath) {
+      var img = document.createElement("img");
+      img.className = "enemy-image" + (stage === "boss" ? " enemy-boss" : "");
+      img.src = imgPath;
+      img.alt = STAGE_NAMES[stage] || "モンスター";
+      img.onerror = (function (fallback) {
+        return function () { spriteEl.textContent = fallback; };
+      })(STAGE_FALLBACK_SPRITES[stage] || "👾");
+      spriteEl.innerHTML = "";
+      spriteEl.appendChild(img);
+    } else {
+      spriteEl.textContent = STAGE_FALLBACK_SPRITES[stage] || "👾";
+    }
+
+    var nameEl = document.getElementById("enemy-name");
+    var suffix = STAGE_NAMES[stage] || "モンスター";
+    nameEl.textContent = (stage === "boss")
+      ? session.areaDef.name + "のぬし"
+      : suffix;
+
+    var badgesEl = document.getElementById("enemy-badges");
+    var badges = [];
+    if (session.enemyState.guard)   badges.push("🛡 ガード");
+    if (session.enemyState.powerUp) badges.push("🔥 力ため");
+    if (session.enemyState.opening) badges.push("✨ 隙あり");
+    badgesEl.textContent = badges.join("  ");
+    badgesEl.className = badges.length > 0 ? "badges-visible" : "";
+  }
+
+  function renderEnemyAttackPanel() {
+    var panel = document.getElementById("enemy-attack-panel");
+    if (session.pendingAttack) {
+      var att = session.pendingAttack;
+      var q   = att.question;
+
+      var labelText, hpWarning;
+      if (att.kind === "counter") {
+        labelText  = "⚡ 敵が反撃してきた！";
+        hpWarning  = "ミスするとハート-1";
+      } else if (att.powered) {
+        labelText  = "💥 ボスの強いこうげき！";
+        hpWarning  = "ミスするとハート-2";
+      } else {
+        labelText  = "⚡ ボスがこうげきしてきた！";
+        hpWarning  = "ミスするとハート-1";
+      }
+
+      document.getElementById("attack-label").textContent = labelText;
+      document.getElementById("attack-hp-warning").textContent = hpWarning;
+      document.getElementById("attack-question").innerHTML = buildFormulaLayoutHtml(q.a, q.b, "mul");
+      document.getElementById("attack-reading").innerHTML = buildReadingLayoutHtml(q.a, q.b, "mul");
+      document.getElementById("attack-answer-input").value = "";
+      panel.classList.remove("hidden");
+      document.getElementById("attack-answer-input").focus();
+    } else {
+      panel.classList.add("hidden");
+    }
+  }
+
+  function renderHand() {
+    var handEl = document.getElementById("hand-cards");
+    handEl.innerHTML = "";
+    var locked = !!session.pendingAttack || session.ended || interactionLocked;
+    var hasOpening = session.enemyState.opening;
+
+    session.hand.forEach(function (card) {
+      var div = document.createElement("div");
+      var classes = ["card", "card-" + card.kind];
+
+      if (card.kind === "mul" && card.element && card.element !== "none") {
+        classes.push("element-" + card.element);
+      }
+
+      // カード背景画像クラス
+      if (card.kind === "mul") {
+        classes.push("card-bg-mul-" + (card.element || "none"));
+      } else if (card.kind === "add") {
+        classes.push("card-bg-add");
+      } else if (card.kind === "sub") {
+        classes.push("card-bg-heal");
+      }
+
+      if (card.uid === selectedCardUid) classes.push("card-selected");
+      if (locked) classes.push("card-disabled");
+
+      var isTargetMul = hasOpening && card.kind === "mul" && card.dan === session.areaDef.dan;
+      if (isTargetMul && !locked) classes.push("card-opening-highlight");
+
+      div.className = classes.join(" ");
+
+      var badgeDiv = document.createElement("div");
+      badgeDiv.className = "card-badge";
+      badgeDiv.textContent = cardBadgeText(card);
+      div.appendChild(badgeDiv);
+
+      var questionDiv = document.createElement("div");
+      questionDiv.className = "card-formula";
+      questionDiv.textContent = cardFormula(card);
+      div.appendChild(questionDiv);
+
+      if (!locked) {
+        (function (uid) {
+          div.addEventListener("click", function () { onSelectCard(uid); });
+        })(card.uid);
+      }
+
+      handEl.appendChild(div);
+    });
+  }
+
+  function renderPlayerSection() {
+    var heartsEl = document.getElementById("hearts-area");
+    heartsEl.innerHTML = "";
+    for (var i = 0; i < session.maxHp; i++) {
+      var span = document.createElement("span");
+      span.className = "heart";
+      span.textContent = i < session.hp ? "❤️" : "🖤";
+      heartsEl.appendChild(span);
+    }
+
+    var total = session.initialDeckSize;
+    var remaining = session.deck.length;
+    var deckIconSlots = 6;
+    var filled = remaining > 0 ? Math.ceil(remaining / 5) : 0;
+    if (filled > deckIconSlots) filled = deckIconSlots;
+    var html = "<span class='deck-label'>山札</span>";
+    for (var gi = 0; gi < deckIconSlots; gi++) {
+      html += "<span class='deck-pip " + (gi < filled ? "filled" : "empty") + "'></span>";
+    }
+    html += "<span class='deck-number'>" + remaining + "/" + total + "</span>";
+    document.getElementById("deck-count").innerHTML = html;
+
+    document.getElementById("change-hand-btn").disabled =
+      session.hp < 2 || !!session.pendingAttack || session.ended || interactionLocked;
+  }
+
+  function renderCombo() {
+    var comboEl = document.getElementById("feedback-combo");
+    if (session.combo >= 2) {
+      var pct = comboBonus(session.combo);
+      comboEl.textContent = session.combo + "コンボ：ダメージ+" + pct + "%";
+    } else {
+      comboEl.textContent = "";
+    }
+  }
+
+  function renderAnswerPanel() {
+    var panel = document.getElementById("answer-panel");
+    if (!selectedCardUid || !!session.pendingAttack || session.ended) {
+      panel.classList.add("hidden");
+      selectedCardUid = null;
+      return;
+    }
+    var card = findInHand(selectedCardUid);
+    if (!card) {
+      panel.classList.add("hidden");
+      selectedCardUid = null;
+      return;
+    }
+    document.getElementById("selected-question").innerHTML = buildFormulaLayoutHtml(card.a, card.b, card.kind);
+    document.getElementById("selected-reading").innerHTML = buildReadingLayoutHtml(card.a, card.b, card.kind);
+
+    var btn = document.getElementById("submit-answer-btn");
+    btn.classList.remove("action-mul", "action-add", "action-sub");
+    if (card.kind === "mul") {
+      btn.textContent = "ひっさつ！";
+      btn.classList.add("action-mul");
+    } else if (card.kind === "add") {
+      btn.textContent = "こうげき！";
+      btn.classList.add("action-add");
+    } else {
+      btn.textContent = "かいふく！";
+      btn.classList.add("action-sub");
+    }
+
+    panel.classList.remove("hidden");
+  }
+
+  // ============================================================
+  // 式・読みHTML生成
+  // ============================================================
+
+  function buildFormulaLayoutHtml(a, b, kind) {
+    var op = kind === "mul" ? "×" : kind === "add" ? "+" : "−";
+    return [
+      "<div class='formula-layout'>",
+      "<span class='formula-part formula-left'>" + a + "</span>",
+      "<span class='formula-part formula-op'>" + op + "</span>",
+      "<span class='formula-part formula-right'>" + b + "</span>",
+      "<span class='formula-part formula-eq'>=</span>",
+      "</div>"
+    ].join("");
+  }
+
+  function buildReadingLayoutHtml(a, b, kind) {
+    if (kind === "mul") {
+      return [
+        "<div class='formula-reading-layout'>",
+        "<span class='reading-part reading-left'>" + Yomi.numberToYomiKuku(a) + "</span>",
+        "<span class='reading-part reading-op'></span>",
+        "<span class='reading-part reading-right'>" + Yomi.numberToYomiKuku(b) + "</span>",
+        "<span class='reading-part reading-eq'>？</span>",
+        "</div>"
+      ].join("");
+    }
+    var opText = kind === "add" ? " たす " : " ひく ";
+    return "<div class='formula-reading-simple'>" +
+      Yomi.numberToYomiPlain(a) + opText + Yomi.numberToYomiPlain(b) + " は ？</div>";
+  }
+
+  // ============================================================
+  // カード表示ヘルパー
+  // ============================================================
+
+  function cardBadgeText(card) {
+    if (card.kind === "mul") {
+      var icon = ELEMENT_ICONS[card.element] || "【無】";
+      return icon + " 必殺";
+    }
+    if (card.kind === "add") return "⚔ 攻撃";
+    return "💚 回復";
+  }
+
+  function cardFormula(card) {
+    if (card.kind === "mul") return card.a + " × " + card.b;
+    if (card.kind === "add") return card.a + " + " + card.b;
+    return card.a + " - " + card.b;
+  }
+
+  function comboBonus(combo) {
+    if (combo >= 5) return 20;
+    if (combo === 4) return 15;
+    if (combo === 3) return 10;
+    if (combo === 2) return 5;
+    return 0;
+  }
+
+  function findInHand(uid) {
+    for (var i = 0; i < session.hand.length; i++) {
+      if (session.hand[i].uid === uid) return session.hand[i];
+    }
+    return null;
+  }
+
+  // ============================================================
+  // 演出
+  // ============================================================
+
+  function flashScreen(kind, element) {
+    var cls;
+    if (kind === "sub") {
+      cls = "flash-green";
+    } else if (kind === "mul") {
+      cls = ELEMENT_FLASH_CLASS[element] || "flash-white";
+    } else {
+      cls = "flash-white";
+    }
+    var overlay = document.getElementById("flash-overlay");
+    overlay.classList.remove(cls);
+    void overlay.offsetWidth;
+    overlay.classList.add(cls);
+    setTimeout(function () { overlay.classList.remove(cls); }, 500);
+  }
+
+  function flashMiss() {
+    var overlay = document.getElementById("flash-overlay");
+    overlay.classList.remove("flash-miss");
+    void overlay.offsetWidth;
+    overlay.classList.add("flash-miss");
+    setTimeout(function () { overlay.classList.remove("flash-miss"); }, 400);
+  }
+
+  function shakeEnemySprite() {
+    var el = document.getElementById("enemy-sprite");
+    el.classList.remove("enemy-shake");
+    void el.offsetWidth;
+    el.classList.add("enemy-shake");
+    setTimeout(function () { el.classList.remove("enemy-shake"); }, 550);
+  }
+
+  function animateEnemyPreAction(callback) {
+    var el = document.getElementById("enemy-sprite");
+    el.classList.remove("enemy-preaction");
+    void el.offsetWidth;
+    el.classList.add("enemy-preaction");
+    setTimeout(function () {
+      el.classList.remove("enemy-preaction");
+      if (callback) callback();
+    }, 550);
+  }
+
+  // 最終ダメージを敵スプライト付近にポップ表示する。
+  function showDamagePop(damage) {
+    var el = document.getElementById("enemy-damage-pop");
+    el.textContent = damage + "ダメージ！";
+    el.classList.remove("pop-animate");
+    void el.offsetWidth;
+    el.classList.add("pop-animate");
+    setTimeout(function () {
+      el.classList.remove("pop-animate");
+    }, 2000);
+  }
+
+  // ============================================================
+  // インタラクション
+  // ============================================================
+
+  function onSelectCard(uid) {
+    if (session.ended || session.pendingAttack || interactionLocked) return;
+    selectedCardUid = selectedCardUid === uid ? null : uid;
+    clearPersistentFeedback();
+    renderHand();
+    renderAnswerPanel();
+    if (selectedCardUid) {
+      document.getElementById("answer-input").value = "";
+      document.getElementById("answer-input").focus();
+    }
+  }
+
+  function onCancelCard() {
+    if (interactionLocked) return;
+    selectedCardUid = null;
+    document.getElementById("answer-panel").classList.add("hidden");
+    renderHand();
+  }
+
+  function onSubmitAnswer() {
+    if (interactionLocked || !selectedCardUid || session.ended || session.pendingAttack) return;
+    var val = document.getElementById("answer-input").value.trim();
+    if (val === "") return;
+
+    var uid  = selectedCardUid;
+    var card = findInHand(uid);
+    selectedCardUid = null;
+    document.getElementById("answer-panel").classList.add("hidden");
+
+    interactionLocked = true;
+
+    var result = Battle.playCard(session, uid, val);
+    if (result.error) {
+      interactionLocked = false;
+      return;
+    }
+
+    showCardFeedback(result);
+
+    if (result.correct && card) {
+      flashScreen(card.kind, card.element);
+      if (result.logEntry.damage !== undefined) {
+        setTimeout(shakeEnemySprite, 130);
+        if (result.logEntry.damageBreakdown) {
+          showDamagePop(result.logEntry.damageBreakdown.finalDamage);
+        }
+      }
+    } else if (!result.correct) {
+      flashMiss();
+    }
+
+    render();
+
+    if (session.ended) {
+      interactionLocked = false;
+      scheduleEnd();
+      return;
+    }
+
+    setTimeout(function () {
+      if (!result.enemyAction) {
+        interactionLocked = false;
+        renderHand();
+        renderPlayerSection();
+        return;
+      }
+      animateEnemyPreAction(function () {
+        showEnemyAction(result.enemyAction);
+        renderEnemySprite();
+        if (session.pendingAttack) {
+          renderEnemyAttackPanel();
+        }
+        interactionLocked = false;
+        renderHand();
+        renderPlayerSection();
+      });
+    }, 1100);
+  }
+
+  function onSubmitAttack() {
+    if (!session.pendingAttack || session.ended || interactionLocked) return;
+    var val = document.getElementById("attack-answer-input").value.trim();
+    if (val === "") return;
+
+    interactionLocked = true;
+
+    clearTimeout(enemyMsgTimer);
+    document.getElementById("enemy-action-msg").classList.add("fb-hidden");
+
+    var result = Battle.resolveEnemyAttack(session, val);
+    if (result.error) {
+      interactionLocked = false;
+      return;
+    }
+
+    showAttackFeedback(result);
+
+    if (result.correct) {
+      flashScreen("add", null);
+    } else {
+      flashMiss();
+    }
+
+    render();
+
+    if (session.ended) {
+      interactionLocked = false;
+      scheduleEnd();
+      return;
+    }
+
+    setTimeout(function () {
+      interactionLocked = false;
+      renderHand();
+      renderPlayerSection();
+    }, 800);
+  }
+
+  function onChangeHand() {
+    if (session.hp < 2 || session.pendingAttack || session.ended || interactionLocked) return;
+    selectedCardUid = null;
+    document.getElementById("answer-panel").classList.add("hidden");
+    clearPersistentFeedback();
+
+    interactionLocked = true;
+
+    var result = Battle.changeHand(session);
+    showInfoFeedback("手札を入れ替えた（ハート-1）");
+    flashScreen("add", null);
+
+    render();
+
+    if (session.ended) {
+      interactionLocked = false;
+      scheduleEnd();
+      return;
+    }
+
+    setTimeout(function () {
+      if (!result.enemyAction) {
+        interactionLocked = false;
+        renderHand();
+        renderPlayerSection();
+        return;
+      }
+      animateEnemyPreAction(function () {
+        showEnemyAction(result.enemyAction);
+        renderEnemySprite();
+        if (session.pendingAttack) {
+          renderEnemyAttackPanel();
+        }
+        interactionLocked = false;
+        renderHand();
+        renderPlayerSection();
+      });
+    }, 1100);
+  }
+
+  function onResultBack() {
+    window.location.href = "battle.html";
+  }
+
+  // ============================================================
+  // フィードバック表示
+  // ============================================================
+
+  // プレイヤーのカード使用結果を2段構造で表示する。
+  // 1段目：計算結果（formula）、読み（reading）
+  // 2段目：ゲーム補正（correction）またはミスメッセージ
+  // 最終ダメージは敵スプライト付近の showDamagePop で別表示する。
+  function showCardFeedback(result) {
+    var correct  = result.correct;
+    var logEntry = result.logEntry;
+
+    var formulaEl    = document.getElementById("feedback-formula");
+    var readEl       = document.getElementById("feedback-reading");
+    var correctionEl = document.getElementById("feedback-correction");
+    var hintEl       = document.getElementById("feedback-hint");
+
+    readEl.textContent       = "";
+    correctionEl.textContent = "";
+    hintEl.textContent       = "";
+
+    var badge = logEntry.kind === "mul"
+      ? (ELEMENT_ICONS[logEntry.element] || "【無】") + " 必殺"
+      : logEntry.kind === "add" ? "⚔ 攻撃" : "💚 回復";
+    var op = logEntry.kind === "mul" ? " × " : logEntry.kind === "add" ? " + " : " - ";
+
+    if (correct) {
+      // 1段目: 純粋な計算結果（最終ダメージは含まない）
+      formulaEl.textContent = badge + "  " + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
+      formulaEl.className   = "feedback-correct";
+
+      // 読み
+      readEl.textContent = Yomi.getReading(logEntry) || "";
+
+      // 2段目: ゲーム補正（ダメージ攻撃のみ）
+      if (logEntry.damageBreakdown) {
+        correctionEl.textContent = buildDamageCorrections(logEntry);
+      }
+
+      showFeedbackArea(false);
+    } else {
+      // ミス: 試みた式を表示（答えは ? に）
+      formulaEl.textContent = badge + "  " + logEntry.a + op + logEntry.b + " = ？";
+      formulaEl.className   = "feedback-wrong";
+      correctionEl.textContent = "おしい！ ハートが減った";
+      if (logEntry.hint) hintEl.textContent = "ヒント: " + logEntry.hint;
+      showFeedbackArea(true); // 次の操作まで残す
+    }
+  }
+
+  function showAttackFeedback(result) {
+    var formulaEl    = document.getElementById("feedback-formula");
+    var readEl       = document.getElementById("feedback-reading");
+    var correctionEl = document.getElementById("feedback-correction");
+    document.getElementById("feedback-hint").textContent = "";
+
+    readEl.textContent = "";
+
+    if (result.correct) {
+      formulaEl.textContent    = "かいひ成功！";
+      formulaEl.className      = "feedback-correct";
+      correctionEl.textContent = "";
+    } else {
+      formulaEl.textContent = result.powered
+        ? "強いこうげきをくらった！"
+        : "こうげきをくらった！";
+      formulaEl.className      = "feedback-wrong";
+      correctionEl.textContent = result.powered ? "ハート-2" : "ハート-1";
+    }
+    showFeedbackArea(false);
+  }
+
+  function showInfoFeedback(text) {
+    var formulaEl = document.getElementById("feedback-formula");
+    document.getElementById("feedback-reading").textContent = "";
+    document.getElementById("feedback-correction").textContent = "";
+    document.getElementById("feedback-hint").textContent = "";
+    formulaEl.textContent = text;
+    formulaEl.className   = "";
+    showFeedbackArea(false);
+  }
+
+  function resetToPlaceholder() {
+    feedbackPersistent = false;
+    var f = document.getElementById("feedback-formula");
+    f.textContent = "カードをえらんでね";
+    f.className = "feedback-placeholder";
+    document.getElementById("feedback-reading").textContent = "";
+    document.getElementById("feedback-correction").textContent = "";
+    document.getElementById("feedback-hint").textContent = "";
+  }
+
+  function showFeedbackArea(persistent) {
+    clearTimeout(feedbackTimer);
+    feedbackPersistent = !!persistent;
+    if (!persistent) {
+      feedbackTimer = setTimeout(function () {
+        resetToPlaceholder();
+      }, 4500);
+    }
+  }
+
+  function clearPersistentFeedback() {
+    if (feedbackPersistent) {
+      clearTimeout(feedbackTimer);
+      resetToPlaceholder();
+    }
+  }
+
+  // 敵行動メッセージ
+  function showEnemyAction(action) {
+    var msgEl = document.getElementById("enemy-action-msg");
+    var textEl = document.getElementById("enemy-action-text");
+
+    var label = action.label;
+    if (action.type === "none") {
+      var pool = session.stage === "boss" ? IDLE_REACTIONS_BOSS : IDLE_REACTIONS_NORMAL;
+      label = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    if (!label) {
+      msgEl.classList.add("fb-hidden");
+      return;
+    }
+
+    textEl.textContent = label;
+    msgEl.className = "enemy-action-" + action.type;
+    clearTimeout(enemyMsgTimer);
+
+    // counter/bossAttack は攻撃パネルが出るので自動消去しない
+    if (action.type === "counter" || action.type === "bossAttack") return;
+
+    var duration = action.type === "none" ? 3500 : 5000;
+    enemyMsgTimer = setTimeout(function () {
+      msgEl.classList.add("fb-hidden");
+    }, duration);
+  }
+
+  // ============================================================
+  // ダメージ補正テキスト（計算結果とは別段に表示）
+  // ============================================================
+
+  function buildDamageCorrections(logEntry) {
+    if (!logEntry.damageBreakdown) return "";
+    var bd = logEntry.damageBreakdown;
+    var parts = [];
+    if (bd.comboBonusAmount > 0) {
+      parts.push(logEntry.comboAtHit + "コンボ：ダメージ+" + bd.comboBonusAmount);
+    }
+    if (bd.openingBonusAmount > 0) {
+      parts.push("隙あり：ダメージ+" + bd.openingBonusAmount);
+    }
+    if (bd.guardReductionAmount > 0) {
+      parts.push("ガード：ダメージ-" + bd.guardReductionAmount);
+    }
+    return parts.join(" / ");
+  }
+
+  // ============================================================
+  // バトル終了
+  // ============================================================
+
+  function scheduleEnd() {
+    setTimeout(doEndBattle, 1200);
+  }
+
+  function doEndBattle() {
+    if (finalized) return;
+    finalized = true;
+    var summary = Battle.finalizeBattle(session);
+    showResult(summary);
+  }
+
+  function buildResultDetail(summary) {
+    var stage   = summary.stage;
+    var outcome = summary.outcome;
+    var areaName = session.areaDef.name;
+
+    var stageLabel, nextHint;
+    if (stage === "boss") {
+      stageLabel = outcome === "win" ? "ぬし戦 クリア！" : "ぬし戦で敗北";
+    } else {
+      var stageNum = { normal1: 1, normal2: 2, normal3: 3 }[stage] || 1;
+      if (outcome === "win") {
+        stageLabel = "通常戦 " + stageNum + " / 3 クリア";
+        if (stageNum === 3) nextHint = "次はぬし戦！";
+      } else {
+        stageLabel = "通常戦 " + stageNum + " / 3 で撤退";
+      }
+    }
+
+    var heartsStr = "";
+    for (var i = 0; i < session.maxHp; i++) {
+      heartsStr += i < summary.finalHp ? "❤️" : "🖤";
+    }
+
+    var parts = [
+      "<div class='result-area-name'>" + areaName + "</div>",
+      "<div class='result-stage-label'>" + stageLabel + "</div>"
+    ];
+    if (nextHint) parts.push("<div class='result-next-hint'>" + nextHint + "</div>");
+    parts.push("<div class='result-hearts-label'>残りハート</div>");
+    parts.push("<div class='result-hearts'>" + heartsStr + "</div>");
+    return parts.join("");
+  }
+
+  function showResult(summary) {
+    var OUTCOME = { win: "🎉 しょうり！", lose: "💔 やられた…", retreat: "🏃 撤退…" };
+
+    document.getElementById("result-title").textContent =
+      OUTCOME[summary.outcome] || summary.outcome;
+    document.getElementById("result-detail").innerHTML = buildResultDetail(summary);
+
+    var mistakesEl = document.getElementById("result-mistakes");
+    mistakesEl.innerHTML = "";
+
+    if (summary.mistakes && summary.mistakes.length > 0) {
+      var heading = document.createElement("div");
+      heading.className = "mistakes-heading";
+      heading.textContent = "まちがえた問題（" + summary.mistakes.length + "問）";
+      mistakesEl.appendChild(heading);
+      summary.mistakes.forEach(function (m) {
+        var row = document.createElement("div");
+        row.className = "mistake-row";
+        row.textContent = Yomi.formatExpression(m) + "　" + Yomi.getReading(m);
+        mistakesEl.appendChild(row);
+      });
+    } else {
+      var nice = document.createElement("div");
+      nice.className = "no-mistakes";
+      nice.textContent = "ミスなし！ 完璧！";
+      mistakesEl.appendChild(nice);
+    }
+
+    document.getElementById("result-overlay").classList.remove("hidden");
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
