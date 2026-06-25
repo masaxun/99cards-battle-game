@@ -864,12 +864,6 @@ body {
 #battle-screen.is-answering #enemy-info-row {
   margin-bottom: 0;
 }
-#battle-screen.is-answering .enemy-image {
-  max-height: 100px;
-}
-#battle-screen.is-answering .enemy-image.enemy-boss {
-  max-height: 120px;
-}
 #battle-screen.is-answering #enemy-hp-section {
   padding: 6px 8px;
 }
