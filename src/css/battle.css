@@ -198,7 +198,7 @@ body {
   padding: 6px 10px;
   border-radius: 0 0 8px 8px;
   font-size: 13px;
-  background: rgba(8, 10, 18, 0.88);
+  background: rgba(5, 8, 18, 0.72);
   color: #bbb;
   text-align: center;
 }
@@ -213,12 +213,12 @@ body {
 }
 
 /* 敵行動タイプ別スタイル（色相を保ちつつ黒系に寄せる） */
-.enemy-action-guard   { background: rgba(6, 10, 32, 0.88); color: #6699ff; }
-.enemy-action-powerUp { background: rgba(24, 8, 0, 0.88); color: #ff8844; }
-.enemy-action-opening { background: rgba(6, 20, 0, 0.88); color: #88ee44; }
+.enemy-action-guard   { background: rgba(6, 10, 32, 0.75); color: #6699ff; }
+.enemy-action-powerUp { background: rgba(24, 8, 0, 0.75); color: #ff8844; }
+.enemy-action-opening { background: rgba(6, 20, 0, 0.75); color: #88ee44; }
 .enemy-action-counter,
-.enemy-action-bossAttack { background: rgba(28, 0, 0, 0.88); color: #ff4444; font-weight: bold; }
-.enemy-action-none    { background: rgba(8, 10, 18, 0.78); color: #888; font-size: 12px; }
+.enemy-action-bossAttack { background: rgba(28, 0, 0, 0.82); color: #ff4444; font-weight: bold; }
+.enemy-action-none    { background: rgba(8, 10, 18, 0.65); color: #888; font-size: 12px; }
 
 /* ============================================================
    プレイヤー結果フィードバック（青系・ENEMY ACTION と区別）
@@ -257,6 +257,7 @@ body {
   font-size: 12px;
   color: #aaa;
   margin-top: 2px;
+  padding-left: 6px;
 }
 
 #feedback-correction {

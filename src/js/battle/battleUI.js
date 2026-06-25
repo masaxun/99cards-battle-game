@@ -292,13 +292,7 @@
   }
 
   function renderCombo() {
-    var comboEl = document.getElementById("feedback-combo");
-    if (session.combo >= 2) {
-      var pct = comboBonus(session.combo);
-      comboEl.textContent = session.combo + "コンボ：ダメージ+" + pct + "%";
-    } else {
-      comboEl.textContent = "";
-    }
+    document.getElementById("feedback-combo").textContent = "";
   }
 
   function renderAnswerPanel() {
