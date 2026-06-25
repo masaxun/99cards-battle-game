@@ -338,19 +338,24 @@
   }
 
   function buildReadingLayoutHtml(a, b, kind) {
+    var readA, readB, readEq;
     if (kind === "mul") {
-      return [
-        "<div class='formula-reading-layout'>",
-        "<span class='reading-part reading-left'>" + Yomi.numberToYomiKuku(a) + "</span>",
-        "<span class='reading-part reading-op'></span>",
-        "<span class='reading-part reading-right'>" + Yomi.numberToYomiKuku(b) + "</span>",
-        "<span class='reading-part reading-eq'>？</span>",
-        "</div>"
-      ].join("");
+      readA  = Yomi.numberToYomiKuku(a);
+      readB  = Yomi.numberToYomiKuku(b);
+      readEq = "？";
+    } else {
+      readA  = Yomi.numberToYomiPlain(a);
+      readB  = Yomi.numberToYomiPlain(b);
+      readEq = "は？";
     }
-    var opText = kind === "add" ? " たす " : " ひく ";
-    return "<div class='formula-reading-simple'>" +
-      Yomi.numberToYomiPlain(a) + opText + Yomi.numberToYomiPlain(b) + " は ？</div>";
+    return [
+      "<div class='formula-reading-layout'>",
+      "<span class='reading-part reading-left'>"  + readA  + "</span>",
+      "<span class='reading-part reading-op'></span>",
+      "<span class='reading-part reading-right'>" + readB  + "</span>",
+      "<span class='reading-part reading-eq'>"    + readEq + "</span>",
+      "</div>"
+    ].join("");
   }
 
   // ============================================================
