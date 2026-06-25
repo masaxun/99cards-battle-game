@@ -18,7 +18,7 @@
   // 定数
   // ============================================================
 
-  var ELEMENT_ICONS = { fire: "🔥", water: "💧", grass: "🌿", light: "✨", none: "【無】" };
+  var ELEMENT_ICONS = { fire: "🔥", water: "💧", grass: "🌱", light: "⭐", none: "✨" };
 
   function isMobile() {
     return window.innerWidth <= 640 || ('ontouchstart' in window);
@@ -373,11 +373,11 @@
 
   function cardBadgeText(card) {
     if (card.kind === "mul") {
-      var icon = ELEMENT_ICONS[card.element] || "【無】";
+      var icon = ELEMENT_ICONS[card.element] || "✨";
       return icon + " 必殺";
     }
-    if (card.kind === "add") return "⚔ 攻撃";
-    return "💚 回復";
+    if (card.kind === "add") return "⚔️ 攻撃";
+    return "❤️ 回復";
   }
 
   function cardFormula(card) {
@@ -392,6 +392,33 @@
     if (combo === 3) return 10;
     if (combo === 2) return 5;
     return 0;
+  }
+
+  function buildComboStatusText(combo) {
+    if (combo < 2) return "";
+    return combo + "連続コンボ継続中！（ダメージ+" + comboBonus(combo) + "%）";
+  }
+
+  var ELEMENT_NAMES = { fire: "火属性", water: "水属性", grass: "草属性", light: "光属性", none: "無属性" };
+
+  function buildCardDescription(card) {
+    if (card.kind === "mul") {
+      var ename = ELEMENT_NAMES[card.element] || "無属性";
+      return ename + "の必殺技で攻撃";
+    }
+    if (card.kind === "add") return "たし算カードで攻撃";
+    return "ひき算カードで回復";
+  }
+
+  function showSelectedCardFeedback(card) {
+    var f = document.getElementById("feedback-formula");
+    var readEl = document.getElementById("feedback-reading");
+    f.textContent = buildCardDescription(card);
+    f.className   = "";
+    readEl.textContent = "";
+    readEl.className   = "";
+    document.getElementById("feedback-correction").textContent = buildComboStatusText(session.combo);
+    document.getElementById("feedback-hint").textContent = "";
   }
 
   function findInHand(uid) {
@@ -473,6 +500,10 @@
     if (selectedCardUid) {
       document.getElementById("answer-input").value = "";
       if (!isMobile()) document.getElementById("answer-input").focus();
+      var card = findInHand(selectedCardUid);
+      if (card) showSelectedCardFeedback(card);
+    } else {
+      resetToPlaceholder();
     }
   }
 
@@ -482,6 +513,7 @@
     document.getElementById("answer-panel").classList.add("hidden");
     updateAnsweringClass();
     renderHand();
+    resetToPlaceholder();
   }
 
   function onSubmitAnswer() {
@@ -691,8 +723,8 @@
       correctionEl.textContent = "";
     } else {
       formulaEl.textContent = result.powered
-        ? "❌ 強いこうげきをくらった！"
-        : "❌ こうげきをくらった！";
+        ? "❌ 強いこうげきをうけた！"
+        : "❌ ダメージをうけた！";
       formulaEl.className      = "feedback-wrong";
       correctionEl.textContent = result.powered ? "ハート-2" : "ハート-1";
     }
@@ -719,7 +751,7 @@
     var readEl = document.getElementById("feedback-reading");
     readEl.textContent = "";
     readEl.className   = "";
-    document.getElementById("feedback-correction").textContent = "";
+    document.getElementById("feedback-correction").textContent = buildComboStatusText(session.combo);
     document.getElementById("feedback-hint").textContent = "";
   }
 
