@@ -801,10 +801,17 @@ body {
   #player-left {
     width: 100%;
   }
+  /* スマホではPLAYERラベル不要 */
+  #player-left .section-tag {
+    display: none;
+  }
+  /* 山札とボタンを縦並びに */
   #player-right {
     width: 100%;
     margin-left: 0;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   /* スマホ幅ではデッキピップを小さくして幅を節約 */
@@ -813,8 +820,9 @@ body {
     height: 9px;
   }
 
-  /* 手札交換ボタンを少し圧縮 */
+  /* 手札交換ボタンを右寄せ・少し圧縮 */
   #change-hand-btn {
+    align-self: flex-end;
     padding: 6px 8px;
     font-size: 11px;
   }
@@ -829,6 +837,23 @@ body {
   }
   .card-badge {
     font-size: 9px;
+  }
+
+  /* 読み表示を1列フルスパンで中央寄せ */
+  #answer-reading-row,
+  #attack-reading-row {
+    grid-template-columns: 1fr;
+  }
+  .answer-reading-spacer {
+    display: none;
+  }
+  #selected-reading,
+  #attack-reading {
+    text-align: center;
+  }
+  .formula-reading-simple {
+    padding-left: 0;
+    text-align: center;
   }
 }
 
