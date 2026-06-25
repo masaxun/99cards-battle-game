@@ -587,8 +587,10 @@ body {
 }
 
 #answer-buttons {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  column-gap: 8px;
+  width: 100%;
   max-width: 360px;
   margin-left: auto;
   margin-right: auto;
@@ -805,9 +807,10 @@ body {
     justify-content: space-between;
   }
 
-  /* デッキピップは幅を取るため非表示にして数字だけ残す */
+  /* スマホ幅ではデッキピップを小さくして幅を節約 */
   .deck-pip {
-    display: none;
+    width: 5px;
+    height: 9px;
   }
 
   /* 手札交換ボタンを少し圧縮 */
