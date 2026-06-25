@@ -120,8 +120,9 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(2px);
   border-radius: 8px;
-  padding: 10px;
+  padding: 6px;
   text-align: center;
+  position: relative;
 }
 
 /* 名前・バッジ行（スプライトの上） */
@@ -131,7 +132,7 @@ body {
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
 #enemy-name {
@@ -148,7 +149,6 @@ body {
 #enemy-sprite-wrap {
   position: relative;
   display: inline-block;
-  margin-bottom: 6px;
 }
 
 #enemy-sprite {
@@ -157,16 +157,16 @@ body {
 }
 
 .enemy-image {
-  max-width: 150px;
-  max-height: 150px;
+  max-width: 190px;
+  max-height: 190px;
   object-fit: contain;
   image-rendering: pixelated;
   display: block;
 }
 
 .enemy-image.enemy-boss {
-  max-width: 180px;
-  max-height: 180px;
+  max-width: 220px;
+  max-height: 220px;
 }
 
 /* ダメージポップ（敵スプライト付近に浮かぶ） */
@@ -189,16 +189,18 @@ body {
   animation: kf-damage-pop 2.0s ease forwards;
 }
 
-/* 敵行動メッセージ（スプライト直下・中央） */
+/* 敵行動メッセージ（敵パネル下部にオーバーレイ） */
 #enemy-action-msg {
-  margin-top: 4px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: 0 0 8px 8px;
   font-size: 13px;
-  background: rgba(8, 10, 18, 0.78);
+  background: rgba(8, 10, 18, 0.88);
   color: #bbb;
   text-align: center;
-  min-height: 48px; /* fb-hidden 時も高さを確保 */
 }
 
 /* ENEMY ACTION ラベル（PLAYER RESULT と対になる小ラベル） */
@@ -821,6 +823,20 @@ body {
     font-size: 11px;
   }
 
+  /* セクション間の隙間を縮小 */
+  #battle-screen {
+    gap: 4px;
+  }
+  #enemy-hp-section {
+    padding: 6px 8px;
+  }
+
+  /* ENEMY ACTIONをよりコンパクトに */
+  #enemy-action-msg {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
   /* 手札カード5枚を画面幅に収める */
   .card {
     padding: 18px 2px 4px;
@@ -832,6 +848,29 @@ body {
   .card-badge {
     font-size: 9px;
   }
+}
+
+/* ============================================================
+   回答中コンパクト（ENEMY HPバーを見えやすくする）
+   ============================================================ */
+
+#battle-screen.is-answering {
+  gap: 3px;
+}
+#battle-screen.is-answering #enemy-sprite-section {
+  padding: 4px;
+}
+#battle-screen.is-answering #enemy-info-row {
+  margin-bottom: 0;
+}
+#battle-screen.is-answering .enemy-image {
+  max-height: 100px;
+}
+#battle-screen.is-answering .enemy-image.enemy-boss {
+  max-height: 120px;
+}
+#battle-screen.is-answering #enemy-hp-section {
+  padding: 6px 8px;
 }
 
 /* 敵ダメージシェイク */

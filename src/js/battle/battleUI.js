@@ -24,6 +24,17 @@
     return window.innerWidth <= 640 || ('ontouchstart' in window);
   }
 
+  function updateAnsweringClass() {
+    var screen = document.getElementById("battle-screen");
+    var answerHidden = document.getElementById("answer-panel").classList.contains("hidden");
+    var attackHidden = document.getElementById("enemy-attack-panel").classList.contains("hidden");
+    if (!answerHidden || !attackHidden) {
+      screen.classList.add("is-answering");
+    } else {
+      screen.classList.remove("is-answering");
+    }
+  }
+
   var STAGE_IMAGE_PATHS = {
     normal1: "assets/images/enemies/slime/enemy_normal1_slime_none_v01.png",
     normal2: "assets/images/enemies/bat/enemy_normal2_bat_none_v01.png",
@@ -200,6 +211,7 @@
     } else {
       panel.classList.add("hidden");
     }
+    updateAnsweringClass();
   }
 
   function renderHand() {
@@ -294,12 +306,14 @@
     if (!selectedCardUid || !!session.pendingAttack || session.ended) {
       panel.classList.add("hidden");
       selectedCardUid = null;
+      updateAnsweringClass();
       return;
     }
     var card = findInHand(selectedCardUid);
     if (!card) {
       panel.classList.add("hidden");
       selectedCardUid = null;
+      updateAnsweringClass();
       return;
     }
     document.getElementById("selected-question").innerHTML = buildFormulaLayoutHtml(card.a, card.b, card.kind);
@@ -319,6 +333,7 @@
     }
 
     panel.classList.remove("hidden");
+    updateAnsweringClass();
   }
 
   // ============================================================
@@ -471,6 +486,7 @@
     if (interactionLocked) return;
     selectedCardUid = null;
     document.getElementById("answer-panel").classList.add("hidden");
+    updateAnsweringClass();
     renderHand();
   }
 
