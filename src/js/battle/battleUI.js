@@ -20,6 +20,10 @@
 
   var ELEMENT_ICONS = { fire: "🔥", water: "💧", grass: "🌿", light: "✨", none: "【無】" };
 
+  function isMobile() {
+    return window.innerWidth <= 640 || ('ontouchstart' in window);
+  }
+
   var STAGE_IMAGE_PATHS = {
     normal1: "assets/images/enemies/slime/enemy_normal1_slime_none_v01.png",
     normal2: "assets/images/enemies/bat/enemy_normal2_bat_none_v01.png",
@@ -192,7 +196,7 @@
       document.getElementById("attack-reading").innerHTML = buildReadingLayoutHtml(q.a, q.b, "mul");
       document.getElementById("attack-answer-input").value = "";
       panel.classList.remove("hidden");
-      document.getElementById("attack-answer-input").focus();
+      if (!isMobile()) document.getElementById("attack-answer-input").focus();
     } else {
       panel.classList.add("hidden");
     }
@@ -454,7 +458,7 @@
     renderAnswerPanel();
     if (selectedCardUid) {
       document.getElementById("answer-input").value = "";
-      document.getElementById("answer-input").focus();
+      if (!isMobile()) document.getElementById("answer-input").focus();
     }
   }
 

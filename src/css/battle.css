@@ -1,5 +1,11 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: sans-serif;
   background: #0d0d12;
@@ -24,6 +30,7 @@ body {
   flex-direction: column;
   gap: 6px;
   position: relative;
+  overflow-x: hidden;
 }
 
 /* 背景画像レイヤー（fixed・全画面） */
@@ -300,8 +307,7 @@ body {
 }
 
 #attack-answer-input {
-  width: 120px;
-  max-width: none;
+  width: 100%;
   padding: 8px;
   font-size: 24px;
   text-align: center;
@@ -537,9 +543,10 @@ body {
 #answer-reading-row,
 #attack-reading-row {
   display: grid;
-  grid-template-columns: 230px 120px;
-  column-gap: 10px;
+  grid-template-columns: 1fr 100px;
+  column-gap: 8px;
   align-items: center;
+  width: 100%;
   max-width: 360px;
   margin-left: auto;
   margin-right: auto;
@@ -547,7 +554,7 @@ body {
 }
 
 .answer-reading-spacer {
-  width: 120px;
+  width: 100%;
 }
 
 #answer-panel {
@@ -569,8 +576,7 @@ body {
 }
 
 #answer-input {
-  width: 120px;
-  max-width: none;
+  width: 100%;
   padding: 8px;
   font-size: 24px;
   text-align: center;
@@ -779,6 +785,49 @@ body {
 #flash-overlay.flash-water { animation: kf-flash-water 0.45s ease forwards; }
 #flash-overlay.flash-grass { animation: kf-flash-grass 0.45s ease forwards; }
 #flash-overlay.flash-light { animation: kf-flash-light 0.45s ease forwards; }
+
+/* ============================================================
+   スマホ対応（横幅 440px 以下）
+   ============================================================ */
+
+@media (max-width: 440px) {
+  /* PLAYER行を2段化：上段=PLAYER+ハート、下段=山札+手札交換 */
+  #player-section {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  #player-left {
+    width: 100%;
+  }
+  #player-right {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  /* デッキピップは幅を取るため非表示にして数字だけ残す */
+  .deck-pip {
+    display: none;
+  }
+
+  /* 手札交換ボタンを少し圧縮 */
+  #change-hand-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  /* 手札カード5枚を画面幅に収める */
+  .card {
+    padding: 18px 2px 4px;
+    min-height: 96px;
+  }
+  .card-formula {
+    font-size: 12px;
+  }
+  .card-badge {
+    font-size: 9px;
+  }
+}
 
 /* 敵ダメージシェイク */
 @keyframes kf-enemy-shake {
