@@ -650,7 +650,7 @@
     var op = logEntry.kind === "mul" ? " × " : logEntry.kind === "add" ? " + " : " - ";
 
     if (correct) {
-      formulaEl.textContent = "○ " + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
+      formulaEl.textContent = "⭕ " + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
       formulaEl.className   = "feedback-correct";
       readEl.textContent    = Yomi.getReading(logEntry) || "";
       readEl.className      = "";
@@ -663,11 +663,15 @@
 
       showFeedbackArea(false);
     } else {
-      formulaEl.textContent = "× " + logEntry.a + op + logEntry.b + " = ❌ " + (logEntry.answerInput || "？");
+      formulaEl.textContent = "❌ " + logEntry.a + op + logEntry.b + " = " + (logEntry.answerInput || "？");
       formulaEl.className   = "feedback-wrong";
-      readEl.textContent    = "正解：" + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
+      var reading = Yomi.getReading(logEntry) || "";
+      var correctLine = "正解：" + logEntry.answer + "（" + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
+      if (reading) correctLine += "　" + reading;
+      correctLine += "）";
+      readEl.textContent    = correctLine;
       readEl.className      = "feedback-correct-answer";
-      correctionEl.textContent = Yomi.getReading(logEntry) || "";
+      correctionEl.textContent = "";
       hintEl.textContent    = "残念、ハートが減った！";
       showFeedbackArea(true);
     }
@@ -682,13 +686,13 @@
     readEl.textContent = "";
 
     if (result.correct) {
-      formulaEl.textContent    = "○ かいひ成功！";
+      formulaEl.textContent    = "⭕ かいひ成功！";
       formulaEl.className      = "feedback-correct";
       correctionEl.textContent = "";
     } else {
       formulaEl.textContent = result.powered
-        ? "× 強いこうげきをくらった！"
-        : "× こうげきをくらった！";
+        ? "❌ 強いこうげきをくらった！"
+        : "❌ こうげきをくらった！";
       formulaEl.className      = "feedback-wrong";
       correctionEl.textContent = result.powered ? "ハート-2" : "ハート-1";
     }
