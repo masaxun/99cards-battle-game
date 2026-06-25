@@ -644,36 +644,32 @@
     var correctionEl = document.getElementById("feedback-correction");
     var hintEl       = document.getElementById("feedback-hint");
 
-    readEl.textContent       = "";
     correctionEl.textContent = "";
     hintEl.textContent       = "";
 
-    var badge = logEntry.kind === "mul"
-      ? (ELEMENT_ICONS[logEntry.element] || "【無】") + " 必殺"
-      : logEntry.kind === "add" ? "⚔ 攻撃" : "💚 回復";
     var op = logEntry.kind === "mul" ? " × " : logEntry.kind === "add" ? " + " : " - ";
 
     if (correct) {
-      // 1段目: 純粋な計算結果（最終ダメージは含まない）
-      formulaEl.textContent = badge + "  " + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
+      formulaEl.textContent = "○ " + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
       formulaEl.className   = "feedback-correct";
+      readEl.textContent    = Yomi.getReading(logEntry) || "";
+      readEl.className      = "";
 
-      // 読み
-      readEl.textContent = Yomi.getReading(logEntry) || "";
-
-      // 2段目: ゲーム補正（ダメージ攻撃のみ）
       if (logEntry.damageBreakdown) {
         correctionEl.textContent = buildDamageCorrections(logEntry);
+      } else if (logEntry.heal) {
+        correctionEl.textContent = "ハート+" + logEntry.heal + "！";
       }
 
       showFeedbackArea(false);
     } else {
-      // ミス: 試みた式を表示（答えは ? に）
-      formulaEl.textContent = badge + "  " + logEntry.a + op + logEntry.b + " = ？";
+      formulaEl.textContent = "× " + logEntry.a + op + logEntry.b + " = ❌ " + (logEntry.answerInput || "？");
       formulaEl.className   = "feedback-wrong";
-      correctionEl.textContent = "おしい！ ハートが減った";
-      if (logEntry.hint) hintEl.textContent = "ヒント: " + logEntry.hint;
-      showFeedbackArea(true); // 次の操作まで残す
+      readEl.textContent    = "正解：" + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
+      readEl.className      = "feedback-correct-answer";
+      correctionEl.textContent = Yomi.getReading(logEntry) || "";
+      hintEl.textContent    = "残念、ハートが減った！";
+      showFeedbackArea(true);
     }
   }
 
@@ -686,13 +682,13 @@
     readEl.textContent = "";
 
     if (result.correct) {
-      formulaEl.textContent    = "かいひ成功！";
+      formulaEl.textContent    = "○ かいひ成功！";
       formulaEl.className      = "feedback-correct";
       correctionEl.textContent = "";
     } else {
       formulaEl.textContent = result.powered
-        ? "強いこうげきをくらった！"
-        : "こうげきをくらった！";
+        ? "× 強いこうげきをくらった！"
+        : "× こうげきをくらった！";
       formulaEl.className      = "feedback-wrong";
       correctionEl.textContent = result.powered ? "ハート-2" : "ハート-1";
     }
@@ -701,7 +697,9 @@
 
   function showInfoFeedback(text) {
     var formulaEl = document.getElementById("feedback-formula");
-    document.getElementById("feedback-reading").textContent = "";
+    var readEl = document.getElementById("feedback-reading");
+    readEl.textContent = "";
+    readEl.className   = "";
     document.getElementById("feedback-correction").textContent = "";
     document.getElementById("feedback-hint").textContent = "";
     formulaEl.textContent = text;
@@ -714,7 +712,9 @@
     var f = document.getElementById("feedback-formula");
     f.textContent = "カードをえらんでね";
     f.className = "feedback-placeholder";
-    document.getElementById("feedback-reading").textContent = "";
+    var readEl = document.getElementById("feedback-reading");
+    readEl.textContent = "";
+    readEl.className   = "";
     document.getElementById("feedback-correction").textContent = "";
     document.getElementById("feedback-hint").textContent = "";
   }
@@ -772,17 +772,19 @@
   function buildDamageCorrections(logEntry) {
     if (!logEntry.damageBreakdown) return "";
     var bd = logEntry.damageBreakdown;
+    var base = bd.finalDamage + "ダメージ！";
     var parts = [];
     if (bd.comboBonusAmount > 0) {
-      parts.push(logEntry.comboAtHit + "コンボ：ダメージ+" + bd.comboBonusAmount);
+      parts.push("コンボ+" + bd.comboBonusAmount);
     }
     if (bd.openingBonusAmount > 0) {
-      parts.push("隙あり：ダメージ+" + bd.openingBonusAmount);
+      parts.push("隙あり+" + bd.openingBonusAmount);
     }
     if (bd.guardReductionAmount > 0) {
-      parts.push("ガード：ダメージ-" + bd.guardReductionAmount);
+      parts.push("ガード-" + bd.guardReductionAmount);
     }
-    return parts.join(" / ");
+    if (parts.length === 0) return base;
+    return base + "（" + parts.join(" / ") + "）";
   }
 
   // ============================================================

@@ -203,13 +203,9 @@ body {
   text-align: center;
 }
 
-/* ENEMY ACTION ラベル（PLAYER RESULT と対になる小ラベル） */
+/* ENEMY ACTION ラベル */
 #enemy-action-msg .enemy-action-label {
-  font-size: 9px;
-  font-weight: bold;
-  color: #ff8844;
-  letter-spacing: 1px;
-  margin-bottom: 3px;
+  display: none;
 }
 
 /* 敵行動タイプ別スタイル（色相を保ちつつ黒系に寄せる） */
@@ -258,6 +254,14 @@ body {
   color: #aaa;
   margin-top: 2px;
   padding-left: 6px;
+}
+
+/* 不正解時に「正解：」を readEl に表示するときのスタイル上書き */
+#feedback-reading.feedback-correct-answer {
+  font-size: 13px;
+  color: #ccc;
+  padding-left: 0;
+  margin-top: 4px;
 }
 
 #feedback-correction {
