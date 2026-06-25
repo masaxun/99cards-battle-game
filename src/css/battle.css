@@ -851,19 +851,6 @@ body {
   }
 }
 
-/* ============================================================
-   回答中コンパクト（ENEMY HPバーを見えやすくする）
-   ============================================================ */
-
-#battle-screen.is-answering {
-  gap: 3px;
-}
-#battle-screen.is-answering #enemy-sprite-section {
-  padding: 4px;
-}
-#battle-screen.is-answering #enemy-info-row {
-  margin-bottom: 0;
-}
 
 /* 敵ダメージシェイク */
 @keyframes kf-enemy-shake {
