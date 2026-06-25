@@ -13,6 +13,8 @@
   var enemyMsgTimer = null;
   var interactionLocked = false;
   var feedbackPersistent = false;
+  var resultPrimaryUrl = "battle.html";
+  var resultSecondaryUrl = "battle.html";
 
   // ============================================================
   // 定数
@@ -102,6 +104,7 @@
     document.getElementById("change-hand-btn").addEventListener("click", onChangeHand);
     document.getElementById("submit-attack-btn").addEventListener("click", onSubmitAttack);
     document.getElementById("result-back-btn").addEventListener("click", onResultBack);
+    document.getElementById("result-retry-btn").addEventListener("click", onResultRetry);
 
     document.getElementById("answer-input").addEventListener("keydown", function (e) {
       if (e.key === "Enter") onSubmitAnswer();
@@ -655,8 +658,23 @@
     }, 1100);
   }
 
+  function buildBattleUrl(areaId, stage) {
+    return "battle.html?areaId=" + encodeURIComponent(areaId) + "&stage=" + encodeURIComponent(stage);
+  }
+
+  function getNextStage(stage) {
+    if (stage === "normal1") return "normal2";
+    if (stage === "normal2") return "normal3";
+    if (stage === "normal3") return "boss";
+    return null;
+  }
+
   function onResultBack() {
-    window.location.href = "battle.html";
+    window.location.href = resultPrimaryUrl;
+  }
+
+  function onResultRetry() {
+    window.location.href = resultSecondaryUrl;
   }
 
   // ============================================================
@@ -897,6 +915,34 @@
       nice.className = "no-mistakes";
       nice.textContent = "ミスなし！ 完璧！";
       mistakesEl.appendChild(nice);
+    }
+
+    var areaId    = session.areaDef.id;
+    var stage     = summary.stage;
+    var outcome   = summary.outcome;
+    var primaryBtn = document.getElementById("result-back-btn");
+    var retryBtn   = document.getElementById("result-retry-btn");
+
+    if (stage === "boss") {
+      primaryBtn.textContent = "もどる";
+      resultPrimaryUrl = "battle.html";
+      retryBtn.classList.add("hidden");
+    } else {
+      var currentUrl = buildBattleUrl(areaId, stage);
+      if (outcome === "win") {
+        var nextStage = getNextStage(stage);
+        primaryBtn.textContent = (stage === "normal3") ? "ぬし戦へ" : "つぎへ";
+        resultPrimaryUrl   = buildBattleUrl(areaId, nextStage);
+        retryBtn.textContent = "もう一回";
+        resultSecondaryUrl = currentUrl;
+        retryBtn.classList.remove("hidden");
+      } else {
+        primaryBtn.textContent = "もう一回";
+        resultPrimaryUrl   = currentUrl;
+        retryBtn.textContent = "もどる";
+        resultSecondaryUrl = "battle.html";
+        retryBtn.classList.remove("hidden");
+      }
     }
 
     document.getElementById("result-overlay").classList.remove("hidden");
