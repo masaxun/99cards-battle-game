@@ -728,23 +728,33 @@
   }
 
   function showAttackFeedback(result) {
+    var logEntry     = result.logEntry;
     var formulaEl    = document.getElementById("feedback-formula");
     var readEl       = document.getElementById("feedback-reading");
     var correctionEl = document.getElementById("feedback-correction");
     document.getElementById("feedback-hint").textContent = "";
 
-    readEl.textContent = "";
+    var op      = logEntry.kind === "mul" ? " × " : logEntry.kind === "add" ? " + " : " - ";
+    var reading = Yomi.getReading(logEntry) || "";
 
     if (result.correct) {
-      formulaEl.textContent    = "⭕ かいひ成功！";
+      formulaEl.textContent    = "⭕ " + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
       formulaEl.className      = "feedback-correct";
-      correctionEl.textContent = "";
+      readEl.textContent       = reading;
+      readEl.className         = "";
+      correctionEl.textContent = "かいひ成功！";
     } else {
-      formulaEl.textContent = result.powered
-        ? "❌ 強いこうげきをうけた！"
-        : "❌ ダメージをうけた！";
-      formulaEl.className      = "feedback-wrong";
-      correctionEl.textContent = result.powered ? "ハート-2" : "ハート-1";
+      formulaEl.textContent = "❌ " + logEntry.a + op + logEntry.b + " = " + (logEntry.answerInput || "？");
+      formulaEl.className   = "feedback-wrong";
+      var correctLine = "正解：" + logEntry.answer + "（" + logEntry.a + op + logEntry.b + " = " + logEntry.answer;
+      if (reading) correctLine += "　" + reading;
+      correctLine += "）";
+      readEl.textContent    = correctLine;
+      readEl.className      = "feedback-correct-answer";
+      var dmg = logEntry.hpDamage || (result.powered ? 2 : 1);
+      correctionEl.textContent = result.powered
+        ? "強力なこうげきをうけた！（ハート-" + dmg + "）"
+        : "ダメージをうけた！（ハート-" + dmg + "）";
     }
     showFeedbackArea(false);
   }

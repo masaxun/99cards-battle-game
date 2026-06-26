@@ -13,7 +13,7 @@
       enemyType: "none",
       weakness: "none",
       playerElement: "none",
-      enemyHp: { normal1: 80, normal2: 100, normal3: 120, boss: 220 },
+      enemyHp: { normal1: 50, normal2: 70, normal3: 95, boss: 140 },
       requiredBossAreaIds: [],
       implemented: true,
       mapPosition: { row: 2, col: 0 }
