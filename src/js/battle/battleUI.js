@@ -104,7 +104,10 @@
     var params = getParams();
     var areaId = params.areaId || "hajimari";
     var stage  = params.stage  || "normal1";
-    normalizeBattleUrl(areaId, stage, params);
+
+    if (!normalizeBattleUrl(areaId, stage, params)) {
+      return;
+    }
 
     var gameState = GameState.load();
     var areaDef   = Areas.getAreaById(areaId);
@@ -695,10 +698,23 @@
   }
 
   function normalizeBattleUrl(areaId, stage, params) {
-    if (params.areaId && params.stage) return;
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, "", buildBattleUrl(areaId, stage));
+    var hasParams = !!(params.areaId && params.stage);
+    var fileName = window.location.pathname.split("/").pop();
+    var isBattleHtml = fileName === "battle.html";
+
+    if (hasParams && isBattleHtml) return true;
+
+    var newUrl = buildBattleUrl(areaId, stage);
+
+    if (window.location && window.location.replace) {
+      window.location.replace(newUrl);
+      return false;
     }
+
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, "", newUrl);
+    }
+    return true;
   }
 
   function getNextStage(stage) {
