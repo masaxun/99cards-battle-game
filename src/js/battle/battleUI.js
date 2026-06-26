@@ -15,6 +15,7 @@
   var feedbackPersistent = false;
   var resultPrimaryUrl = "battle.html";
   var resultSecondaryUrl = "battle.html";
+  var enemyStateEffectsVisible = false;
 
   // ============================================================
   // 定数
@@ -216,7 +217,7 @@
     var backEl  = document.getElementById("enemy-effect-back");
     var frontEl = document.getElementById("enemy-effect-front");
 
-    if (session.enemyState.powerUp) {
+    if (enemyStateEffectsVisible && session.enemyState.powerUp) {
       backEl.className = "enemy-state-effect effect-power-up";
       backEl.src = "assets/images/effects/effect_power_up_aura_v01.png";
     } else {
@@ -224,7 +225,7 @@
       backEl.removeAttribute("src");
     }
 
-    if (session.enemyState.guard) {
+    if (enemyStateEffectsVisible && session.enemyState.guard) {
       frontEl.className = "enemy-state-effect effect-guard";
       frontEl.src = "assets/images/effects/effect_guard_barrier_v01.png";
     } else {
@@ -614,6 +615,7 @@
       flashMiss();
     }
 
+    enemyStateEffectsVisible = false;
     render();
 
     if (session.ended || result.ended || session.enemyHp <= 0 || session.hp <= 0) {
@@ -624,12 +626,15 @@
 
     setTimeout(function () {
       if (!result.enemyAction) {
+        enemyStateEffectsVisible = true;
+        renderEnemySprite();
         interactionLocked = false;
         renderHand();
         renderPlayerSection();
         return;
       }
       animateEnemyPreAction(function () {
+        enemyStateEffectsVisible = true;
         showEnemyAction(result.enemyAction);
         renderEnemySprite();
         if (session.pendingAttack) {
@@ -695,6 +700,7 @@
     showInfoFeedback("手札を入れ替えた（ハート-1）");
     flashScreen("add", null);
 
+    enemyStateEffectsVisible = false;
     render();
 
     if (session.ended) {
@@ -705,12 +711,15 @@
 
     setTimeout(function () {
       if (!result.enemyAction) {
+        enemyStateEffectsVisible = true;
+        renderEnemySprite();
         interactionLocked = false;
         renderHand();
         renderPlayerSection();
         return;
       }
       animateEnemyPreAction(function () {
+        enemyStateEffectsVisible = true;
         showEnemyAction(result.enemyAction);
         renderEnemySprite();
         if (session.pendingAttack) {
