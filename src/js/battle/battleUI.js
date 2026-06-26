@@ -18,6 +18,32 @@
   var enemyStateEffectsVisible = false;
 
   // ============================================================
+  // SE
+  // ============================================================
+
+  var SE = {
+    cardSelect:   { src: "assets/audio/se/se_card_select_v01.mp3",   volume: 0.45 },
+    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3", volume: 0.55 },
+    correct:      { src: "assets/audio/se/se_correct_v01.mp3",       volume: 0.60 },
+    wrong:        { src: "assets/audio/se/se_wrong_v01.mp3",         volume: 0.50 },
+    hit:          { src: "assets/audio/se/se_hit_v01.mp3",           volume: 0.60 },
+    special:      { src: "assets/audio/se/se_special_v01.mp3",       volume: 0.65 },
+    heal:         { src: "assets/audio/se/se_heal_v01.mp3",          volume: 0.60 },
+    victory:      { src: "assets/audio/se/se_victory_v01.mp3",       volume: 0.70 }
+  };
+
+  function playSE(name) {
+    var def = SE[name];
+    if (!def) return;
+    try {
+      var audio = new Audio(def.src);
+      audio.volume = def.volume;
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  // ============================================================
   // 定数
   // ============================================================
 
@@ -558,6 +584,7 @@
 
   function onSelectCard(uid) {
     if (session.ended || session.pendingAttack || interactionLocked) return;
+    playSE("cardSelect");
     selectedCardUid = selectedCardUid === uid ? null : uid;
     clearPersistentFeedback();
     renderHand();
@@ -595,6 +622,7 @@
 
     interactionLocked = true;
 
+    playSE("buttonDecide");
     var result = Battle.playCard(session, uid, val);
     if (result.error) {
       interactionLocked = false;
@@ -604,14 +632,20 @@
     showCardFeedback(result);
 
     if (result.correct && card) {
+      playSE("correct");
       flashScreen(card.kind, card.element);
       if (result.logEntry.damage !== undefined) {
         setTimeout(shakeEnemySprite, 130);
         if (result.logEntry.damageBreakdown) {
           showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical);
         }
+        var hitSe = card.kind === "mul" ? "special" : "hit";
+        setTimeout(function () { playSE(hitSe); }, 120);
+      } else if (result.logEntry.heal) {
+        setTimeout(function () { playSE("heal"); }, 120);
       }
     } else if (!result.correct) {
+      playSE("wrong");
       flashMiss();
     }
 
@@ -656,6 +690,7 @@
 
     interactionLocked = true;
 
+    playSE("buttonDecide");
     clearTimeout(enemyMsgTimer);
     document.getElementById("enemy-action-msg").classList.add("fb-hidden");
 
@@ -668,8 +703,10 @@
     showAttackFeedback(result);
 
     if (result.correct) {
+      playSE("correct");
       flashScreen("add", null);
     } else {
+      playSE("wrong");
       flashMiss();
     }
 
@@ -696,6 +733,7 @@
 
     interactionLocked = true;
 
+    playSE("buttonDecide");
     var result = Battle.changeHand(session);
     showInfoFeedback("手札を入れ替えた（ハート-1）");
     flashScreen("add", null);
@@ -1072,6 +1110,8 @@
       resultPrimaryUrl: resultPrimaryUrl,
       resultSecondaryUrl: resultSecondaryUrl
     });
+
+    if (summary.outcome === "win") playSE("victory");
 
     document.getElementById("result-overlay").classList.remove("hidden");
   }
