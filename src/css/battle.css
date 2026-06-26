@@ -121,8 +121,13 @@ body {
   position: relative;
 }
 
-/* 名前・バッジ行（スプライトの上）— pill型半透明背景 */
+/* 名前・バッジ行 — 敵画像の上に重ねるabsolute pill */
 #enemy-info-row {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
   display: flex;
   width: fit-content;
   max-width: 90%;
@@ -130,10 +135,10 @@ body {
   justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin: 0 auto 4px;
   background: rgba(5, 8, 18, 0.68);
   border-radius: 20px;
   padding: 4px 14px;
+  white-space: nowrap;
 }
 
 #enemy-name {
