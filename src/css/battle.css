@@ -911,6 +911,56 @@ body {
 #flash-overlay.flash-grass { animation: kf-flash-grass 0.45s ease forwards; }
 #flash-overlay.flash-light { animation: kf-flash-light 0.45s ease forwards; }
 
+/* 被ダメージフラッシュ（ハートが減った瞬間） */
+@keyframes kf-flash-player-damage {
+  0%, 100% { background: transparent; }
+  15%      { background: rgba(255, 220, 80, 0.28); }
+  35%      { background: rgba(220, 40, 30, 0.36); }
+}
+
+#flash-overlay.flash-player-damage {
+  animation: kf-flash-player-damage 0.45s ease forwards;
+}
+
+/* 低HP常時危険演出オーバーレイ */
+#danger-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.35s ease, background 0.35s ease;
+}
+
+#danger-overlay.danger-hp2 {
+  opacity: 1;
+  background: rgba(255, 210, 60, 0.10);
+}
+
+#danger-overlay.danger-hp1 {
+  opacity: 1;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 0, 0, 0.08) 0%,
+    rgba(180, 0, 0, 0.14) 55%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+}
+
+/* 画面全体シェイク（被ダメージ） */
+@keyframes kf-screen-shake {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-6px); }
+  30%      { transform: translateX(6px); }
+  45%      { transform: translateX(-4px); }
+  60%      { transform: translateX(4px); }
+  75%      { transform: translateX(-2px); }
+}
+
+#battle-screen.screen-shake {
+  animation: kf-screen-shake 0.35s ease;
+}
+
 /* ============================================================
    スマホ対応（横幅 440px 以下）
    ============================================================ */

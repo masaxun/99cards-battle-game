@@ -24,18 +24,19 @@
   // ============================================================
 
   var SE = {
-    cardSelect:   { src: "assets/audio/se/se_card_select_v01.mp3",        volume: 0.45 },
-    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3",      volume: 0.55 },
-    correct:      { src: "assets/audio/se/se_correct_v01.mp3",            volume: 0.60 },
-    wrong:        { src: "assets/audio/se/se_wrong_v01.mp3",              volume: 0.50 },
-    hit:          { src: "assets/audio/se/se_hit_v01.mp3",                volume: 0.60 },
-    special:      { src: "assets/audio/se/se_special_v01.mp3",            volume: 0.65 },
-    heal:         { src: "assets/audio/se/se_heal_v01.mp3",               volume: 0.60 },
-    victory:      { src: "assets/audio/se/se_victory_v01.mp3",            volume: 0.70 },
-    enemyAttack:  { src: "assets/audio/se/se_enemy_attack_v01.mp3",       volume: 0.55 },
-    enemyPowerUp: { src: "assets/audio/se/se_enemy_power_up_v01.mp3",     volume: 0.45 },
-    enemyGuard:   { src: "assets/audio/se/se_enemy_guard_v01.mp3",        volume: 0.45 },
-    evade:        { src: "assets/audio/se/se_evade_v01.mp3",              volume: 0.50 }
+    cardSelect:    { src: "assets/audio/se/se_card_select_v01.mp3",        volume: 0.45 },
+    buttonDecide:  { src: "assets/audio/se/se_button_decide_v01.mp3",      volume: 0.55 },
+    correct:       { src: "assets/audio/se/se_correct_v01.mp3",            volume: 0.60 },
+    wrong:         { src: "assets/audio/se/se_wrong_v01.mp3",              volume: 0.50 },
+    hit:           { src: "assets/audio/se/se_hit_v01.mp3",                volume: 0.60 },
+    special:       { src: "assets/audio/se/se_special_v01.mp3",            volume: 0.65 },
+    heal:          { src: "assets/audio/se/se_heal_v01.mp3",               volume: 0.60 },
+    victory:       { src: "assets/audio/se/se_victory_v01.mp3",            volume: 0.70 },
+    enemyAttack:   { src: "assets/audio/se/se_enemy_attack_v01.mp3",       volume: 0.65 },
+    enemyPowerUp:  { src: "assets/audio/se/se_enemy_power_up_v01.mp3",     volume: 0.55 },
+    enemyGuard:    { src: "assets/audio/se/se_enemy_guard_v01.mp3",        volume: 0.55 },
+    evade:         { src: "assets/audio/se/se_evade_v01.mp3",              volume: 0.60 },
+    playerDamage:  { src: "assets/audio/se/se_player_damage_v01.mp3",      volume: 0.60 }
   };
 
   function playSE(name) {
@@ -58,18 +59,40 @@
     return stage === "boss" ? "boss" : "normal";
   }
 
+  function fadeInBGM(targetVolume, duration) {
+    if (!bgmAudio) return;
+    var steps = 20;
+    var interval = duration / steps;
+    var increment = targetVolume / steps;
+    var count = 0;
+    var timer = setInterval(function () {
+      count++;
+      try { bgmAudio.volume = Math.min(targetVolume, bgmAudio.volume + increment); } catch (e) {}
+      if (count >= steps) clearInterval(timer);
+    }, interval);
+  }
+
   function startBGMOnce() {
     if (bgmStarted) return;
-    bgmStarted = true;
     var key = getBgmKeyForStage(session.stage);
     var def = BGM[key];
     if (!def) return;
     try {
       bgmAudio = new Audio(def.src);
-      bgmAudio.volume = def.volume;
+      bgmAudio.volume = 0;
       bgmAudio.loop = true;
       var p = bgmAudio.play();
-      if (p && p.catch) p.catch(function () {});
+      if (p && p.then) {
+        p.then(function () {
+          bgmStarted = true;
+          fadeInBGM(def.volume, 800);
+        }).catch(function () {
+          bgmAudio = null;
+        });
+      } else {
+        bgmStarted = true;
+        fadeInBGM(def.volume, 800);
+      }
     } catch (e) {}
   }
 
@@ -432,6 +455,8 @@
 
     document.getElementById("change-hand-btn").disabled =
       session.hp < 2 || !!session.pendingAttack || session.ended || interactionLocked;
+
+    updateDangerOverlay();
   }
 
   function renderCombo() {
@@ -614,6 +639,39 @@
     setTimeout(function () { el.classList.remove("enemy-shake"); }, 550);
   }
 
+  function shakeScreen() {
+    var el = document.getElementById("battle-screen");
+    el.classList.remove("screen-shake");
+    void el.offsetWidth;
+    el.classList.add("screen-shake");
+    setTimeout(function () { el.classList.remove("screen-shake"); }, 400);
+  }
+
+  function flashPlayerDamage() {
+    var overlay = document.getElementById("flash-overlay");
+    overlay.classList.remove("flash-player-damage");
+    void overlay.offsetWidth;
+    overlay.classList.add("flash-player-damage");
+    setTimeout(function () { overlay.classList.remove("flash-player-damage"); }, 450);
+  }
+
+  function playPlayerDamageFeedback() {
+    setTimeout(function () { playSE("playerDamage"); }, 100);
+    shakeScreen();
+    flashPlayerDamage();
+  }
+
+  function updateDangerOverlay() {
+    var el = document.getElementById("danger-overlay");
+    if (!el || !session) return;
+    el.classList.remove("danger-hp2", "danger-hp1");
+    if (session.hp <= 1) {
+      el.classList.add("danger-hp1");
+    } else if (session.hp === 2) {
+      el.classList.add("danger-hp2");
+    }
+  }
+
   function animateEnemyPreAction(callback) {
     var el = document.getElementById("enemy-sprite");
     el.classList.remove("enemy-preaction");
@@ -706,7 +764,7 @@
       }
     } else if (!result.correct) {
       playSE("wrong");
-      flashMiss();
+      playPlayerDamageFeedback();
     }
 
     enemyStateEffectsVisible = false;
@@ -769,7 +827,7 @@
       flashScreen("add", null);
     } else {
       playSE("wrong");
-      flashMiss();
+      playPlayerDamageFeedback();
     }
 
     render();
