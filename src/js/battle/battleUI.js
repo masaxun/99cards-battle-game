@@ -208,6 +208,29 @@
     if (session.enemyState.opening) badges.push("✨ 隙あり");
     badgesEl.textContent = badges.join("  ");
     badgesEl.className = badges.length > 0 ? "badges-visible" : "";
+
+    renderEnemyEffects();
+  }
+
+  function renderEnemyEffects() {
+    var backEl  = document.getElementById("enemy-effect-back");
+    var frontEl = document.getElementById("enemy-effect-front");
+
+    if (session.enemyState.powerUp) {
+      backEl.className = "enemy-state-effect effect-power-up";
+      backEl.src = "assets/images/effects/effect_power_up_aura_v01.png";
+    } else {
+      backEl.className = "enemy-state-effect hidden";
+      backEl.removeAttribute("src");
+    }
+
+    if (session.enemyState.guard) {
+      frontEl.className = "enemy-state-effect effect-guard";
+      frontEl.src = "assets/images/effects/effect_guard_barrier_v01.png";
+    } else {
+      frontEl.className = "enemy-state-effect hidden";
+      frontEl.removeAttribute("src");
+    }
   }
 
   function renderEnemyAttackPanel() {

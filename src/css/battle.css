@@ -218,6 +218,34 @@ body {
   z-index: 1;
 }
 
+/* 敵状態エフェクト画像（ガード・力ため） */
+.enemy-state-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 135%;
+  height: 135%;
+  object-fit: contain;
+  pointer-events: none;
+  display: block;
+}
+
+#enemy-effect-back  { z-index: 0; }
+#enemy-effect-front { z-index: 3; }
+
+.enemy-state-effect.effect-guard {
+  width: 138%;
+  height: 138%;
+  opacity: 0.42;
+}
+
+.enemy-state-effect.effect-power-up {
+  width: 150%;
+  height: 150%;
+  opacity: 0.85;
+}
+
 .enemy-image {
   max-width: 190px;
   max-height: 190px;
