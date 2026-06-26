@@ -451,7 +451,14 @@
     f.className   = "";
     readEl.textContent = "";
     readEl.className   = "";
-    document.getElementById("feedback-correction").textContent = buildComboStatusText(session.combo);
+
+    var correctionParts = [];
+    if (card.kind === "mul" && (card.a === 1 || card.b === 1)) {
+      correctionParts.push("1が入ったかけ算は会心率UP！");
+    }
+    var comboText = buildComboStatusText(session.combo);
+    if (comboText) correctionParts.push(comboText);
+    document.getElementById("feedback-correction").textContent = correctionParts.join(" / ");
     document.getElementById("feedback-hint").textContent = "";
   }
 
@@ -1030,7 +1037,8 @@
       stage: stage,
       outcome: outcome,
       nextStage: getNextStage(stage),
-      resultPrimaryUrl: resultPrimaryUrl
+      resultPrimaryUrl: resultPrimaryUrl,
+      resultSecondaryUrl: resultSecondaryUrl
     });
 
     document.getElementById("result-overlay").classList.remove("hidden");
