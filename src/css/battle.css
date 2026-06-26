@@ -80,9 +80,6 @@ body {
    ============================================================ */
 
 #enemy-hp-section {
-  position: sticky;
-  top: 8px;
-  z-index: 20;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -91,9 +88,29 @@ body {
   border-radius: 8px;
 }
 
-@supports (top: env(safe-area-inset-top)) {
+/* スマホのみ: Enemy HP を画面上部に fixed 固定 */
+@media (max-width: 640px) {
   #enemy-hp-section {
-    top: calc(env(safe-area-inset-top) + 8px);
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 16px);
+    max-width: 464px;
+    z-index: 80;
+  }
+
+  /* fixed化で通常フローから外れるため上余白で補正 */
+  #battle-screen {
+    padding-top: 52px;
+  }
+}
+
+@supports (top: env(safe-area-inset-top)) {
+  @media (max-width: 640px) {
+    #enemy-hp-section {
+      top: calc(env(safe-area-inset-top) + 8px);
+    }
   }
 }
 

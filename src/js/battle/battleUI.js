@@ -579,7 +579,7 @@
 
     render();
 
-    if (session.ended) {
+    if (session.ended || result.ended || session.enemyHp <= 0 || session.hp <= 0) {
       interactionLocked = false;
       scheduleEnd();
       return;
@@ -633,7 +633,7 @@
 
     render();
 
-    if (session.ended) {
+    if (session.ended || result.ended || session.hp <= 0) {
       interactionLocked = false;
       scheduleEnd();
       return;
