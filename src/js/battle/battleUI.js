@@ -510,9 +510,9 @@
   }
 
   // 最終ダメージを敵スプライト付近にポップ表示する。
-  function showDamagePop(damage) {
+  function showDamagePop(damage, critical) {
     var el = document.getElementById("enemy-damage-pop");
-    el.textContent = damage + "ダメージ！";
+    el.textContent = (critical ? "会心！" : "") + damage + "ダメージ！";
     el.classList.remove("pop-animate");
     void el.offsetWidth;
     el.classList.add("pop-animate");
@@ -577,7 +577,7 @@
       if (result.logEntry.damage !== undefined) {
         setTimeout(shakeEnemySprite, 130);
         if (result.logEntry.damageBreakdown) {
-          showDamagePop(result.logEntry.damageBreakdown.finalDamage);
+          showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical);
         }
       }
     } else if (!result.correct) {
@@ -901,6 +901,9 @@
     var bd = logEntry.damageBreakdown;
     var base = bd.finalDamage + "ダメージ！";
     var parts = [];
+    if (bd.criticalBonusAmount > 0) {
+      parts.push("会心+" + bd.criticalBonusAmount);
+    }
     if (bd.comboBonusAmount > 0) {
       parts.push("コンボ+" + bd.comboBonusAmount);
     }

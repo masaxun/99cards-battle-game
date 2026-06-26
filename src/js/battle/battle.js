@@ -72,6 +72,19 @@
     return probs[probs.length - 1].type;
   }
 
+  // 会心率: sub(回復)は0、add(足し算)は5%、mul(かけ算)は1を含む場合に高率
+  function getCriticalRate(card) {
+    if (card.kind === "sub") return 0;
+    if (card.kind === "add") return 0.05;
+    var a = card.a, b = card.b;
+    var hasOne = (a === 1 || b === 1);
+    if (!hasOne) return 0.05;
+    var other = (a === 1) ? b : a;
+    if (other === 1) return 0.80;
+    if (other <= 4) return 0.60;
+    return 0.40;
+  }
+
   // ============================================================
   // セッション生成
   // ============================================================
@@ -300,15 +313,22 @@
           session.enemyState.guard = false;
         }
 
-        var preGuardDamage = openingBonus ? Math.round(baseDamage * 1.5) : baseDamage;
-        var finalDamage = Math.round(preGuardDamage * guardMult);
+        var openingDamage = openingBonus ? Math.round(baseDamage * 1.5) : baseDamage;
+
+        // 会心判定: sub(回復)は対象外、mul/addは確率で+10ダメージ
+        var critRate = getCriticalRate(card);
+        var critical = Math.random() < critRate;
+        var criticalBonusAmount = critical ? 10 : 0;
+
+        var preCritDamage = openingDamage + criticalBonusAmount;
+        var finalDamage = Math.round(preCritDamage * guardMult);
         if (finalDamage < 1) finalDamage = 1;
 
         // UI表示用の補正内訳（計算結果と最終ダメージを分離して表示するため）
         var noComboBase = Cards.calcDamage(card, session.areaDef, masteryLevel, 1);
         var comboBonusAmount = (session.combo >= 2) ? baseDamage - noComboBase : 0;
-        var openingBonusAmount = openingBonus ? preGuardDamage - baseDamage : 0;
-        var guardReductionAmount = guardActive ? preGuardDamage - finalDamage : 0;
+        var openingBonusAmount = openingBonus ? openingDamage - baseDamage : 0;
+        var guardReductionAmount = guardActive ? preCritDamage - finalDamage : 0;
 
         session.enemyHp = Math.max(0, session.enemyHp - finalDamage);
         logEntry = buildLogEntry(card, true, answerInput, {
@@ -322,6 +342,9 @@
             formulaResult: card.answer,
             comboBonusAmount: comboBonusAmount,
             openingBonusAmount: openingBonusAmount,
+            critical: critical,
+            criticalRate: critRate,
+            criticalBonusAmount: criticalBonusAmount,
             guardReductionAmount: guardReductionAmount,
             finalDamage: finalDamage
           }

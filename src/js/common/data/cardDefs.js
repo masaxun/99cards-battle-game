@@ -62,9 +62,34 @@
     };
   }
 
+  // 足し算カード候補リスト: 繰り上がりあり・合計値高めを優先する
+  var ADD_HIGH_PAIRS = [
+    [3,9],[9,3],[4,8],[8,4],[5,7],[7,5],[6,6],
+    [4,9],[9,4],[5,8],[8,5],[6,7],[7,6],
+    [5,9],[9,5],[6,8],[8,6],[7,7],
+    [6,9],[9,6],[7,8],[8,7],
+    [7,9],[9,7],[8,8],
+    [8,9],[9,8],
+    [9,9]
+  ];
+  var ADD_MID_PAIRS = [
+    [1,9],[9,1],[2,8],[8,2],[3,7],[7,3],[4,6],[6,4],[5,5],
+    [2,9],[9,2],[3,8],[8,3],[4,7],[7,4],[5,6],[6,5]
+  ];
+
   function createAddCard() {
-    var a = randomInt(1, 9);
-    var b = randomInt(1, 9);
+    var r = Math.random();
+    var a, b, pair;
+    if (r < 0.70) {
+      pair = ADD_HIGH_PAIRS[randomInt(0, ADD_HIGH_PAIRS.length - 1)];
+      a = pair[0]; b = pair[1];
+    } else if (r < 0.90) {
+      pair = ADD_MID_PAIRS[randomInt(0, ADD_MID_PAIRS.length - 1)];
+      a = pair[0]; b = pair[1];
+    } else {
+      a = randomInt(1, 9);
+      b = randomInt(1, 9);
+    }
     return {
       uid: nextUid(),
       kind: "add",
