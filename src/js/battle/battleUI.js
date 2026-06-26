@@ -16,20 +16,26 @@
   var resultPrimaryUrl = "battle.html";
   var resultSecondaryUrl = "battle.html";
   var enemyStateEffectsVisible = false;
+  var bgmStarted = false;
+  var bgmAudio = null;
 
   // ============================================================
-  // SE
+  // SE / BGM
   // ============================================================
 
   var SE = {
-    cardSelect:   { src: "assets/audio/se/se_card_select_v01.mp3",   volume: 0.45 },
-    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3", volume: 0.55 },
-    correct:      { src: "assets/audio/se/se_correct_v01.mp3",       volume: 0.60 },
-    wrong:        { src: "assets/audio/se/se_wrong_v01.mp3",         volume: 0.50 },
-    hit:          { src: "assets/audio/se/se_hit_v01.mp3",           volume: 0.60 },
-    special:      { src: "assets/audio/se/se_special_v01.mp3",       volume: 0.65 },
-    heal:         { src: "assets/audio/se/se_heal_v01.mp3",          volume: 0.60 },
-    victory:      { src: "assets/audio/se/se_victory_v01.mp3",       volume: 0.70 }
+    cardSelect:   { src: "assets/audio/se/se_card_select_v01.mp3",        volume: 0.45 },
+    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3",      volume: 0.55 },
+    correct:      { src: "assets/audio/se/se_correct_v01.mp3",            volume: 0.60 },
+    wrong:        { src: "assets/audio/se/se_wrong_v01.mp3",              volume: 0.50 },
+    hit:          { src: "assets/audio/se/se_hit_v01.mp3",                volume: 0.60 },
+    special:      { src: "assets/audio/se/se_special_v01.mp3",            volume: 0.65 },
+    heal:         { src: "assets/audio/se/se_heal_v01.mp3",               volume: 0.60 },
+    victory:      { src: "assets/audio/se/se_victory_v01.mp3",            volume: 0.70 },
+    enemyAttack:  { src: "assets/audio/se/se_enemy_attack_v01.mp3",       volume: 0.55 },
+    enemyPowerUp: { src: "assets/audio/se/se_enemy_power_up_v01.mp3",     volume: 0.45 },
+    enemyGuard:   { src: "assets/audio/se/se_enemy_guard_v01.mp3",        volume: 0.45 },
+    evade:        { src: "assets/audio/se/se_evade_v01.mp3",              volume: 0.50 }
   };
 
   function playSE(name) {
@@ -41,6 +47,59 @@
       var p = audio.play();
       if (p && p.catch) p.catch(function () {});
     } catch (e) {}
+  }
+
+  var BGM = {
+    normal: { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3", volume: 0.30 },
+    boss:   { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",   volume: 0.30 }
+  };
+
+  function getBgmKeyForStage(stage) {
+    return stage === "boss" ? "boss" : "normal";
+  }
+
+  function startBGMOnce() {
+    if (bgmStarted) return;
+    bgmStarted = true;
+    var key = getBgmKeyForStage(session.stage);
+    var def = BGM[key];
+    if (!def) return;
+    try {
+      bgmAudio = new Audio(def.src);
+      bgmAudio.volume = def.volume;
+      bgmAudio.loop = true;
+      var p = bgmAudio.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  function stopBGM() {
+    if (!bgmAudio) return;
+    try {
+      bgmAudio.pause();
+      bgmAudio.currentTime = 0;
+    } catch (e) {}
+  }
+
+  function fadeOutBGM(duration, callback) {
+    if (!bgmAudio) {
+      if (callback) callback();
+      return;
+    }
+    var startVolume = bgmAudio.volume;
+    var steps = 20;
+    var interval = duration / steps;
+    var decrement = startVolume / steps;
+    var count = 0;
+    var timer = setInterval(function () {
+      count++;
+      try { bgmAudio.volume = Math.max(0, bgmAudio.volume - decrement); } catch (e) {}
+      if (count >= steps) {
+        clearInterval(timer);
+        stopBGM();
+        if (callback) callback();
+      }
+    }, interval);
   }
 
   // ============================================================
@@ -585,6 +644,7 @@
   function onSelectCard(uid) {
     if (session.ended || session.pendingAttack || interactionLocked) return;
     playSE("cardSelect");
+    startBGMOnce();
     selectedCardUid = selectedCardUid === uid ? null : uid;
     clearPersistentFeedback();
     renderHand();
@@ -622,7 +682,7 @@
 
     interactionLocked = true;
 
-    playSE("buttonDecide");
+    startBGMOnce();
     var result = Battle.playCard(session, uid, val);
     if (result.error) {
       interactionLocked = false;
@@ -640,9 +700,9 @@
           showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical);
         }
         var hitSe = card.kind === "mul" ? "special" : "hit";
-        setTimeout(function () { playSE(hitSe); }, 120);
+        setTimeout(function () { playSE(hitSe); }, 40);
       } else if (result.logEntry.heal) {
-        setTimeout(function () { playSE("heal"); }, 120);
+        setTimeout(function () { playSE("heal"); }, 40);
       }
     } else if (!result.correct) {
       playSE("wrong");
@@ -670,6 +730,7 @@
       animateEnemyPreAction(function () {
         enemyStateEffectsVisible = true;
         showEnemyAction(result.enemyAction);
+        playEnemyActionSE(result.enemyAction);
         renderEnemySprite();
         if (session.pendingAttack) {
           renderEnemyAttackPanel();
@@ -690,7 +751,7 @@
 
     interactionLocked = true;
 
-    playSE("buttonDecide");
+    startBGMOnce();
     clearTimeout(enemyMsgTimer);
     document.getElementById("enemy-action-msg").classList.add("fb-hidden");
 
@@ -704,6 +765,7 @@
 
     if (result.correct) {
       playSE("correct");
+      setTimeout(function () { playSE("evade"); }, 120);
       flashScreen("add", null);
     } else {
       playSE("wrong");
@@ -734,6 +796,7 @@
     interactionLocked = true;
 
     playSE("buttonDecide");
+    startBGMOnce();
     var result = Battle.changeHand(session);
     showInfoFeedback("手札を入れ替えた（ハート-1）");
     flashScreen("add", null);
@@ -759,6 +822,7 @@
       animateEnemyPreAction(function () {
         enemyStateEffectsVisible = true;
         showEnemyAction(result.enemyAction);
+        playEnemyActionSE(result.enemyAction);
         renderEnemySprite();
         if (session.pendingAttack) {
           renderEnemyAttackPanel();
@@ -940,6 +1004,13 @@
     }
   }
 
+  function playEnemyActionSE(action) {
+    if (!action) return;
+    if (action.type === "guard")                                         playSE("enemyGuard");
+    else if (action.type === "powerUp")                                  playSE("enemyPowerUp");
+    else if (action.type === "counter" || action.type === "bossAttack") playSE("enemyAttack");
+  }
+
   // 敵行動メッセージ
   function showEnemyAction(action) {
     var msgEl = document.getElementById("enemy-action-msg");
@@ -1111,7 +1182,11 @@
       resultSecondaryUrl: resultSecondaryUrl
     });
 
-    if (summary.outcome === "win") playSE("victory");
+    if (summary.outcome === "win") {
+      fadeOutBGM(400, function () { playSE("victory"); });
+    } else {
+      stopBGM();
+    }
 
     document.getElementById("result-overlay").classList.remove("hidden");
   }
