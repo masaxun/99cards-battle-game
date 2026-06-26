@@ -26,6 +26,23 @@
     return window.innerWidth <= 640 || ('ontouchstart' in window);
   }
 
+  function restoreMobileScroll() {
+    if (!isMobile()) return;
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+    setTimeout(function () {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 50);
+    setTimeout(function () {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 250);
+  }
+
   function updateAnsweringClass() {
     var screen = document.getElementById("battle-screen");
     var answerHidden = document.getElementById("answer-panel").classList.contains("hidden");
@@ -194,14 +211,21 @@
 
       var labelText, hpWarning;
       if (att.kind === "counter") {
-        labelText  = "⚡ 敵が反撃してきた！";
-        hpWarning  = "ミスするとハート-1";
-      } else if (att.powered) {
-        labelText  = "💥 ボスの強いこうげき！";
-        hpWarning  = "ミスするとハート-2";
+        if (att.powered) {
+          labelText = "⚡ 力をこめた反撃！";
+          hpWarning = "ミスするとハート-2";
+        } else {
+          labelText = "⚡ 敵が反撃してきた！";
+          hpWarning = "ミスするとハート-1";
+        }
       } else {
-        labelText  = "⚡ ボスがこうげきしてきた！";
-        hpWarning  = "ミスするとハート-1";
+        if (att.powered) {
+          labelText = "💥 力をこめた強力なこうげき！";
+          hpWarning = "ミスするとハート-3";
+        } else {
+          labelText = "💥 ボスの強力なこうげき！";
+          hpWarning = "ミスするとハート-2";
+        }
       }
 
       document.getElementById("attack-label").textContent = labelText;
@@ -524,6 +548,8 @@
     var val = document.getElementById("answer-input").value.trim();
     if (val === "") return;
 
+    restoreMobileScroll();
+
     var uid  = selectedCardUid;
     var card = findInHand(uid);
     selectedCardUid = null;
@@ -583,6 +609,8 @@
     if (!session.pendingAttack || session.ended || interactionLocked) return;
     var val = document.getElementById("attack-answer-input").value.trim();
     if (val === "") return;
+
+    restoreMobileScroll();
 
     interactionLocked = true;
 
@@ -751,10 +779,18 @@
       correctLine += "）";
       readEl.textContent    = correctLine;
       readEl.className      = "feedback-correct-answer";
-      var dmg = logEntry.hpDamage || (result.powered ? 2 : 1);
-      correctionEl.textContent = result.powered
-        ? "強力なこうげきをうけた！（ハート-" + dmg + "）"
-        : "ダメージをうけた！（ハート-" + dmg + "）";
+      var dmg = logEntry.hpDamage || 1;
+      var msg;
+      if (logEntry.isBossAttack && logEntry.powered) {
+        msg = "力をこめた強力なこうげきをうけた！（ハート-" + dmg + "）";
+      } else if (logEntry.isBossAttack) {
+        msg = "強力なこうげきをうけた！（ハート-" + dmg + "）";
+      } else if (logEntry.isCounter && logEntry.powered) {
+        msg = "力をこめたこうげきをうけた！（ハート-" + dmg + "）";
+      } else {
+        msg = "ダメージをうけた！（ハート-" + dmg + "）";
+      }
+      correctionEl.textContent = msg;
     }
     showFeedbackArea(false);
   }

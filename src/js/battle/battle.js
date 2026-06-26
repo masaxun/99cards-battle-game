@@ -10,31 +10,32 @@
   // ============================================================
 
   var NORMAL_ENEMY_PROBS = {
-    normal1: [
+    normal1: [  // スライム: 攻撃少なめ、無駄行動多め
       { type: "none",    weight: 50 },
-      { type: "opening", weight: 25 },
-      { type: "guard",   weight: 15 },
-      { type: "counter", weight: 10 }
-    ],
-    normal2: [
-      { type: "none",    weight: 45 },
-      { type: "opening", weight: 20 },
-      { type: "guard",   weight: 20 },
-      { type: "counter", weight: 15 }
-    ],
-    normal3: [
-      { type: "none",    weight: 40 },
       { type: "opening", weight: 15 },
-      { type: "guard",   weight: 25 },
-      { type: "counter", weight: 20 }
+      { type: "guard",   weight: 10 },
+      { type: "counter", weight: 25 }
+    ],
+    normal2: [  // バット: 攻撃普通
+      { type: "none",    weight: 30 },
+      { type: "opening", weight: 15 },
+      { type: "guard",   weight: 20 },
+      { type: "counter", weight: 35 }
+    ],
+    normal3: [  // ゴーレム: ガード高め・力ためあり
+      { type: "none",    weight: 5 },
+      { type: "opening", weight: 10 },
+      { type: "guard",   weight: 35 },
+      { type: "counter", weight: 35 },
+      { type: "powerUp", weight: 15 }
     ]
   };
 
-  var BOSS_ENEMY_PROBS = [
-    { type: "none",       weight: 15 },
-    { type: "bossAttack", weight: 45 },
-    { type: "guard",      weight: 20 },
-    { type: "powerUp",    weight: 10 },
+  var BOSS_ENEMY_PROBS = [  // ドラゴン: 攻撃多め・力ため強め
+    { type: "none",       weight: 5 },
+    { type: "bossAttack", weight: 50 },
+    { type: "guard",      weight: 15 },
+    { type: "powerUp",    weight: 20 },
     { type: "opening",    weight: 10 }
   ];
 
@@ -50,6 +51,14 @@
   // ============================================================
   // ユーティリティ
   // ============================================================
+
+  // 力ため後の難問優先: 7,8,9 → 4,6 → ランダム
+  function pickHardB() {
+    var r = Math.random();
+    if (r < 0.60) return [7, 8, 9][Math.floor(Math.random() * 3)];
+    if (r < 0.85) return [4, 6][Math.floor(Math.random() * 2)];
+    return Cards.randomInt(1, 9);
+  }
 
   function weightedRandom(probs) {
     var total = 0;
@@ -175,20 +184,26 @@
     var state = session.enemyState;
     var stage = session.stage;
 
-    var probs = stage === "boss"
-      ? BOSS_ENEMY_PROBS
-      : (NORMAL_ENEMY_PROBS[stage] || NORMAL_ENEMY_PROBS.normal1);
+    var chosen;
 
-    // 制約チェック付き抽選（最大10回リトライ）
-    var chosen = "none";
-    for (var t = 0; t < 10; t++) {
-      var candidate = weightedRandom(probs);
-      if (candidate === "counter" && state.lastActionWasCounter) continue;
-      if (candidate === "guard"   && state.guard)               continue;
-      if (candidate === "opening" && state.opening)             continue;
-      if (candidate === "powerUp" && state.powerUp)             continue;
-      chosen = candidate;
-      break;
+    // 力ため後は攻撃を強制（抽選しない）
+    if (state.powerUp) {
+      chosen = stage === "boss" ? "bossAttack" : "counter";
+    } else {
+      var probs = stage === "boss"
+        ? BOSS_ENEMY_PROBS
+        : (NORMAL_ENEMY_PROBS[stage] || NORMAL_ENEMY_PROBS.normal1);
+
+      // 制約チェック付き抽選（最大10回リトライ）
+      chosen = "none";
+      for (var t = 0; t < 10; t++) {
+        var candidate = weightedRandom(probs);
+        if (candidate === "guard"   && state.guard)   continue;
+        if (candidate === "opening" && state.opening) continue;
+        if (candidate === "powerUp" && state.powerUp) continue;
+        chosen = candidate;
+        break;
+      }
     }
 
     var result = { type: chosen, label: null, question: null, powered: false };
@@ -204,7 +219,9 @@
     } else if (chosen === "powerUp") {
       state.powerUp = true;
       state.lastActionWasCounter = false;
-      result.label = "ボスが力をためた！ 次のこうげきをミスするとハート-2";
+      result.label = stage === "boss"
+        ? "ボスが力をためた！ 次のこうげきをミスするとハート-3"
+        : "敵が力をためた！ 次のこうげきをミスするとハート-2";
 
     } else if (chosen === "opening") {
       state.opening = true;
@@ -212,8 +229,9 @@
       result.label = "敵が隙を見せた！ " + dan + "の段のかけ算で正解するとダメージ+50%";
 
     } else if (chosen === "counter" || chosen === "bossAttack") {
-      var isPowered = chosen === "bossAttack" && state.powerUp;
-      var q = Cards.createMulCard(dan, Cards.randomInt(1, 9));
+      var isPowered = state.powerUp;  // 力ため後の攻撃は常にpowered
+      var bVal = isPowered ? pickHardB() : Cards.randomInt(1, 9);
+      var q = Cards.createMulCard(dan, bVal);
       session.pendingAttack = {
         question: q,
         kind: chosen === "counter" ? "counter" : "boss",
@@ -222,12 +240,13 @@
       state.lastActionWasCounter = (chosen === "counter");
       result.question = q;
       result.powered = isPowered;
+
       if (chosen === "counter") {
-        result.label = "敵の反撃！";
+        result.label = isPowered ? "敵が力をこめた反撃！" : "敵の反撃！";
       } else if (isPowered) {
-        result.label = "ボスの強いこうげき！";
+        result.label = "力をこめた強力なこうげき！";
       } else {
-        result.label = "ボスのこうげき！";
+        result.label = "ボスの強力なこうげき！";
       }
 
     } else {
@@ -352,7 +371,9 @@
     var hpDamage = 0;
 
     if (!correct) {
-      hpDamage = attack.powered ? 2 : 1;
+      hpDamage = (attack.kind === "boss")
+        ? (attack.powered ? 3 : 2)
+        : (attack.powered ? 2 : 1);
       session.hp -= hpDamage;
       session.combo = 0;
     }
