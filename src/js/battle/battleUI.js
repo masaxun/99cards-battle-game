@@ -930,7 +930,7 @@
   }
 
   function buildResultDetail(summary) {
-    var stage   = summary.stage;
+    var stage   = summary.stage || session.stage;
     var outcome = summary.outcome;
     var areaName = session.areaDef.name;
 
@@ -991,7 +991,7 @@
     }
 
     var areaId    = session.areaDef.id;
-    var stage     = summary.stage;
+    var stage     = summary.stage || session.stage;
     var outcome   = summary.outcome;
     var primaryBtn = document.getElementById("result-back-btn");
     var retryBtn   = document.getElementById("result-retry-btn");
@@ -1004,6 +1004,9 @@
       var currentUrl = buildBattleUrl(areaId, stage);
       if (outcome === "win") {
         var nextStage = getNextStage(stage);
+        if (!nextStage) {
+          console.warn("[BATTLE RESULT] nextStage missing", { stage: stage, summary: summary });
+        }
         primaryBtn.textContent = (stage === "normal3") ? "ぬし戦へ" : "つぎへ";
         resultPrimaryUrl   = buildBattleUrl(areaId, nextStage);
         retryBtn.textContent = "もう一回";
@@ -1017,6 +1020,15 @@
         retryBtn.classList.remove("hidden");
       }
     }
+
+    console.debug("[BATTLE RESULT]", {
+      summaryStage: summary.stage,
+      sessionStage: session.stage,
+      stage: stage,
+      outcome: outcome,
+      nextStage: getNextStage(stage),
+      resultPrimaryUrl: resultPrimaryUrl
+    });
 
     document.getElementById("result-overlay").classList.remove("hidden");
   }
