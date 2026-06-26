@@ -51,8 +51,8 @@
   }
 
   var BGM = {
-    normal: { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3", volume: 0.30 },
-    boss:   { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",   volume: 0.30 }
+    normal: { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3", volume: 0.24 },
+    boss:   { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",   volume: 0.24 }
   };
 
   function getBgmKeyForStage(stage) {

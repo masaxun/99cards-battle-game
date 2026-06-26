@@ -8,7 +8,12 @@ html, body {
 
 body {
   font-family: sans-serif;
-  background: #0d0d12;
+  background: radial-gradient(
+    circle at center,
+    rgba(45, 50, 80, 0.35) 0%,
+    rgba(18, 18, 28, 0.95) 50%,
+    rgba(8, 8, 14, 1) 100%
+  );
   color: #eee;
   min-height: 100vh;
 }
@@ -33,25 +38,43 @@ body {
   overflow-x: hidden;
 }
 
-/* 背景画像レイヤー（fixed・全画面） */
+/* 背景画像レイヤー（fixed・中央寄せ・PC幅制限） */
 #battle-screen::before {
   content: "";
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 50%;
+  width: min(100vw, 600px);
+  height: 100vh;
+  transform: translateX(-50%);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   z-index: -2;
 }
 
-/* 暗めオーバーレイ（背景画像の上・UI下） */
+/* 暗めオーバーレイ（背景画像の上・UI下・PC幅制限） */
 #battle-screen::after {
   content: "";
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 50%;
+  width: min(100vw, 600px);
+  height: 100vh;
+  transform: translateX(-50%);
   background: rgba(10, 12, 28, 0.55);
   z-index: -1;
   pointer-events: none;
+}
+
+/* スマホ時：背景を全画面に戻す */
+@media (max-width: 640px) {
+  #battle-screen::before,
+  #battle-screen::after {
+    left: 0;
+    width: 100%;
+    transform: none;
+  }
 }
 
 /* はじまりの道 通常戦 */
