@@ -80,12 +80,21 @@ body {
    ============================================================ */
 
 #enemy-hp-section {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 8px;
   background: rgba(10, 12, 18, 0.85);
   padding: 8px 10px;
   border-radius: 8px;
+}
+
+@supports (top: env(safe-area-inset-top)) {
+  #enemy-hp-section {
+    top: calc(env(safe-area-inset-top) + 8px);
+  }
 }
 
 #enemy-hp-bar {
