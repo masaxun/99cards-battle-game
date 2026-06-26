@@ -44,7 +44,7 @@ body {
   position: fixed;
   top: 0;
   left: 50%;
-  width: min(100vw, 600px);
+  width: min(100vw, 520px);
   height: 100vh;
   transform: translateX(-50%);
   background-size: cover;
@@ -59,7 +59,7 @@ body {
   position: fixed;
   top: 0;
   left: 50%;
-  width: min(100vw, 600px);
+  width: min(100vw, 520px);
   height: 100vh;
   transform: translateX(-50%);
   background: rgba(10, 12, 28, 0.55);
