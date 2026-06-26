@@ -145,12 +145,21 @@ body {
   padding: 6px;
   text-align: center;
   position: relative;
+  --enemy-name-top: 6px;
+  --enemy-sprite-offset-y: 0px;
+  --enemy-shadow-scale: 1;
 }
+
+/* 敵ステージ別調整 */
+#enemy-sprite-section.enemy-stage-normal1 { --enemy-shadow-scale: 0.85; }
+#enemy-sprite-section.enemy-stage-normal2 { --enemy-shadow-scale: 0.75; }
+#enemy-sprite-section.enemy-stage-normal3 { --enemy-name-top: -2px; --enemy-sprite-offset-y: 14px; --enemy-shadow-scale: 1.15; }
+#enemy-sprite-section.enemy-stage-boss    { --enemy-name-top: -4px; --enemy-sprite-offset-y: 16px; --enemy-shadow-scale: 1.25; }
 
 /* 名前・バッジ行 — 敵画像の上に重ねるabsolute pill */
 #enemy-info-row {
   position: absolute;
-  top: 6px;
+  top: var(--enemy-name-top);
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
@@ -183,23 +192,30 @@ body {
   display: block;
   width: fit-content;
   margin: 0 auto;
+  transform: translateY(var(--enemy-sprite-offset-y));
 }
 
 /* 敵の足元影 */
 #enemy-sprite-wrap::after {
   content: "";
-  display: block;
-  width: 60%;
-  height: 12px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.28) 0%, transparent 70%);
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%) scaleX(var(--enemy-shadow-scale));
+  width: 70%;
+  height: 14px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.36) 0%, rgba(0, 0, 0, 0.18) 45%, transparent 75%);
   border-radius: 50%;
-  margin: -4px auto 0;
+  filter: blur(1px);
   pointer-events: none;
+  z-index: 0;
 }
 
 #enemy-sprite {
   display: inline-block;
   line-height: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .enemy-image {
@@ -218,7 +234,7 @@ body {
 /* ダメージポップ（敵スプライト付近に浮かぶ） */
 #enemy-damage-pop {
   position: absolute;
-  top: -8px;
+  top: 24px;
   right: -20px;
   background: #c0392b;
   color: #fff;
@@ -816,8 +832,8 @@ body {
 @keyframes kf-damage-pop {
   0%   { opacity: 0; transform: translateY(4px) scale(0.9); }
   12%  { opacity: 1; transform: translateY(0) scale(1.08); }
-  70%  { opacity: 1; transform: translateY(-16px) scale(1.08); }
-  100% { opacity: 0; transform: translateY(-28px) scale(0.95); }
+  70%  { opacity: 1; transform: translateY(-8px) scale(1.08); }
+  100% { opacity: 0; transform: translateY(-16px) scale(0.95); }
 }
 
 /* 画面フラッシュオーバーレイ（UI全体を一瞬だけ色づけ） */

@@ -104,6 +104,7 @@
     var params = getParams();
     var areaId = params.areaId || "hajimari";
     var stage  = params.stage  || "normal1";
+    normalizeBattleUrl(areaId, stage, params);
 
     var gameState = GameState.load();
     var areaDef   = Areas.getAreaById(areaId);
@@ -172,6 +173,9 @@
 
   function renderEnemySprite() {
     var stage = session.stage;
+    var section = document.getElementById("enemy-sprite-section");
+    section.classList.remove("enemy-stage-normal1", "enemy-stage-normal2", "enemy-stage-normal3", "enemy-stage-boss");
+    section.classList.add("enemy-stage-" + stage);
     var spriteEl = document.getElementById("enemy-sprite");
     var imgPath = STAGE_IMAGE_PATHS[stage];
     if (imgPath) {
@@ -688,6 +692,13 @@
 
   function buildBattleUrl(areaId, stage) {
     return "battle.html?areaId=" + encodeURIComponent(areaId) + "&stage=" + encodeURIComponent(stage);
+  }
+
+  function normalizeBattleUrl(areaId, stage, params) {
+    if (params.areaId && params.stage) return;
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, "", buildBattleUrl(areaId, stage));
+    }
   }
 
   function getNextStage(stage) {
