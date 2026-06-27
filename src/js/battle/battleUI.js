@@ -36,7 +36,8 @@
     enemyPowerUp:  { src: "assets/audio/se/se_enemy_power_up_v01.mp3",     volume: 0.55 },
     enemyGuard:    { src: "assets/audio/se/se_enemy_guard_v01.mp3",        volume: 0.55 },
     evade:         { src: "assets/audio/se/se_evade_v01.mp3",              volume: 0.60 },
-    playerDamage:  { src: "assets/audio/se/se_player_damage_v01.mp3",      volume: 0.60 }
+    playerDamage:  { src: "assets/audio/se/se_player_damage_v01.mp3",      volume: 0.60 },
+    criticalHit:   { src: "assets/audio/se/se_critical_hit_v01.mp3",        volume: 0.70 }
   };
 
   function playSE(name) {
@@ -322,8 +323,9 @@
   }
 
   function renderEnemyEffects() {
-    var backEl  = document.getElementById("enemy-effect-back");
-    var frontEl = document.getElementById("enemy-effect-front");
+    var backEl    = document.getElementById("enemy-effect-back");
+    var frontEl   = document.getElementById("enemy-effect-front");
+    var openingEl = document.getElementById("enemy-opening-effect");
 
     if (enemyStateEffectsVisible && session.enemyState.powerUp) {
       backEl.className = "enemy-state-effect effect-power-up";
@@ -339,6 +341,16 @@
     } else {
       frontEl.className = "enemy-state-effect hidden";
       frontEl.removeAttribute("src");
+    }
+
+    if (openingEl) {
+      if (enemyStateEffectsVisible && session.enemyState.opening) {
+        openingEl.src = "assets/images/effects/effect_opening_marker_v01.png";
+        openingEl.classList.remove("hidden");
+      } else {
+        openingEl.classList.add("hidden");
+        openingEl.removeAttribute("src");
+      }
     }
   }
 
@@ -661,6 +673,38 @@
     flashPlayerDamage();
   }
 
+  function flashCritical() {
+    var overlay = document.getElementById("flash-overlay");
+    overlay.classList.remove("flash-critical");
+    void overlay.offsetWidth;
+    overlay.classList.add("flash-critical");
+    setTimeout(function () { overlay.classList.remove("flash-critical"); }, 520);
+  }
+
+  function showPlayerHealEffect() {
+    var el = document.getElementById("player-heal-effect");
+    if (!el) return;
+    el.classList.remove("heal-animate");
+    void el.offsetWidth;
+    el.classList.add("heal-animate");
+    setTimeout(function () { el.classList.remove("heal-animate"); }, 750);
+  }
+
+  function showEnemyAttackEffect(powered) {
+    var el = document.getElementById("enemy-attack-effect");
+    if (!el) return;
+    el.src = powered
+      ? "assets/images/effects/effect_enemy_attack_strong_v01.png"
+      : "assets/images/effects/effect_enemy_attack_normal_v01.png";
+    el.classList.remove("attack-normal", "attack-strong", "attack-animate");
+    el.classList.add(powered ? "attack-strong" : "attack-normal");
+    void el.offsetWidth;
+    el.classList.add("attack-animate");
+    setTimeout(function () {
+      el.classList.remove("attack-normal", "attack-strong", "attack-animate");
+    }, 700);
+  }
+
   function updateDangerOverlay() {
     var el = document.getElementById("danger-overlay");
     if (!el || !session) return;
@@ -687,11 +731,12 @@
   function showDamagePop(damage, critical) {
     var el = document.getElementById("enemy-damage-pop");
     el.textContent = (critical ? "会心！" : "") + damage + "ダメージ！";
-    el.classList.remove("pop-animate");
+    el.classList.remove("pop-animate", "damage-critical");
+    if (critical) el.classList.add("damage-critical");
     void el.offsetWidth;
     el.classList.add("pop-animate");
     setTimeout(function () {
-      el.classList.remove("pop-animate");
+      el.classList.remove("pop-animate", "damage-critical");
     }, 2000);
   }
 
@@ -757,10 +802,18 @@
         if (result.logEntry.damageBreakdown) {
           showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical);
         }
-        var hitSe = card.kind === "mul" ? "special" : "hit";
+        var isCritical = result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.critical;
+        var hitSe;
+        if (isCritical) {
+          hitSe = "criticalHit";
+          flashCritical();
+        } else {
+          hitSe = card.kind === "mul" ? "special" : "hit";
+        }
         setTimeout(function () { playSE(hitSe); }, 40);
       } else if (result.logEntry.heal) {
         setTimeout(function () { playSE("heal"); }, 40);
+        showPlayerHealEffect();
       }
     } else if (!result.correct) {
       playSE("wrong");
@@ -774,6 +827,12 @@
       interactionLocked = false;
       scheduleEnd();
       return;
+    }
+
+    if (result.enemyAction && session.pendingAttack &&
+        (result.enemyAction.type === "counter" || result.enemyAction.type === "bossAttack")) {
+      document.getElementById("enemy-attack-panel").classList.add("hidden");
+      updateAnsweringClass();
     }
 
     setTimeout(function () {
@@ -791,11 +850,18 @@
         playEnemyActionSE(result.enemyAction);
         renderEnemySprite();
         if (session.pendingAttack) {
-          renderEnemyAttackPanel();
+          showEnemyAttackEffect(session.pendingAttack.powered);
+          setTimeout(function () {
+            renderEnemyAttackPanel();
+            interactionLocked = false;
+            renderHand();
+            renderPlayerSection();
+          }, 300);
+        } else {
+          interactionLocked = false;
+          renderHand();
+          renderPlayerSection();
         }
-        interactionLocked = false;
-        renderHand();
-        renderPlayerSection();
       });
     }, 1100);
   }
@@ -868,6 +934,12 @@
       return;
     }
 
+    if (result.enemyAction && session.pendingAttack &&
+        (result.enemyAction.type === "counter" || result.enemyAction.type === "bossAttack")) {
+      document.getElementById("enemy-attack-panel").classList.add("hidden");
+      updateAnsweringClass();
+    }
+
     setTimeout(function () {
       if (!result.enemyAction) {
         enemyStateEffectsVisible = true;
@@ -883,11 +955,18 @@
         playEnemyActionSE(result.enemyAction);
         renderEnemySprite();
         if (session.pendingAttack) {
-          renderEnemyAttackPanel();
+          showEnemyAttackEffect(session.pendingAttack.powered);
+          setTimeout(function () {
+            renderEnemyAttackPanel();
+            interactionLocked = false;
+            renderHand();
+            renderPlayerSection();
+          }, 300);
+        } else {
+          interactionLocked = false;
+          renderHand();
+          renderPlayerSection();
         }
-        interactionLocked = false;
-        renderHand();
-        renderPlayerSection();
       });
     }, 1100);
   }

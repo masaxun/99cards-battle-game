@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>バトル - 九九カードバトル</title>
-  <link rel="stylesheet" href="src/css/battle.css?v=20260626-layout2">
+  <link rel="stylesheet" href="src/css/battle.css?v=20260626-effects3">
 </head>
 <body>
 <div id="battle-screen">
@@ -27,6 +27,8 @@
       <div id="enemy-damage-pop"></div>
       <div id="enemy-sprite"></div>
       <img id="enemy-effect-front" class="enemy-state-effect hidden" alt="">
+      <img id="enemy-attack-effect" class="enemy-attack-effect hidden" alt="">
+      <img id="enemy-opening-effect" class="enemy-opening-effect hidden" alt="">
     </div>
     <div id="enemy-action-msg" class="fb-hidden">
       <div class="enemy-action-label">ENEMY ACTION</div>
@@ -115,15 +117,16 @@
   </div>
 </div>
 
+<img id="player-heal-effect" class="player-heal-effect hidden" src="assets/images/effects/effect_player_heal_v01.png" alt="">
 <div id="danger-overlay"></div>
 <div id="flash-overlay"></div>
 
-<script src="src/js/common/storage.js?v=20260626-layout2"></script>
-<script src="src/js/common/data/areas.js?v=20260626-layout2"></script>
-<script src="src/js/common/data/cardDefs.js?v=20260626-layout2"></script>
-<script src="src/js/common/data/yomi.js?v=20260626-layout2"></script>
-<script src="src/js/common/gameState.js?v=20260626-layout2"></script>
-<script src="src/js/battle/battle.js?v=20260626-layout2"></script>
-<script src="src/js/battle/battleUI.js?v=20260626-layout2"></script>
+<script src="src/js/common/storage.js?v=20260626-effects3"></script>
+<script src="src/js/common/data/areas.js?v=20260626-effects3"></script>
+<script src="src/js/common/data/cardDefs.js?v=20260626-effects3"></script>
+<script src="src/js/common/data/yomi.js?v=20260626-effects3"></script>
+<script src="src/js/common/gameState.js?v=20260626-effects3"></script>
+<script src="src/js/battle/battle.js?v=20260626-effects3"></script>
+<script src="src/js/battle/battleUI.js?v=20260626-effects3"></script>
 </body>
 </html>

@@ -303,6 +303,16 @@ body {
   animation: kf-damage-pop 2.0s ease forwards;
 }
 
+#enemy-damage-pop.damage-critical {
+  background: linear-gradient(180deg, rgba(40, 10, 8, 0.96), rgba(110, 20, 10, 0.96));
+  color: #fff7cc;
+  border: 2px solid #ffd45a;
+  box-shadow:
+    0 0 10px rgba(255, 210, 80, 0.75),
+    0 0 18px rgba(255, 160, 40, 0.45);
+  font-size: 17px;
+}
+
 /* 敵行動メッセージ（敵エリア下部にpill型で表示） */
 #enemy-action-msg {
   position: absolute;
@@ -893,7 +903,7 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
   background: transparent;
 }
 
@@ -1067,4 +1077,104 @@ body {
 
 #enemy-sprite.enemy-preaction {
   animation: kf-enemy-preaction 0.5s ease;
+}
+
+/* ============================================================
+   会心フラッシュ
+   ============================================================ */
+
+@keyframes kf-flash-critical {
+  0%, 100% { background: transparent; }
+  12%      { background: rgba(255, 255, 255, 0.30); }
+  28%      { background: rgba(255, 215, 80, 0.34); }
+  48%      { background: rgba(255, 255, 255, 0.16); }
+}
+
+#flash-overlay.flash-critical {
+  animation: kf-flash-critical 0.52s ease forwards;
+}
+
+/* ============================================================
+   プレイヤー回復エフェクト
+   ============================================================ */
+
+#player-heal-effect {
+  position: fixed;
+  left: 50%;
+  top: 52%;
+  width: 95vw;
+  max-width: 520px;
+  transform: translate(-50%, -50%) scale(0.92);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+}
+
+.player-heal-effect.heal-animate {
+  animation: kf-player-heal-effect 0.75s ease forwards;
+}
+
+@keyframes kf-player-heal-effect {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.88); }
+  18%  { opacity: 0.42; transform: translate(-50%, -50%) scale(0.96); }
+  70%  { opacity: 0.38; transform: translate(-50%, -50%) scale(1.02); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.08); }
+}
+
+/* ============================================================
+   敵攻撃エフェクト
+   ============================================================ */
+
+.enemy-attack-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+}
+
+.enemy-attack-effect.attack-normal {
+  width: 145%;
+  height: 145%;
+}
+
+.enemy-attack-effect.attack-strong {
+  width: 175%;
+  height: 175%;
+}
+
+.enemy-attack-effect.attack-animate {
+  animation: kf-enemy-attack-effect 0.65s ease forwards;
+}
+
+@keyframes kf-enemy-attack-effect {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+/* ============================================================
+   隙ありエフェクト
+   ============================================================ */
+
+.enemy-opening-effect {
+  position: absolute;
+  right: -18%;
+  top: 12%;
+  width: 68%;
+  height: 68%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0.88;
+  animation: kf-opening-marker 1.2s ease-in-out infinite;
+}
+
+@keyframes kf-opening-marker {
+  0%, 100% { transform: scale(1);    opacity: 0.82; }
+  50%      { transform: scale(1.06); opacity: 1;    }
 }
