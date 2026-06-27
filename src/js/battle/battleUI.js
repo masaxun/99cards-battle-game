@@ -37,7 +37,8 @@
     enemyGuard:    { src: "assets/audio/se/se_enemy_guard_v01.mp3",        volume: 0.55 },
     evade:         { src: "assets/audio/se/se_evade_v01.mp3",              volume: 0.60 },
     playerDamage:  { src: "assets/audio/se/se_player_damage_v01.mp3",      volume: 0.60 },
-    criticalHit:   { src: "assets/audio/se/se_critical_hit_v01.mp3",        volume: 0.70 }
+    criticalHit:   { src: "assets/audio/se/se_critical_hit_v01.mp3",        volume: 0.70 },
+    defeat:        { src: "assets/audio/se/se_defeat_v01.mp3",              volume: 0.70 }
   };
 
   function playSE(name) {
@@ -1326,7 +1327,7 @@
     if (summary.outcome === "win") {
       fadeOutBGM(400, function () { playSE("victory"); });
     } else {
-      stopBGM();
+      fadeOutBGM(400, function () { playSE("defeat"); });
     }
 
     document.getElementById("result-overlay").classList.remove("hidden");
