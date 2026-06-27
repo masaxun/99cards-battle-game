@@ -89,12 +89,12 @@ body {
 
 /* そよ風の草原 通常戦 */
 #battle-screen.battle-bg-soyokaze::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_v01.webp");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_v01.webp?v=20260627-soyokaze2");
 }
 
 /* そよ風の草原 ぬし戦 */
 #battle-screen.battle-bg-soyokaze-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_boss_v01.webp");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_boss_v01.webp?v=20260627-soyokaze2");
 }
 
 .section-tag {
@@ -180,14 +180,11 @@ body {
   position: relative;
   --enemy-name-top: 6px;
   --enemy-sprite-offset-y: 0px;
-  --enemy-shadow-scale: 1;
 }
 
 /* 敵ステージ別調整 */
-#enemy-sprite-section.enemy-stage-normal1 { --enemy-shadow-scale: 0.85; }
-#enemy-sprite-section.enemy-stage-normal2 { --enemy-shadow-scale: 0.75; }
-#enemy-sprite-section.enemy-stage-normal3 { --enemy-name-top: -2px; --enemy-sprite-offset-y: 14px; --enemy-shadow-scale: 1.15; }
-#enemy-sprite-section.enemy-stage-boss    { --enemy-name-top: -4px; --enemy-sprite-offset-y: 16px; --enemy-shadow-scale: 1.25; }
+#enemy-sprite-section.enemy-stage-normal3 { --enemy-name-top: -2px; --enemy-sprite-offset-y: 14px; }
+#enemy-sprite-section.enemy-stage-boss    { --enemy-name-top: -4px; --enemy-sprite-offset-y: 16px; }
 
 /* 名前・バッジ行 — 敵画像の上に重ねるabsolute pill */
 #enemy-info-row {
@@ -228,20 +225,9 @@ body {
   transform: translateY(var(--enemy-sprite-offset-y));
 }
 
-/* 敵の足元影 */
+/* 敵の足元影：無効化（敵画像ごとに透明余白が異なるため位置が合わない） */
 #enemy-sprite-wrap::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  transform: translateX(-50%) scaleX(var(--enemy-shadow-scale));
-  width: 70%;
-  height: 14px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.36) 0%, rgba(0, 0, 0, 0.18) 45%, transparent 75%);
-  border-radius: 50%;
-  filter: blur(1px);
-  pointer-events: none;
-  z-index: 0;
+  content: none;
 }
 
 #enemy-sprite {
