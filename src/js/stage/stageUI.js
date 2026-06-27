@@ -4,6 +4,32 @@
   var Areas     = window.Kuku99.Areas;
   var GameState = window.Kuku99.GameState;
 
+  var SE = {
+    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3", volume: 0.55 }
+  };
+
+  var navigating = false;
+
+  function playSE(name) {
+    var def = SE[name];
+    if (!def) return;
+    try {
+      var audio = new Audio(def.src);
+      audio.volume = def.volume;
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  function goToBattle(areaId, stage) {
+    if (navigating) return;
+    navigating = true;
+    playSE("buttonDecide");
+    setTimeout(function () {
+      window.location.href = buildBattleUrl(areaId, stage);
+    }, 120);
+  }
+
   var STAGE_ORDER = ["normal1", "normal2", "normal3", "boss"];
 
   var STAGE_LABEL = {
@@ -86,7 +112,7 @@
         btnEl.className += " btn-cleared";
         (function (s) {
           btnEl.addEventListener("click", function () {
-            window.location.href = buildBattleUrl(areaDef.id, s);
+            goToBattle(areaDef.id, s);
           });
         })(stage);
       } else {
@@ -96,7 +122,7 @@
         btnEl.className += " btn-available";
         (function (s) {
           btnEl.addEventListener("click", function () {
-            window.location.href = buildBattleUrl(areaDef.id, s);
+            goToBattle(areaDef.id, s);
           });
         })(stage);
       }
