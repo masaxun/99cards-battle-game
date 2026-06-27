@@ -182,8 +182,18 @@
     }
   };
   var STAGE_FALLBACK_SPRITES = { normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉" };
-  var STAGE_NAMES   = { normal1: "スライム", normal2: "バット", normal3: "ゴーレム", boss: "のぬし" };
   var STAGE_LABELS  = { normal1: "通常戦1", normal2: "通常戦2", normal3: "通常戦3", boss: "ぬし戦" };
+
+  var ENEMY_NAMES = {
+    hajimari: { normal1: "スライム",       normal2: "コウモリ",   normal3: "ゴーレム" },
+    soyokaze: { normal1: "リーフスライム", normal2: "コノハモリ", normal3: "モスゴーレム" }
+  };
+
+  function getEnemyName(areaDef, stage) {
+    if (stage === "boss") return areaDef.name + "のぬし";
+    var areaNames = ENEMY_NAMES[areaDef.id] || ENEMY_NAMES.hajimari;
+    return (areaNames && areaNames[stage]) || (ENEMY_NAMES.hajimari[stage]) || "モンスター";
+  }
 
   var IDLE_REACTIONS_NORMAL = [
     "敵がうなった",
@@ -319,7 +329,7 @@
       var img = document.createElement("img");
       img.className = "enemy-image" + (stage === "boss" ? " enemy-boss" : "");
       img.src = imgPath;
-      img.alt = STAGE_NAMES[stage] || "モンスター";
+      img.alt = getEnemyName(session.areaDef, stage);
       img.onerror = (function (fallback) {
         return function () { spriteEl.textContent = fallback; };
       })(STAGE_FALLBACK_SPRITES[stage] || "👾");
@@ -330,10 +340,7 @@
     }
 
     var nameEl = document.getElementById("enemy-name");
-    var suffix = STAGE_NAMES[stage] || "モンスター";
-    nameEl.textContent = (stage === "boss")
-      ? session.areaDef.name + "のぬし"
-      : suffix;
+    nameEl.textContent = getEnemyName(session.areaDef, stage);
 
     var badgesEl = document.getElementById("enemy-badges");
     var badges = [];
@@ -733,10 +740,9 @@
     }, 700);
   }
 
-  function showEnemyRegenEffect() {
-    var el = document.getElementById("enemy-regen-effect");
+  function animateRegenLayer(el, src) {
     if (!el) return;
-    el.src = "assets/images/effects/effect_enemy_regen_v01.png";
+    el.src = src;
     el.classList.remove("hidden", "regen-animate");
     void el.offsetWidth;
     el.classList.add("regen-animate");
@@ -744,6 +750,17 @@
       el.classList.remove("regen-animate");
       el.classList.add("hidden");
     }, 1000);
+  }
+
+  function showEnemyRegenEffect() {
+    animateRegenLayer(
+      document.getElementById("enemy-regen-effect-back"),
+      "assets/images/effects/effect_enemy_regen_back_v01.png"
+    );
+    animateRegenLayer(
+      document.getElementById("enemy-regen-effect-front"),
+      "assets/images/effects/effect_enemy_regen_front_v01.png"
+    );
   }
 
   function showEnemyRegenMessage(regen) {

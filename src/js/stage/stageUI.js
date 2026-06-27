@@ -39,11 +39,16 @@
     boss:    "ぬし戦"
   };
 
-  var STAGE_ENEMY = {
-    normal1: "スライム",
-    normal2: "バット",
-    normal3: "ゴーレム"
+  var STAGE_ENEMY_NAMES = {
+    hajimari: { normal1: "スライム",       normal2: "コウモリ",   normal3: "ゴーレム" },
+    soyokaze: { normal1: "リーフスライム", normal2: "コノハモリ", normal3: "モスゴーレム" }
   };
+
+  function getStageEnemyName(areaDef, stage) {
+    if (stage === "boss") return areaDef.name + "のぬし";
+    var areaNames = STAGE_ENEMY_NAMES[areaDef.id] || STAGE_ENEMY_NAMES.hajimari;
+    return (areaNames && areaNames[stage]) || (STAGE_ENEMY_NAMES.hajimari[stage]) || "モンスター";
+  }
 
   function parseParams() {
     var params = {};
@@ -92,7 +97,7 @@
 
       var enemyEl = document.createElement("div");
       enemyEl.className = "stage-card-enemy";
-      enemyEl.textContent = (stage === "boss") ? areaDef.name + "のぬし" : (STAGE_ENEMY[stage] || "モンスター");
+      enemyEl.textContent = getStageEnemyName(areaDef, stage);
 
       var statusEl = document.createElement("div");
       statusEl.className = "stage-card-status";

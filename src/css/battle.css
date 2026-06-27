@@ -1150,18 +1150,31 @@ body {
   transform: translate(-50%, -50%);
   object-fit: contain;
   pointer-events: none;
-  z-index: 0;
   opacity: 0;
 }
 
+.enemy-regen-effect-back  { z-index: 0; }
+.enemy-regen-effect-front { z-index: 2; }
+
 .enemy-regen-effect.regen-animate {
   animation: kf-enemy-regen-effect 1.0s ease forwards;
+}
+
+.enemy-regen-effect-front.regen-animate {
+  animation: kf-enemy-regen-effect-front 1.0s ease forwards;
 }
 
 @keyframes kf-enemy-regen-effect {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.88); }
   18%  { opacity: 0.58; transform: translate(-50%, -50%) scale(0.96); }
   70%  { opacity: 0.54; transform: translate(-50%, -50%) scale(1.02); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.08); }
+}
+
+@keyframes kf-enemy-regen-effect-front {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.88); }
+  18%  { opacity: 0.48; transform: translate(-50%, -50%) scale(0.96); }
+  70%  { opacity: 0.44; transform: translate(-50%, -50%) scale(1.02); }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.08); }
 }
 
