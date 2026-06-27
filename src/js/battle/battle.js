@@ -331,15 +331,34 @@
       session.combo += 1;
 
       if (card.kind === "mul" || card.kind === "add") {
-        var masteryLevel = card.kind === "mul"
-          ? GameState.getMastery(session.gameState, card.factKey).level
-          : 1;
-        var baseDamage = Cards.calcDamage(card, session.areaDef, masteryLevel, session.combo);
+        // 基礎ダメージ = カードの答え（熟練度補正なし）
+        var baseRawDamage = card.answer;
 
-        // 隙ありボーナス: 対象段のかけ算カードで正解したとき+50%
+        // ランク補正: 低ランクカードで高ランク相手を攻撃すると半減
+        if (card.kind === "mul") {
+          var defenderIsHigh = session.areaDef.rank === "upper" || session.areaDef.rank === "last";
+          if (card.rank === "lower" && defenderIsHigh) {
+            baseRawDamage = Math.round(baseRawDamage * 0.5);
+          }
+        }
+
+        // 弱点ボーナス: 基礎ダメージにだけ適用（足し算カードは弱点なし）
+        var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === session.areaDef.weakness;
+        var weaknessBonusAmount = isWeakness ? Math.round(baseRawDamage * 0.5) : 0;
+
+        // コンボボーナス: 基礎ダメージ基準で加算
+        var comboBonusAmount = Math.round(baseRawDamage * (Cards.getComboMultiplier(session.combo) - 1));
+
+        // 隙ありボーナス: 対象段のかけ算カードで正解したとき+50%（基礎ダメージ基準）
         var openingBonus = hadOpening && card.kind === "mul" && card.dan === session.areaDef.dan;
+        var openingBonusAmount = openingBonus ? Math.round(baseRawDamage * 0.5) : 0;
 
-        // ガード軽減: 攻撃が当たったら解除
+        // 会心判定: +10ダメージ
+        var critRate = getCriticalRate(card);
+        var critical = Math.random() < critRate;
+        var criticalBonusAmount = critical ? 10 : 0;
+
+        // ガード軽減: 最後に適用
         var guardActive = session.enemyState.guard;
         var guardMult = 1.0;
         if (guardActive) {
@@ -347,44 +366,34 @@
           session.enemyState.guard = false;
         }
 
-        var openingDamage = openingBonus ? Math.round(baseDamage * 1.5) : baseDamage;
-
-        // 会心判定: sub(回復)は対象外、mul/addは確率で+10ダメージ
-        var critRate = getCriticalRate(card);
-        var critical = Math.random() < critRate;
-        var criticalBonusAmount = critical ? 10 : 0;
-
-        var preCritDamage = openingDamage + criticalBonusAmount;
-        var finalDamage = Math.round(preCritDamage * guardMult);
+        var preGuardDamage = baseRawDamage + weaknessBonusAmount + comboBonusAmount + openingBonusAmount + criticalBonusAmount;
+        var finalDamage = Math.round(preGuardDamage * guardMult);
         if (finalDamage < 1) finalDamage = 1;
-
-        // UI表示用の補正内訳（計算結果と最終ダメージを分離して表示するため）
-        var noComboBase = Cards.calcDamage(card, session.areaDef, masteryLevel, 1);
-        var comboBonusAmount = (session.combo >= 2) ? baseDamage - noComboBase : 0;
-        var openingBonusAmount = openingBonus ? openingDamage - baseDamage : 0;
-        var guardReductionAmount = guardActive ? preCritDamage - finalDamage : 0;
-        var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === session.areaDef.weakness;
-        var weaknessBonusAmount = isWeakness ? baseDamage - Math.round(baseDamage / 1.5) : 0;
+        var guardReductionAmount = guardActive ? preGuardDamage - finalDamage : 0;
 
         session.enemyHp = Math.max(0, session.enemyHp - finalDamage);
         logEntry = buildLogEntry(card, true, answerInput, {
           damage: finalDamage,
-          baseDamage: baseDamage,
+          baseDamage: baseRawDamage,
           openingBonus: openingBonus,
           guardActive: guardActive,
           guardMult: guardMult,
           comboAtHit: session.combo,
           damageBreakdown: {
             formulaResult: card.answer,
+            baseRawDamage: baseRawDamage,
+            weakness: isWeakness,
+            weaknessBonusAmount: weaknessBonusAmount,
             comboBonusAmount: comboBonusAmount,
+            openingBonus: openingBonus,
             openingBonusAmount: openingBonusAmount,
             critical: critical,
             criticalRate: critRate,
             criticalBonusAmount: criticalBonusAmount,
+            guardActive: guardActive,
+            guardMult: guardMult,
             guardReductionAmount: guardReductionAmount,
-            finalDamage: finalDamage,
-            weakness: isWeakness,
-            weaknessBonusAmount: weaknessBonusAmount
+            finalDamage: finalDamage
           }
         });
       } else {

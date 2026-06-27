@@ -7,8 +7,6 @@
     9: "light"
   };
 
-  var MASTERY_MULTIPLIER = { 1: 1.00, 2: 1.05, 3: 1.10, 4: 1.15, 5: 1.20 };
-
   // 通常戦/ボス戦の山札構成枚数(仕様18)。合計30枚。
   var NORMAL_COMPOSITION = { target: 10, related: 4, add: 8, sub: 5, other: 3 };
   var BOSS_COMPOSITION = { target: 15, add: 5, sub: 5, related: 3, other: 2 };
@@ -248,30 +246,22 @@
     return 1.20;
   }
 
-  // 計算結果 × 弱点倍率 × 熟練度倍率 × コンボ倍率 × ランク補正(上限3.0倍)
-  function calcDamage(card, areaDef, masteryLevel, combo) {
+  // 基礎ダメージ(カードの答え) + 弱点ボーナス + コンボボーナス。熟練度補正なし。
+  function calcDamage(card, areaDef, combo) {
     var base = card.answer;
 
-    var weaknessMult = 1;
-    if (card.kind === "mul" && card.element !== "none" && card.element === areaDef.weakness) {
-      weaknessMult = 1.5;
-    }
-
-    var masteryMult = card.kind === "mul" ? (MASTERY_MULTIPLIER[masteryLevel] || 1.0) : 1.0;
-    var comboMult = getComboMultiplier(combo);
-
-    var rankMult = 1.0;
     if (card.kind === "mul") {
       var defenderIsHigh = areaDef.rank === "upper" || areaDef.rank === "last";
       if (card.rank === "lower" && defenderIsHigh) {
-        rankMult = 0.5;
+        base = Math.round(base * 0.5);
       }
     }
 
-    var totalMult = weaknessMult * masteryMult * comboMult * rankMult;
-    if (totalMult > 3.0) totalMult = 3.0;
+    var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === areaDef.weakness;
+    var weaknessBonus = isWeakness ? Math.round(base * 0.5) : 0;
+    var comboBonus = Math.round(base * (getComboMultiplier(combo) - 1));
 
-    return Math.round(base * totalMult);
+    return base + weaknessBonus + comboBonus;
   }
 
   window.Kuku99 = window.Kuku99 || {};
