@@ -89,12 +89,12 @@ body {
 
 /* そよ風の草原 通常戦 */
 #battle-screen.battle-bg-soyokaze::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_v01.webp?v=20260627-soyokaze2");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_v01.webp?v=20260627-regen1");
 }
 
 /* そよ風の草原 ぬし戦 */
 #battle-screen.battle-bg-soyokaze-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_boss_v01.webp?v=20260627-soyokaze2");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_boss_v01.webp?v=20260627-regen1");
 }
 
 .section-tag {
@@ -339,6 +339,7 @@ body {
 .enemy-action-counter,
 .enemy-action-bossAttack { background: rgba(28, 0, 0, 0.82); color: #ff4444; font-weight: bold; }
 .enemy-action-none    { background: rgba(8, 10, 18, 0.65); color: #888; font-size: 12px; }
+.enemy-action-regen   { background: rgba(4, 24, 8, 0.78); color: #8df58a; font-weight: bold; }
 
 /* ============================================================
    プレイヤー結果フィードバック（青系・ENEMY ACTION と区別）
@@ -1127,6 +1128,34 @@ body {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.88); }
   18%  { opacity: 0.42; transform: translate(-50%, -50%) scale(0.96); }
   70%  { opacity: 0.38; transform: translate(-50%, -50%) scale(1.02); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.08); }
+}
+
+/* ============================================================
+   敵リジェネエフェクト
+   ============================================================ */
+
+.enemy-regen-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 165%;
+  height: 165%;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+}
+
+.enemy-regen-effect.regen-animate {
+  animation: kf-enemy-regen-effect 1.0s ease forwards;
+}
+
+@keyframes kf-enemy-regen-effect {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.88); }
+  18%  { opacity: 0.72; transform: translate(-50%, -50%) scale(0.96); }
+  70%  { opacity: 0.68; transform: translate(-50%, -50%) scale(1.02); }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.08); }
 }
 

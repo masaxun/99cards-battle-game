@@ -39,7 +39,8 @@
     evade:         { src: "assets/audio/se/se_evade_v01.mp3",              volume: 0.60 },
     playerDamage:  { src: "assets/audio/se/se_player_damage_v01.mp3",      volume: 0.60 },
     criticalHit:   { src: "assets/audio/se/se_critical_hit_v01.mp3",        volume: 0.70 },
-    defeat:        { src: "assets/audio/se/se_defeat_v01.mp3",              volume: 0.70 }
+    defeat:        { src: "assets/audio/se/se_defeat_v01.mp3",              volume: 0.70 },
+    enemyRegen:    { src: "assets/audio/se/se_enemy_regen_v01.mp3",         volume: 0.55 }
   };
 
   function playSE(name) {
@@ -726,6 +727,33 @@
     }, 700);
   }
 
+  function showEnemyRegenEffect() {
+    var el = document.getElementById("enemy-regen-effect");
+    if (!el) return;
+    el.src = "assets/images/effects/effect_enemy_regen_v01.png";
+    el.classList.remove("hidden", "regen-animate");
+    void el.offsetWidth;
+    el.classList.add("regen-animate");
+    setTimeout(function () {
+      el.classList.remove("regen-animate");
+      el.classList.add("hidden");
+    }, 1000);
+  }
+
+  function showEnemyRegenMessage(regen) {
+    var msgEl = document.getElementById("enemy-action-msg");
+    var textEl = document.getElementById("enemy-action-text");
+    if (!msgEl || !textEl || !regen) return;
+
+    textEl.textContent = "🌿 敵が自然の力で " + regen.heal + " 回復した！";
+    msgEl.className = "enemy-action-regen";
+
+    clearTimeout(enemyMsgTimer);
+    enemyMsgTimer = setTimeout(function () {
+      msgEl.classList.add("fb-hidden");
+    }, 2200);
+  }
+
   function updateDangerOverlay() {
     var el = document.getElementById("danger-overlay");
     if (!el || !session) return;
@@ -878,35 +906,44 @@
       updateAnsweringClass();
     }
 
+    var regenPresent = !!result.enemyRegen;
     setTimeout(function () {
-      if (!result.enemyAction) {
-        enemyStateEffectsVisible = true;
-        renderEnemySprite();
-        interactionLocked = false;
-        renderHand();
-        renderPlayerSection();
-        return;
+      if (regenPresent) {
+        renderEnemyHP();
+        playSE("enemyRegen");
+        showEnemyRegenEffect();
+        showEnemyRegenMessage(result.enemyRegen);
       }
-      animateEnemyPreAction(function () {
-        enemyStateEffectsVisible = true;
-        showEnemyAction(result.enemyAction);
-        playEnemyActionSE(result.enemyAction);
-        renderEnemySprite();
-        if (session.pendingAttack) {
-          showEnemyAttackEffect(session.pendingAttack.powered);
-          setTimeout(function () {
-            renderEnemyAttackPanel();
-            interactionLocked = false;
-            renderHand();
-            renderPlayerSection();
-          }, 300);
-        } else {
+      setTimeout(function () {
+        if (!result.enemyAction) {
+          enemyStateEffectsVisible = true;
+          renderEnemySprite();
           interactionLocked = false;
           renderHand();
           renderPlayerSection();
+          return;
         }
-      });
-    }, 1100);
+        animateEnemyPreAction(function () {
+          enemyStateEffectsVisible = true;
+          showEnemyAction(result.enemyAction);
+          playEnemyActionSE(result.enemyAction);
+          renderEnemySprite();
+          if (session.pendingAttack) {
+            showEnemyAttackEffect(session.pendingAttack.powered);
+            setTimeout(function () {
+              renderEnemyAttackPanel();
+              interactionLocked = false;
+              renderHand();
+              renderPlayerSection();
+            }, 300);
+          } else {
+            interactionLocked = false;
+            renderHand();
+            renderPlayerSection();
+          }
+        });
+      }, regenPresent ? 600 : 0);
+    }, regenPresent ? 800 : 1100);
   }
 
   function onSubmitAttack() {
@@ -983,35 +1020,44 @@
       updateAnsweringClass();
     }
 
+    var regenPresent = !!result.enemyRegen;
     setTimeout(function () {
-      if (!result.enemyAction) {
-        enemyStateEffectsVisible = true;
-        renderEnemySprite();
-        interactionLocked = false;
-        renderHand();
-        renderPlayerSection();
-        return;
+      if (regenPresent) {
+        renderEnemyHP();
+        playSE("enemyRegen");
+        showEnemyRegenEffect();
+        showEnemyRegenMessage(result.enemyRegen);
       }
-      animateEnemyPreAction(function () {
-        enemyStateEffectsVisible = true;
-        showEnemyAction(result.enemyAction);
-        playEnemyActionSE(result.enemyAction);
-        renderEnemySprite();
-        if (session.pendingAttack) {
-          showEnemyAttackEffect(session.pendingAttack.powered);
-          setTimeout(function () {
-            renderEnemyAttackPanel();
-            interactionLocked = false;
-            renderHand();
-            renderPlayerSection();
-          }, 300);
-        } else {
+      setTimeout(function () {
+        if (!result.enemyAction) {
+          enemyStateEffectsVisible = true;
+          renderEnemySprite();
           interactionLocked = false;
           renderHand();
           renderPlayerSection();
+          return;
         }
-      });
-    }, 1100);
+        animateEnemyPreAction(function () {
+          enemyStateEffectsVisible = true;
+          showEnemyAction(result.enemyAction);
+          playEnemyActionSE(result.enemyAction);
+          renderEnemySprite();
+          if (session.pendingAttack) {
+            showEnemyAttackEffect(session.pendingAttack.powered);
+            setTimeout(function () {
+              renderEnemyAttackPanel();
+              interactionLocked = false;
+              renderHand();
+              renderPlayerSection();
+            }, 300);
+          } else {
+            interactionLocked = false;
+            renderHand();
+            renderPlayerSection();
+          }
+        });
+      }, regenPresent ? 600 : 0);
+    }, regenPresent ? 800 : 1100);
   }
 
   function buildBattleUrl(areaId, stage) {

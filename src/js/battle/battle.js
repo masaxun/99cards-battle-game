@@ -111,6 +111,7 @@
       trash: [],
       combo: 0,
       initialDeckSize: 30,
+      regenCounter: 0,
       enemyState: {
         guard: false,
         powerUp: false,    // ボス専用: 次のボス攻撃を強化
@@ -184,6 +185,39 @@
       }
     }
     return entry;
+  }
+
+  // ============================================================
+  // 草属性リジェネ
+  // ============================================================
+
+  function isGrassRegenArea(session) {
+    var area = session.areaDef;
+    return area && area.enemyType === "grass";
+  }
+
+  function maybeApplyEnemyRegen(session) {
+    if (!isGrassRegenArea(session)) return null;
+    if (session.ended || session.enemyHp <= 0) return null;
+
+    session.regenCounter = (session.regenCounter || 0) + 1;
+
+    if (session.regenCounter % 3 !== 0) return null;
+    if (session.enemyHp >= session.enemyMaxHp) return null;
+
+    var before = session.enemyHp;
+    var heal = Math.max(1, Math.ceil(session.enemyMaxHp * 0.05));
+    session.enemyHp = Math.min(session.enemyMaxHp, session.enemyHp + heal);
+
+    var actualHeal = session.enemyHp - before;
+    if (actualHeal <= 0) return null;
+
+    return {
+      type: "enemyRegen",
+      heal: actualHeal,
+      beforeHp: before,
+      afterHp: session.enemyHp
+    };
   }
 
   // ============================================================
@@ -374,12 +408,18 @@
       enemyAction = triggerEnemyAction(session);
     }
 
+    var regenResult = null;
+    if (!session.ended) {
+      regenResult = maybeApplyEnemyRegen(session);
+    }
+
     return {
       correct: correct,
       ended: session.ended,
       outcome: session.outcome,
       logEntry: logEntry,
-      enemyAction: enemyAction
+      enemyAction: enemyAction,
+      enemyRegen: regenResult
     };
   }
 
@@ -450,7 +490,12 @@
       enemyAction = triggerEnemyAction(session);
     }
 
-    return { ended: session.ended, outcome: session.outcome, enemyAction: enemyAction };
+    var regenResult = null;
+    if (!session.ended) {
+      regenResult = maybeApplyEnemyRegen(session);
+    }
+
+    return { ended: session.ended, outcome: session.outcome, enemyAction: enemyAction, enemyRegen: regenResult };
   }
 
   // バトル終了時に1回だけ呼ぶ
