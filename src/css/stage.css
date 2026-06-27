@@ -1,0 +1,127 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  min-height: 100%;
+  background: radial-gradient(circle at center, rgba(30,34,60,0.95) 0%, rgba(12,12,22,1) 100%);
+  background-color: #0c0c16;
+  color: #e8e8f0;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage-screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+  min-height: 100vh;
+}
+
+/* ヘッダー */
+#stage-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+#stage-subtitle {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #8888aa;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+#area-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #d0d8ff;
+  letter-spacing: 0.04em;
+}
+
+/* ステージリスト */
+#stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ステージカード */
+.stage-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(160,170,220,0.18);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.15s;
+}
+
+.stage-card.stage-locked {
+  background: rgba(255,255,255,0.02);
+  border-color: rgba(100,100,130,0.12);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* カード内レイアウト */
+.stage-card-label {
+  font-size: 11px;
+  color: #8888aa;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  min-width: 56px;
+}
+
+.stage-card-enemy {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c8d0f0;
+  flex: 1;
+}
+
+.stage-card-status {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.status-cleared   { color: #66cc88; }
+.status-available { color: #aac4ff; }
+.status-locked    { color: #666688; }
+
+/* ボタン */
+.stage-card-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.stage-card-btn:active {
+  opacity: 0.75;
+  transform: scale(0.97);
+}
+
+.btn-available {
+  background: #4466dd;
+  color: #fff;
+}
+
+.btn-available:hover {
+  background: #5577ee;
+}
+
+.btn-cleared {
+  background: rgba(80,100,160,0.35);
+  color: #aabbdd;
+  border: 1px solid rgba(120,140,200,0.25);
+}
+
+.btn-cleared:hover {
+  background: rgba(80,100,160,0.5);
+}

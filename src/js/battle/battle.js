@@ -483,6 +483,10 @@
       } else {
         GameState.setBossReached(gameState, areaDef.id);
       }
+    } else {
+      if (session.outcome === "win") {
+        GameState.setNormalCleared(gameState, areaDef.id, session.stage);
+      }
     }
 
     GameState.save(gameState);

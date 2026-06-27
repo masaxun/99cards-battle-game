@@ -48,9 +48,13 @@
 
   function ensureAreaEntry(state, areaId) {
     if (!state.areas[areaId]) {
-      state.areas[areaId] = { bossReached: false, bossCleared: false };
+      state.areas[areaId] = { bossReached: false, bossCleared: false, normalCleared: {} };
     }
-    return state.areas[areaId];
+    var entry = state.areas[areaId];
+    if (!entry.normalCleared) {
+      entry.normalCleared = {};
+    }
+    return entry;
   }
 
   function getAreaProgress(state, areaId) {
@@ -60,6 +64,17 @@
   function setBossReached(state, areaId) {
     var entry = ensureAreaEntry(state, areaId);
     entry.bossReached = true;
+  }
+
+  function setNormalCleared(state, areaId, stage) {
+    var entry = ensureAreaEntry(state, areaId);
+    entry.normalCleared[stage] = true;
+  }
+
+  function isNormalCleared(state, areaId, stage) {
+    var entry = state.areas[areaId];
+    if (!entry || !entry.normalCleared) return false;
+    return !!entry.normalCleared[stage];
   }
 
   function setBossCleared(state, areaId) {
@@ -120,6 +135,8 @@
     save: save,
     reset: reset,
     getAreaProgress: getAreaProgress,
+    setNormalCleared: setNormalCleared,
+    isNormalCleared: isNormalCleared,
     setBossReached: setBossReached,
     setBossCleared: setBossCleared,
     getMastery: getMastery,

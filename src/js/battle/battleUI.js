@@ -1002,6 +1002,10 @@
     return "battle.html?areaId=" + encodeURIComponent(areaId) + "&stage=" + encodeURIComponent(stage);
   }
 
+  function buildStageUrl(areaId) {
+    return "stage.html?areaId=" + encodeURIComponent(areaId);
+  }
+
   function normalizeBattleUrl(areaId, stage, params) {
     var hasParams = !!(params.areaId && params.stage);
     var fileName = window.location.pathname.split("/").pop();
@@ -1319,7 +1323,7 @@
 
     if (stage === "boss") {
       primaryBtn.textContent = "もどる";
-      resultPrimaryUrl = "battle.html";
+      resultPrimaryUrl = buildStageUrl(areaId);
       retryBtn.classList.add("hidden");
     } else {
       var currentUrl = buildBattleUrl(areaId, stage);
@@ -1337,7 +1341,7 @@
         primaryBtn.textContent = "もう一回";
         resultPrimaryUrl   = currentUrl;
         retryBtn.textContent = "もどる";
-        resultSecondaryUrl = "battle.html";
+        resultSecondaryUrl = buildStageUrl(areaId);
         retryBtn.classList.remove("hidden");
       }
     }
