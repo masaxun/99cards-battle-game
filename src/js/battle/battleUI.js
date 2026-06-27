@@ -166,11 +166,19 @@
     }
   }
 
-  var STAGE_IMAGE_PATHS = {
-    normal1: "assets/images/enemies/slime/enemy_normal1_slime_none_v01.png",
-    normal2: "assets/images/enemies/bat/enemy_normal2_bat_none_v01.png",
-    normal3: "assets/images/enemies/golem/enemy_normal3_golem_none_v01.png",
-    boss:    "assets/images/enemies/dragon/enemy_boss_dragon_none_v01.png"
+  var ENEMY_IMAGE_PATHS = {
+    hajimari: {
+      normal1: "assets/images/enemies/slime/enemy_normal1_slime_none_v01.png",
+      normal2: "assets/images/enemies/bat/enemy_normal2_bat_none_v01.png",
+      normal3: "assets/images/enemies/golem/enemy_normal3_golem_none_v01.png",
+      boss:    "assets/images/enemies/dragon/enemy_boss_dragon_none_v01.png"
+    },
+    soyokaze: {
+      normal1: "assets/images/enemies/slime/enemy_normal1_slime_grass_v01.png",
+      normal2: "assets/images/enemies/bat/enemy_normal2_bat_grass_v01.png",
+      normal3: "assets/images/enemies/golem/enemy_normal3_golem_grass_v01.png",
+      boss:    "assets/images/enemies/dragon/enemy_boss_dragon_grass_v01.png"
+    }
   };
   var STAGE_FALLBACK_SPRITES = { normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉" };
   var STAGE_NAMES   = { normal1: "スライム", normal2: "バット", normal3: "ゴーレム", boss: "のぬし" };
@@ -257,11 +265,15 @@
 
   function applyBattleBg(areaId, stage) {
     var el = document.getElementById("battle-screen");
-    el.classList.remove("battle-bg-hajimari", "battle-bg-hajimari-boss");
-    if (areaId === "hajimari" && stage === "boss") {
-      el.classList.add("battle-bg-hajimari-boss");
-    } else if (areaId === "hajimari") {
-      el.classList.add("battle-bg-hajimari");
+    el.classList.remove(
+      "battle-bg-hajimari", "battle-bg-hajimari-boss",
+      "battle-bg-soyokaze", "battle-bg-soyokaze-boss"
+    );
+    var isBoss = (stage === "boss");
+    if (areaId === "hajimari") {
+      el.classList.add(isBoss ? "battle-bg-hajimari-boss" : "battle-bg-hajimari");
+    } else if (areaId === "soyokaze") {
+      el.classList.add(isBoss ? "battle-bg-soyokaze-boss" : "battle-bg-soyokaze");
     }
   }
 
@@ -293,7 +305,9 @@
     section.classList.remove("enemy-stage-normal1", "enemy-stage-normal2", "enemy-stage-normal3", "enemy-stage-boss");
     section.classList.add("enemy-stage-" + stage);
     var spriteEl = document.getElementById("enemy-sprite");
-    var imgPath = STAGE_IMAGE_PATHS[stage];
+    var areaId = session.areaDef.id;
+    var areaImgs = ENEMY_IMAGE_PATHS[areaId] || ENEMY_IMAGE_PATHS.hajimari;
+    var imgPath = (areaImgs && areaImgs[stage]) || (ENEMY_IMAGE_PATHS.hajimari[stage]);
     if (imgPath) {
       var img = document.createElement("img");
       img.className = "enemy-image" + (stage === "boss" ? " enemy-boss" : "");

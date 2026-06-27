@@ -87,6 +87,16 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_hajimari_boss_v01.webp");
 }
 
+/* そよ風の草原 通常戦 */
+#battle-screen.battle-bg-soyokaze::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_v01.webp");
+}
+
+/* そよ風の草原 ぬし戦 */
+#battle-screen.battle-bg-soyokaze-boss::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_boss_v01.webp");
+}
+
 .section-tag {
   font-size: 10px;
   font-weight: bold;
