@@ -15,6 +15,7 @@
   var feedbackPersistent = false;
   var resultPrimaryUrl = "battle.html";
   var resultSecondaryUrl = "battle.html";
+  var resultStageUrl = "stage.html?areaId=hajimari";
   var enemyStateEffectsVisible = false;
   var bgmStarted = false;
   var bgmAudio = null;
@@ -237,6 +238,7 @@
     document.getElementById("submit-attack-btn").addEventListener("click", onSubmitAttack);
     document.getElementById("result-back-btn").addEventListener("click", onResultBack);
     document.getElementById("result-retry-btn").addEventListener("click", onResultRetry);
+    document.getElementById("result-stage-btn").addEventListener("click", onResultStageSelect);
 
     document.getElementById("answer-input").addEventListener("keydown", function (e) {
       if (e.key === "Enter") onSubmitAnswer();
@@ -1041,6 +1043,10 @@
     window.location.href = resultSecondaryUrl;
   }
 
+  function onResultStageSelect() {
+    window.location.href = resultStageUrl;
+  }
+
   // ============================================================
   // フィードバック表示
   // ============================================================
@@ -1318,32 +1324,34 @@
     var areaId    = session.areaDef.id;
     var stage     = summary.stage || session.stage;
     var outcome   = summary.outcome;
+    var currentUrl    = buildBattleUrl(areaId, stage);
+    var stageSelectUrl = buildStageUrl(areaId);
     var primaryBtn = document.getElementById("result-back-btn");
     var retryBtn   = document.getElementById("result-retry-btn");
+    var stageBtn   = document.getElementById("result-stage-btn");
+
+    resultStageUrl = stageSelectUrl;
+    stageBtn.textContent = "ステージ選択へ";
+    stageBtn.classList.remove("hidden");
 
     if (stage === "boss") {
-      primaryBtn.textContent = "もどる";
-      resultPrimaryUrl = buildStageUrl(areaId);
+      primaryBtn.textContent = "もう一回";
+      resultPrimaryUrl = currentUrl;
       retryBtn.classList.add("hidden");
-    } else {
-      var currentUrl = buildBattleUrl(areaId, stage);
-      if (outcome === "win") {
-        var nextStage = getNextStage(stage);
-        if (!nextStage) {
-          console.warn("[BATTLE RESULT] nextStage missing", { stage: stage, summary: summary });
-        }
-        primaryBtn.textContent = (stage === "normal3") ? "ぬし戦へ" : "つぎへ";
-        resultPrimaryUrl   = buildBattleUrl(areaId, nextStage);
-        retryBtn.textContent = "もう一回";
-        resultSecondaryUrl = currentUrl;
-        retryBtn.classList.remove("hidden");
-      } else {
-        primaryBtn.textContent = "もう一回";
-        resultPrimaryUrl   = currentUrl;
-        retryBtn.textContent = "もどる";
-        resultSecondaryUrl = buildStageUrl(areaId);
-        retryBtn.classList.remove("hidden");
+    } else if (outcome === "win") {
+      var nextStage = getNextStage(stage);
+      if (!nextStage) {
+        console.warn("[BATTLE RESULT] nextStage missing", { stage: stage, summary: summary });
       }
+      primaryBtn.textContent = (stage === "normal3") ? "ぬし戦へ" : "つぎへ";
+      resultPrimaryUrl   = buildBattleUrl(areaId, nextStage);
+      retryBtn.textContent = "もう一回";
+      resultSecondaryUrl = currentUrl;
+      retryBtn.classList.remove("hidden");
+    } else {
+      primaryBtn.textContent = "もう一回";
+      resultPrimaryUrl   = currentUrl;
+      retryBtn.classList.add("hidden");
     }
 
     console.debug("[BATTLE RESULT]", {

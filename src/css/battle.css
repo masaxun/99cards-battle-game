@@ -886,6 +886,19 @@ body {
 
 #result-retry-btn:hover { background: rgba(52, 152, 219, 0.12); }
 
+#result-stage-btn {
+  padding: 9px 28px;
+  background: transparent;
+  color: #aaa;
+  border: 1px solid rgba(160, 170, 220, 0.45);
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  width: 180px;
+}
+
+#result-stage-btn:hover { background: rgba(160, 170, 220, 0.12); }
+
 /* ============================================================
    演出アニメーション
    ============================================================ */
