@@ -684,10 +684,13 @@
   function showPlayerHealEffect() {
     var el = document.getElementById("player-heal-effect");
     if (!el) return;
-    el.classList.remove("heal-animate");
+    el.classList.remove("hidden", "heal-animate");
     void el.offsetWidth;
     el.classList.add("heal-animate");
-    setTimeout(function () { el.classList.remove("heal-animate"); }, 750);
+    setTimeout(function () {
+      el.classList.remove("heal-animate");
+      el.classList.add("hidden");
+    }, 750);
   }
 
   function showEnemyAttackEffect(powered) {
@@ -696,12 +699,13 @@
     el.src = powered
       ? "assets/images/effects/effect_enemy_attack_strong_v01.png"
       : "assets/images/effects/effect_enemy_attack_normal_v01.png";
-    el.classList.remove("attack-normal", "attack-strong", "attack-animate");
+    el.classList.remove("hidden", "attack-normal", "attack-strong", "attack-animate");
     el.classList.add(powered ? "attack-strong" : "attack-normal");
     void el.offsetWidth;
     el.classList.add("attack-animate");
     setTimeout(function () {
       el.classList.remove("attack-normal", "attack-strong", "attack-animate");
+      el.classList.add("hidden");
     }, 700);
   }
 
