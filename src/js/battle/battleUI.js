@@ -721,6 +721,28 @@
     }
   }
 
+  function playDefeatTransition(callback) {
+    var overlay = document.getElementById("defeat-transition-overlay");
+    if (!overlay) {
+      if (callback) callback();
+      return;
+    }
+    overlay.classList.remove("defeat-transition-active");
+    void overlay.offsetWidth;
+    overlay.classList.add("defeat-transition-active");
+    setTimeout(function () {
+      if (callback) callback();
+    }, 1150);
+  }
+
+  function clearDefeatTransition() {
+    var overlay = document.getElementById("defeat-transition-overlay");
+    if (!overlay) return;
+    setTimeout(function () {
+      overlay.classList.remove("defeat-transition-active");
+    }, 200);
+  }
+
   function animateEnemyPreAction(callback) {
     var el = document.getElementById("enemy-sprite");
     el.classList.remove("enemy-preaction");
@@ -1212,6 +1234,12 @@
   // ============================================================
 
   function scheduleEnd() {
+    if (session && (session.outcome === "lose" || session.outcome === "retreat")) {
+      setTimeout(function () {
+        playDefeatTransition(doEndBattle);
+      }, 650);
+      return;
+    }
     setTimeout(doEndBattle, 1200);
   }
 
@@ -1331,6 +1359,10 @@
     }
 
     document.getElementById("result-overlay").classList.remove("hidden");
+
+    if (summary.outcome !== "win") {
+      clearDefeatTransition();
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);
