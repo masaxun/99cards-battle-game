@@ -42,8 +42,7 @@
   var STAGE_ENEMY = {
     normal1: "スライム",
     normal2: "バット",
-    normal3: "ゴーレム",
-    boss:    "はじまりの道のぬし"
+    normal3: "ゴーレム"
   };
 
   function parseParams() {
@@ -93,7 +92,7 @@
 
       var enemyEl = document.createElement("div");
       enemyEl.className = "stage-card-enemy";
-      enemyEl.textContent = STAGE_ENEMY[stage];
+      enemyEl.textContent = (stage === "boss") ? areaDef.name + "のぬし" : (STAGE_ENEMY[stage] || "モンスター");
 
       var statusEl = document.createElement("div");
       statusEl.className = "stage-card-status";
