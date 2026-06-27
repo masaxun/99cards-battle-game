@@ -309,6 +309,12 @@ body {
   font-size: 17px;
 }
 
+#enemy-damage-pop.damage-weakness {
+  background: rgba(10, 50, 10, 0.92);
+  color: #b8fca0;
+  border: 1px solid #5fcc44;
+}
+
 /* 敵行動メッセージ（敵エリア下部にpill型で表示） */
 #enemy-action-msg {
   position: absolute;
@@ -1144,7 +1150,7 @@ body {
   transform: translate(-50%, -50%);
   object-fit: contain;
   pointer-events: none;
-  z-index: 2;
+  z-index: 0;
   opacity: 0;
 }
 
@@ -1154,8 +1160,8 @@ body {
 
 @keyframes kf-enemy-regen-effect {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.88); }
-  18%  { opacity: 0.72; transform: translate(-50%, -50%) scale(0.96); }
-  70%  { opacity: 0.68; transform: translate(-50%, -50%) scale(1.02); }
+  18%  { opacity: 0.58; transform: translate(-50%, -50%) scale(0.96); }
+  70%  { opacity: 0.54; transform: translate(-50%, -50%) scale(1.02); }
   100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.08); }
 }
 

@@ -300,6 +300,12 @@
     document.getElementById("enemy-hp-text").textContent = hp + " / " + maxHp;
   }
 
+  function renderEnemyHPValue(hp, maxHp) {
+    var pct = maxHp > 0 ? Math.max(0, Math.round(hp / maxHp * 100)) : 0;
+    document.getElementById("enemy-hp-fill").style.width = pct + "%";
+    document.getElementById("enemy-hp-text").textContent = hp + " / " + maxHp;
+  }
+
   function renderEnemySprite() {
     var stage = session.stage;
     var section = document.getElementById("enemy-sprite-section");
@@ -798,16 +804,18 @@
     }, 550);
   }
 
-  // 最終ダメージを敵スプライト付近にポップ表示する。
-  function showDamagePop(damage, critical) {
+  // 最終ダメージを敵スプライト付近にポップ表示する。会心時は会心を優先。
+  function showDamagePop(damage, critical, weakness) {
     var el = document.getElementById("enemy-damage-pop");
-    el.textContent = (critical ? "会心！" : "") + damage + "ダメージ！";
-    el.classList.remove("pop-animate", "damage-critical");
+    var prefix = critical ? "会心！" : (weakness ? "弱点！" : "");
+    el.textContent = prefix + damage + "ダメージ！";
+    el.classList.remove("pop-animate", "damage-critical", "damage-weakness");
     if (critical) el.classList.add("damage-critical");
+    else if (weakness) el.classList.add("damage-weakness");
     void el.offsetWidth;
     el.classList.add("pop-animate");
     setTimeout(function () {
-      el.classList.remove("pop-animate", "damage-critical");
+      el.classList.remove("pop-animate", "damage-critical", "damage-weakness");
     }, 2000);
   }
 
@@ -871,7 +879,7 @@
       if (result.logEntry.damage !== undefined) {
         setTimeout(shakeEnemySprite, 130);
         if (result.logEntry.damageBreakdown) {
-          showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical);
+          showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical, result.logEntry.damageBreakdown.weakness);
         }
         var isCritical = result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.critical;
         var hitSe;
@@ -894,6 +902,10 @@
     enemyStateEffectsVisible = false;
     render();
 
+    if (result.enemyRegen) {
+      renderEnemyHPValue(result.enemyRegen.beforeHp, session.enemyMaxHp);
+    }
+
     if (session.ended || result.ended || session.enemyHp <= 0 || session.hp <= 0) {
       interactionLocked = false;
       scheduleEnd();
@@ -909,7 +921,7 @@
     var regenPresent = !!result.enemyRegen;
     setTimeout(function () {
       if (regenPresent) {
-        renderEnemyHP();
+        renderEnemyHPValue(result.enemyRegen.afterHp, session.enemyMaxHp);
         playSE("enemyRegen");
         showEnemyRegenEffect();
         showEnemyRegenMessage(result.enemyRegen);
@@ -1008,6 +1020,10 @@
     enemyStateEffectsVisible = false;
     render();
 
+    if (result.enemyRegen) {
+      renderEnemyHPValue(result.enemyRegen.beforeHp, session.enemyMaxHp);
+    }
+
     if (session.ended) {
       interactionLocked = false;
       scheduleEnd();
@@ -1023,7 +1039,7 @@
     var regenPresent = !!result.enemyRegen;
     setTimeout(function () {
       if (regenPresent) {
-        renderEnemyHP();
+        renderEnemyHPValue(result.enemyRegen.afterHp, session.enemyMaxHp);
         playSE("enemyRegen");
         showEnemyRegenEffect();
         showEnemyRegenMessage(result.enemyRegen);
@@ -1283,6 +1299,9 @@
     var bd = logEntry.damageBreakdown;
     var base = bd.finalDamage + "ダメージ！";
     var parts = [];
+    if (bd.weakness && bd.weaknessBonusAmount > 0) {
+      parts.push("弱点+" + bd.weaknessBonusAmount);
+    }
     if (bd.criticalBonusAmount > 0) {
       parts.push("会心+" + bd.criticalBonusAmount);
     }

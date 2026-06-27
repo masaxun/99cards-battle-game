@@ -363,6 +363,8 @@
         var comboBonusAmount = (session.combo >= 2) ? baseDamage - noComboBase : 0;
         var openingBonusAmount = openingBonus ? openingDamage - baseDamage : 0;
         var guardReductionAmount = guardActive ? preCritDamage - finalDamage : 0;
+        var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === session.areaDef.weakness;
+        var weaknessBonusAmount = isWeakness ? baseDamage - Math.round(baseDamage / 1.5) : 0;
 
         session.enemyHp = Math.max(0, session.enemyHp - finalDamage);
         logEntry = buildLogEntry(card, true, answerInput, {
@@ -380,7 +382,9 @@
             criticalRate: critRate,
             criticalBonusAmount: criticalBonusAmount,
             guardReductionAmount: guardReductionAmount,
-            finalDamage: finalDamage
+            finalDamage: finalDamage,
+            weakness: isWeakness,
+            weaknessBonusAmount: weaknessBonusAmount
           }
         });
       } else {

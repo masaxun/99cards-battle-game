@@ -254,7 +254,7 @@
 
     var weaknessMult = 1;
     if (card.kind === "mul" && card.element !== "none" && card.element === areaDef.weakness) {
-      weaknessMult = 2;
+      weaknessMult = 1.5;
     }
 
     var masteryMult = card.kind === "mul" ? (MASTERY_MULTIPLIER[masteryLevel] || 1.0) : 1.0;
