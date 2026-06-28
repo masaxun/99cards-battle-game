@@ -1,0 +1,168 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  min-height: 100%;
+  background: radial-gradient(circle at center, rgba(30,34,60,0.95) 0%, rgba(12,12,22,1) 100%);
+  background-color: #0c0c16;
+  color: #e8e8f0;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#area-screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+  min-height: 100vh;
+}
+
+/* ヘッダー */
+#area-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+#area-subtitle {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #8888aa;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+#area-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #d0d8ff;
+  letter-spacing: 0.04em;
+}
+
+/* セクション */
+.area-section {
+  margin-bottom: 28px;
+}
+
+.area-section-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #6668aa;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(120,130,200,0.18);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+/* グリッド */
+.area-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* エリアカード共通 */
+.area-card {
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(160,170,220,0.18);
+  background: rgba(255,255,255,0.05);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.area-available:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(160,170,220,0.30);
+}
+
+.area-locked {
+  opacity: 0.40;
+  pointer-events: none;
+}
+
+/* カード上段：名前 + 段バッジ */
+.area-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.area-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #d0d8ff;
+  letter-spacing: 0.03em;
+}
+
+.area-card-dan {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.08);
+  letter-spacing: 0.04em;
+}
+
+/* カード中段：属性・弱点 */
+.area-card-meta {
+  font-size: 12px;
+  color: #9090b0;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.meta-label {
+  color: #6668aa;
+}
+
+.meta-sep {
+  color: rgba(120,130,200,0.25);
+  margin: 0 2px;
+}
+
+.meta-value {
+  font-weight: 600;
+}
+
+/* カード下段：進行状態 + ボタン */
+.area-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 進行状態 */
+.area-prog { font-size: 12px; font-weight: 600; }
+.prog-none         { color: #6668aa; }
+.prog-in-progress  { color: #aac4ff; }
+.prog-boss-reached { color: #e0c860; }
+.prog-boss-cleared { color: #66cc88; }
+.prog-locked       { font-size: 12px; color: #6668aa; }
+
+/* 選択ボタン */
+.area-card-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #4466dd;
+  color: #fff;
+  letter-spacing: 0.04em;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.area-card-btn:hover  { background: #5577ee; }
+.area-card-btn:active { opacity: 0.75; transform: scale(0.97); }
+
+/* 属性カラー */
+.elem-none  { color: #9090b0; }
+.elem-fire  { color: #e07050; }
+.elem-water { color: #5090e0; }
+.elem-grass { color: #50c080; }
+.elem-light { color: #e0d050; }
+.elem-dark  { color: #9060cc; }

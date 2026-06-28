@@ -28,7 +28,7 @@
       playerElement: "fire",
       enemyHp: { normal1: 100, normal2: 130, normal3: 160, boss: 280 },
       requiredBossAreaIds: [],
-      implemented: false,
+      implemented: true,
       mapPosition: { row: 2, col: 1 }
     },
     {
