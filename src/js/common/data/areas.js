@@ -1,9 +1,9 @@
 (function () {
   "use strict";
 
-  // v0.1-alphaで実装済みなのは "hajimari" のみ。
-  // 他8エリアはマップ表示・ロック判定用の最小データ(仕様20のHP値含む)だけ持ち、
-  // implemented: false としてバトル開始不可にする。
+  // v0.1.2現在、実装済みなのは下級4エリア（hajimari / soyokaze / neppa / sazanami）。
+  // 上級4エリアとラストエリアはマップ表示・ロック判定用の最小データだけ持ち、
+  // implemented: false としてエリア選択画面からは選択不可にする。
   var AREA_LIST = [
     {
       id: "hajimari",
