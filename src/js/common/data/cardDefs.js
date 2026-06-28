@@ -7,9 +7,9 @@
     9: "light"
   };
 
-  // 通常戦/ボス戦の山札構成枚数(仕様18)。合計30枚。
-  var NORMAL_COMPOSITION = { target: 10, related: 4, add: 8, sub: 5, other: 3 };
-  var BOSS_COMPOSITION = { target: 15, add: 5, sub: 5, related: 3, other: 2 };
+  // 通常戦/ボス戦の山札構成枚数(仕様18)。合計30枚。同属性関連段枠はv0.1.2廃止。
+  var NORMAL_COMPOSITION = { target: 16, other: 4, add: 6, sub: 4 };
+  var BOSS_COMPOSITION = { target: 18, other: 4, add: 4, sub: 4 };
 
   var uidCounter = 0;
   function nextUid() {
@@ -153,11 +153,25 @@
     return card;
   }
 
+  // 追加分の重み: 1〜3=weight1, 4〜6=weight2, 7〜9=weight3
+  var WEIGHTED_FACTORS = [
+    1, 2, 3,
+    4, 4, 5, 5, 6, 6,
+    7, 7, 7, 8, 8, 8, 9, 9, 9
+  ];
+
+  function getWeightedFactor() {
+    return WEIGHTED_FACTORS[randomInt(0, WEIGHTED_FACTORS.length - 1)];
+  }
+
+  // 対象段カード: 1〜9を最低1枚ずつ保証し、追加分は重み付き抽選
   function buildTargetDanCards(dan, count) {
     var cards = [];
-    var factors = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    for (var i = 0; i < count; i++) {
-      cards.push(createMulCard(dan, factors[i % factors.length]));
+    for (var factor = 1; factor <= 9 && cards.length < count; factor++) {
+      cards.push(createMulCard(dan, factor));
+    }
+    while (cards.length < count) {
+      cards.push(createMulCard(dan, getWeightedFactor()));
     }
     return cards;
   }
@@ -196,6 +210,7 @@
   }
 
   // 他属性かけ算カード: 自分と異なる属性のエリアから出題する。
+  // 候補がない場合は足し算ではなく対象段カードにフォールバック。
   function buildOtherElementCards(areaDef, count) {
     var list = window.Kuku99.Areas.LIST;
     var candidates = [];
@@ -205,7 +220,7 @@
       }
     }
     if (candidates.length === 0) {
-      return buildAddCards(count);
+      return buildTargetDanCards(areaDef.dan, count);
     }
     var cards = [];
     for (var i = 0; i < count; i++) {
@@ -237,10 +252,9 @@
     var comp = stageType === "boss" ? BOSS_COMPOSITION : NORMAL_COMPOSITION;
     var cards = [];
     cards = cards.concat(buildTargetDanCards(areaDef.dan, comp.target));
-    cards = cards.concat(buildRelatedElementCards(areaDef, comp.related));
+    cards = cards.concat(buildOtherElementCards(areaDef, comp.other));
     cards = cards.concat(buildAddCards(comp.add));
     cards = cards.concat(buildSubCards(comp.sub));
-    cards = cards.concat(buildOtherElementCards(areaDef, comp.other));
     return shuffleArray(cards);
   }
 
