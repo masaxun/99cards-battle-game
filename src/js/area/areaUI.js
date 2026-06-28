@@ -8,6 +8,21 @@
     none: "─", fire: "火", water: "水", grass: "草", light: "光", dark: "闇"
   };
 
+  var SE = {
+    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3", volume: 0.55 }
+  };
+
+  function playSE(name) {
+    var def = SE[name];
+    if (!def) return;
+    try {
+      var audio = new Audio(def.src);
+      audio.volume = def.volume;
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
   var RANK_GROUPS = [
     { rank: "lower", label: "下級エリア" },
     { rank: "upper", label: "上級エリア" },
@@ -19,7 +34,10 @@
   function goToStage(areaId) {
     if (navigating) return;
     navigating = true;
-    window.location.href = "stage.html?areaId=" + encodeURIComponent(areaId);
+    playSE("buttonDecide");
+    setTimeout(function () {
+      window.location.href = "stage.html?areaId=" + encodeURIComponent(areaId);
+    }, 120);
   }
 
   function getProgressLabel(progress) {

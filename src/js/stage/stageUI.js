@@ -5,7 +5,8 @@
   var GameState = window.Kuku99.GameState;
 
   var SE = {
-    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3", volume: 0.55 }
+    buttonDecide: { src: "assets/audio/se/se_button_decide_v01.mp3", volume: 0.55 },
+    cancel:       { src: "assets/audio/se/se_cancel_v01.mp3",        volume: 0.45 }
   };
 
   var navigating = false;
@@ -140,7 +141,21 @@
     });
   }
 
+  function initBackLink() {
+    var backLink = document.getElementById("stage-back-link");
+    if (!backLink) return;
+    backLink.addEventListener("click", function (event) {
+      event.preventDefault();
+      var href = backLink.href;
+      playSE("cancel");
+      setTimeout(function () {
+        window.location.href = href;
+      }, 120);
+    });
+  }
+
   function init() {
+    initBackLink();
     var params = parseParams();
     var areaId = params.areaId || "hajimari";
     var areaDef = Areas.getAreaById(areaId);
