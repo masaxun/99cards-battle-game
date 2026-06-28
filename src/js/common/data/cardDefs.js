@@ -188,39 +188,6 @@
     return cards;
   }
 
-  function findAreasByElement(element, excludeAreaId) {
-    var list = window.Kuku99.Areas.LIST;
-    var result = [];
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].id !== excludeAreaId && list[i].playerElement === element) {
-        result.push(list[i]);
-      }
-    }
-    return result;
-  }
-
-  // 同属性・関連段カード: 自分と同じ属性で別の段を持つエリアから出題する。
-  // lower エリアでは upper/last ランクのエリアを候補から除外する（弱点補正過剰防止）。
-  // 見つからない場合は足し算カードで代用する。
-  function buildRelatedElementCards(areaDef, count) {
-    var candidates = findAreasByElement(areaDef.playerElement, areaDef.id);
-    if (areaDef.rank === "lower") {
-      candidates = candidates.filter(function (area) {
-        return area.rank === "lower";
-      });
-    }
-    if (candidates.length === 0) {
-      return buildAddCards(count);
-    }
-    var cards = [];
-    for (var i = 0; i < count; i++) {
-      var area = candidates[randomInt(0, candidates.length - 1)];
-      var factor = randomInt(1, 9);
-      cards.push(createMulCard(area.dan, factor));
-    }
-    return cards;
-  }
-
   // 他属性かけ算カード: 自分と異なる属性のエリアから出題する。
   // ボス戦では factor をボス戦用重みで生成して火力補助を高める。
   // 候補がない場合は足し算ではなく対象段カードにフォールバック。
