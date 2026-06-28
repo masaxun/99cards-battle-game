@@ -96,7 +96,7 @@
         });
       } else {
         bgmStarted = true;
-        fadeInBGM(def.volume, 800);
+        fadeInBGM(def.volume, 1400);
       }
     } catch (e) {}
   }
@@ -895,6 +895,8 @@
     startBGMOnce();
     battleStarted = true;
     document.getElementById("battle-start-overlay").classList.add("hidden");
+    renderHand();
+    renderPlayerSection();
   }
 
   function onSelectCard(uid) {
