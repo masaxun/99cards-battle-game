@@ -153,25 +153,37 @@
     return card;
   }
 
-  // 追加分の重み: 1〜3=weight1, 4〜6=weight2, 7〜9=weight3
-  var WEIGHTED_FACTORS = [
+  // 追加分の重み(通常戦): 1〜3=weight1, 4〜6=weight2, 7〜9=weight3
+  var NORMAL_TARGET_FACTORS = [
     1, 2, 3,
     4, 4, 5, 5, 6, 6,
     7, 7, 7, 8, 8, 8, 9, 9, 9
   ];
 
+  // 追加分の重み(ボス戦): 1〜3=weight1, 4〜6=weight2, 7〜9=weight4
+  var BOSS_TARGET_FACTORS = [
+    1, 2, 3,
+    4, 4, 5, 5, 6, 6,
+    7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9
+  ];
+
   function getWeightedFactor() {
-    return WEIGHTED_FACTORS[randomInt(0, WEIGHTED_FACTORS.length - 1)];
+    return NORMAL_TARGET_FACTORS[randomInt(0, NORMAL_TARGET_FACTORS.length - 1)];
+  }
+
+  function getBossWeightedFactor() {
+    return BOSS_TARGET_FACTORS[randomInt(0, BOSS_TARGET_FACTORS.length - 1)];
   }
 
   // 対象段カード: 1〜9を最低1枚ずつ保証し、追加分は重み付き抽選
-  function buildTargetDanCards(dan, count) {
+  // isBoss=true のときはボス戦用重み（高数字寄り）を使う
+  function buildTargetDanCards(dan, count, isBoss) {
     var cards = [];
     for (var factor = 1; factor <= 9 && cards.length < count; factor++) {
       cards.push(createMulCard(dan, factor));
     }
     while (cards.length < count) {
-      cards.push(createMulCard(dan, getWeightedFactor()));
+      cards.push(createMulCard(dan, isBoss ? getBossWeightedFactor() : getWeightedFactor()));
     }
     return cards;
   }
@@ -210,8 +222,9 @@
   }
 
   // 他属性かけ算カード: 自分と異なる属性のエリアから出題する。
+  // ボス戦では factor をボス戦用重みで生成して火力補助を高める。
   // 候補がない場合は足し算ではなく対象段カードにフォールバック。
-  function buildOtherElementCards(areaDef, count) {
+  function buildOtherElementCards(areaDef, count, isBoss) {
     var list = window.Kuku99.Areas.LIST;
     var candidates = [];
     for (var i = 0; i < list.length; i++) {
@@ -220,12 +233,12 @@
       }
     }
     if (candidates.length === 0) {
-      return buildTargetDanCards(areaDef.dan, count);
+      return buildTargetDanCards(areaDef.dan, count, isBoss);
     }
     var cards = [];
     for (var i = 0; i < count; i++) {
       var area = candidates[randomInt(0, candidates.length - 1)];
-      var factor = randomInt(1, 9);
+      var factor = isBoss ? getBossWeightedFactor() : randomInt(1, 9);
       cards.push(createMulCard(area.dan, factor));
     }
     return cards;
@@ -249,10 +262,11 @@
 
   // stageType: "normal" | "boss"
   function buildDeck(areaDef, stageType) {
-    var comp = stageType === "boss" ? BOSS_COMPOSITION : NORMAL_COMPOSITION;
+    var isBoss = stageType === "boss";
+    var comp = isBoss ? BOSS_COMPOSITION : NORMAL_COMPOSITION;
     var cards = [];
-    cards = cards.concat(buildTargetDanCards(areaDef.dan, comp.target));
-    cards = cards.concat(buildOtherElementCards(areaDef, comp.other));
+    cards = cards.concat(buildTargetDanCards(areaDef.dan, comp.target, isBoss));
+    cards = cards.concat(buildOtherElementCards(areaDef, comp.other, isBoss));
     cards = cards.concat(buildAddCards(comp.add));
     cards = cards.concat(buildSubCards(comp.sub));
     return shuffleArray(cards);
