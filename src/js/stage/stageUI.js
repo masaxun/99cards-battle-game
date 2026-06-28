@@ -41,8 +41,10 @@
   };
 
   var STAGE_ENEMY_NAMES = {
-    hajimari: { normal1: "スライム",       normal2: "コウモリ",   normal3: "ゴーレム" },
-    soyokaze: { normal1: "リーフスライム", normal2: "コノハモリ", normal3: "モスゴーレム" }
+    hajimari: { normal1: "スライム",         normal2: "コウモリ",     normal3: "ゴーレム" },
+    soyokaze: { normal1: "リーフスライム",   normal2: "コノハモリ",   normal3: "モスゴーレム" },
+    neppa:    { normal1: "フレイムスライム", normal2: "ヒノコモリ",   normal3: "マグマゴーレム" },
+    sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" }
   };
 
   function getStageEnemyName(areaDef, stage) {

@@ -97,6 +97,26 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_soyokaze_boss_v01.webp?v=20260627-regen1");
 }
 
+/* 熱波の山麓 通常戦 */
+#battle-screen.battle-bg-neppa::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_v01.webp?v=20260628-lowerareas1");
+}
+
+/* 熱波の山麓 ぬし戦 */
+#battle-screen.battle-bg-neppa-boss::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_boss_v01.webp?v=20260628-lowerareas1");
+}
+
+/* さざなみの浜辺 通常戦 */
+#battle-screen.battle-bg-sazanami::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_v01.webp?v=20260628-lowerareas1");
+}
+
+/* さざなみの浜辺 ぬし戦 */
+#battle-screen.battle-bg-sazanami-boss::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_boss_v01.webp?v=20260628-lowerareas1");
+}
+
 .section-tag {
   font-size: 10px;
   font-weight: bold;

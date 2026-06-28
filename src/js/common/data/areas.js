@@ -41,7 +41,7 @@
       playerElement: "water",
       enemyHp: { normal1: 120, normal2: 150, normal3: 180, boss: 320 },
       requiredBossAreaIds: [],
-      implemented: false,
+      implemented: true,
       mapPosition: { row: 2, col: 2 }
     },
     {
@@ -54,7 +54,7 @@
       playerElement: "grass",
       enemyHp: { normal1: 140, normal2: 180, normal3: 220, boss: 380 },
       requiredBossAreaIds: [],
-      implemented: false,
+      implemented: true,
       mapPosition: { row: 2, col: 3 }
     },
     {

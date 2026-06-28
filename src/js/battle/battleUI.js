@@ -179,14 +179,28 @@
       normal2: "assets/images/enemies/bat/enemy_normal2_bat_grass_v01.png",
       normal3: "assets/images/enemies/golem/enemy_normal3_golem_grass_v01.png",
       boss:    "assets/images/enemies/dragon/enemy_boss_dragon_grass_v01.png"
+    },
+    neppa: {
+      normal1: "assets/images/enemies/slime/enemy_normal1_slime_fire_v01.png",
+      normal2: "assets/images/enemies/bat/enemy_normal2_bat_fire_v01.png",
+      normal3: "assets/images/enemies/golem/enemy_normal3_golem_fire_v01.png",
+      boss:    "assets/images/enemies/dragon/enemy_boss_dragon_fire_v01.png"
+    },
+    sazanami: {
+      normal1: "assets/images/enemies/slime/enemy_normal1_slime_water_v01.png",
+      normal2: "assets/images/enemies/bat/enemy_normal2_bat_water_v01.png",
+      normal3: "assets/images/enemies/golem/enemy_normal3_golem_water_v01.png",
+      boss:    "assets/images/enemies/dragon/enemy_boss_dragon_water_v01.png"
     }
   };
   var STAGE_FALLBACK_SPRITES = { normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉" };
   var STAGE_LABELS  = { normal1: "通常戦1", normal2: "通常戦2", normal3: "通常戦3", boss: "ぬし戦" };
 
   var ENEMY_NAMES = {
-    hajimari: { normal1: "スライム",       normal2: "コウモリ",   normal3: "ゴーレム" },
-    soyokaze: { normal1: "リーフスライム", normal2: "コノハモリ", normal3: "モスゴーレム" }
+    hajimari: { normal1: "スライム",         normal2: "コウモリ",     normal3: "ゴーレム" },
+    soyokaze: { normal1: "リーフスライム",   normal2: "コノハモリ",   normal3: "モスゴーレム" },
+    neppa:    { normal1: "フレイムスライム", normal2: "ヒノコモリ",   normal3: "マグマゴーレム" },
+    sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" }
   };
 
   function getEnemyName(areaDef, stage) {
@@ -278,13 +292,19 @@
     var el = document.getElementById("battle-screen");
     el.classList.remove(
       "battle-bg-hajimari", "battle-bg-hajimari-boss",
-      "battle-bg-soyokaze", "battle-bg-soyokaze-boss"
+      "battle-bg-soyokaze", "battle-bg-soyokaze-boss",
+      "battle-bg-neppa",    "battle-bg-neppa-boss",
+      "battle-bg-sazanami", "battle-bg-sazanami-boss"
     );
     var isBoss = (stage === "boss");
     if (areaId === "hajimari") {
       el.classList.add(isBoss ? "battle-bg-hajimari-boss" : "battle-bg-hajimari");
     } else if (areaId === "soyokaze") {
       el.classList.add(isBoss ? "battle-bg-soyokaze-boss" : "battle-bg-soyokaze");
+    } else if (areaId === "neppa") {
+      el.classList.add(isBoss ? "battle-bg-neppa-boss" : "battle-bg-neppa");
+    } else if (areaId === "sazanami") {
+      el.classList.add(isBoss ? "battle-bg-sazanami-boss" : "battle-bg-sazanami");
     }
   }
 
