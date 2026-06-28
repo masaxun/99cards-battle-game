@@ -630,6 +630,10 @@
     readEl.className   = "";
 
     var correctionParts = [];
+    var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === session.areaDef.weakness;
+    if (isWeakness) {
+      correctionParts.push("弱点！ダメージ+50%");
+    }
     if (card.kind === "mul" && (card.a === 1 || card.b === 1)) {
       correctionParts.push("1が入ったかけ算は会心率UP！");
     }

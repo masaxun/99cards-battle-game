@@ -174,9 +174,15 @@
   }
 
   // 同属性・関連段カード: 自分と同じ属性で別の段を持つエリアから出題する。
+  // lower エリアでは upper/last ランクのエリアを候補から除外する（弱点補正過剰防止）。
   // 見つからない場合は足し算カードで代用する。
   function buildRelatedElementCards(areaDef, count) {
     var candidates = findAreasByElement(areaDef.playerElement, areaDef.id);
+    if (areaDef.rank === "lower") {
+      candidates = candidates.filter(function (area) {
+        return area.rank === "lower";
+      });
+    }
     if (candidates.length === 0) {
       return buildAddCards(count);
     }
