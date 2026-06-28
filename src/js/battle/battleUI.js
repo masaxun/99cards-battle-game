@@ -19,6 +19,7 @@
   var enemyStateEffectsVisible = false;
   var bgmStarted = false;
   var bgmAudio = null;
+  var battleStarted = false;
 
   // ============================================================
   // SE / BGM
@@ -89,7 +90,7 @@
       if (p && p.then) {
         p.then(function () {
           bgmStarted = true;
-          fadeInBGM(def.volume, 800);
+          fadeInBGM(def.volume, 1400);
         }).catch(function () {
           bgmAudio = null;
         });
@@ -220,6 +221,22 @@
     "ボスが静かに力をためている…"
   ];
 
+  var BATTLE_STAGE_TITLES = {
+    normal1: "Battle 1",
+    normal2: "Battle 2",
+    normal3: "Battle 3",
+    boss:    "Boss Battle"
+  };
+
+  var AREA_DESCRIPTIONS = {
+    none:  "カードをえらんで、バトルスタート！",
+    grass: "🌿 草の力で、敵がときどき回復する！\n早めに攻めよう！",
+    fire:  "カードをえらんで、バトルスタート！",
+    water: "カードをえらんで、バトルスタート！",
+    light: "カードをえらんで、バトルスタート！",
+    dark:  "カードをえらんで、バトルスタート！"
+  };
+
   var ELEMENT_FLASH_CLASS = {
     fire:  "flash-fire",
     water: "flash-water",
@@ -279,9 +296,11 @@
     document.getElementById("attack-answer-input").addEventListener("keydown", function (e) {
       if (e.key === "Enter") onSubmitAttack();
     });
+    document.getElementById("battle-start-btn").addEventListener("click", onBattleStart);
 
     render();
     resetToPlaceholder();
+    showBattleStartModal();
   }
 
   // ============================================================
@@ -446,7 +465,7 @@
   function renderHand() {
     var handEl = document.getElementById("hand-cards");
     handEl.innerHTML = "";
-    var locked = !!session.pendingAttack || session.ended || interactionLocked;
+    var locked = !!session.pendingAttack || session.ended || interactionLocked || !battleStarted;
     var hasOpening = session.enemyState.opening;
 
     session.hand.forEach(function (card) {
@@ -517,7 +536,7 @@
     document.getElementById("deck-count").innerHTML = html;
 
     document.getElementById("change-hand-btn").disabled =
-      session.hp < 2 || !!session.pendingAttack || session.ended || interactionLocked;
+      !battleStarted || session.hp < 2 || !!session.pendingAttack || session.ended || interactionLocked;
 
     updateDangerOverlay();
   }
@@ -864,8 +883,22 @@
   // インタラクション
   // ============================================================
 
+  function showBattleStartModal() {
+    var titleEl = document.getElementById("battle-start-title");
+    var descEl  = document.getElementById("battle-start-description");
+    titleEl.textContent = BATTLE_STAGE_TITLES[session.stage] || "Battle";
+    descEl.textContent  = AREA_DESCRIPTIONS[session.areaDef.enemyType] || AREA_DESCRIPTIONS.none;
+  }
+
+  function onBattleStart() {
+    playSE("buttonDecide");
+    startBGMOnce();
+    battleStarted = true;
+    document.getElementById("battle-start-overlay").classList.add("hidden");
+  }
+
   function onSelectCard(uid) {
-    if (session.ended || session.pendingAttack || interactionLocked) return;
+    if (!battleStarted || session.ended || session.pendingAttack || interactionLocked) return;
     playSE("cardSelect");
     startBGMOnce();
     selectedCardUid = selectedCardUid === uid ? null : uid;
@@ -892,7 +925,7 @@
   }
 
   function onSubmitAnswer() {
-    if (interactionLocked || !selectedCardUid || session.ended || session.pendingAttack) return;
+    if (!battleStarted || interactionLocked || !selectedCardUid || session.ended || session.pendingAttack) return;
     var val = document.getElementById("answer-input").value.trim();
     if (val === "") return;
 
@@ -1000,7 +1033,7 @@
   }
 
   function onSubmitAttack() {
-    if (!session.pendingAttack || session.ended || interactionLocked) return;
+    if (!battleStarted || !session.pendingAttack || session.ended || interactionLocked) return;
     var val = document.getElementById("attack-answer-input").value.trim();
     if (val === "") return;
 
@@ -1045,7 +1078,7 @@
   }
 
   function onChangeHand() {
-    if (session.hp < 2 || session.pendingAttack || session.ended || interactionLocked) return;
+    if (!battleStarted || session.hp < 2 || session.pendingAttack || session.ended || interactionLocked) return;
     selectedCardUid = null;
     document.getElementById("answer-panel").classList.add("hidden");
     clearPersistentFeedback();
