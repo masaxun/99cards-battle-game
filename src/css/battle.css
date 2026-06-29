@@ -99,22 +99,22 @@ body {
 
 /* 熱波の山麓 通常戦 */
 #battle-screen.battle-bg-neppa::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_v01.webp?v=20260628-startmodal1");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_v01.webp?v=20260628-burn1");
 }
 
 /* 熱波の山麓 ぬし戦 */
 #battle-screen.battle-bg-neppa-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_boss_v01.webp?v=20260628-startmodal1");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_boss_v01.webp?v=20260628-burn1");
 }
 
 /* さざなみの浜辺 通常戦 */
 #battle-screen.battle-bg-sazanami::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_v01.webp?v=20260628-startmodal1");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_v01.webp?v=20260628-burn1");
 }
 
 /* さざなみの浜辺 ぬし戦 */
 #battle-screen.battle-bg-sazanami-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_boss_v01.webp?v=20260628-startmodal1");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_boss_v01.webp?v=20260628-burn1");
 }
 
 .section-tag {
@@ -578,14 +578,14 @@ body {
    カード背景画像
    ============================================================ */
 
-.card-bg-mul-none  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_none_v01.png?v=20260628-startmodal1"); }
-.card-bg-mul-fire  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_fire_v01.png?v=20260628-startmodal1"); }
-.card-bg-mul-water { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_water_v01.png?v=20260628-startmodal1"); }
-.card-bg-mul-grass { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_grass_v01.png?v=20260628-startmodal1"); }
-.card-bg-mul-light { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_light_v01.png?v=20260628-startmodal1"); }
-.card-bg-mul-dark  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_dark_v01.png?v=20260628-startmodal1"); }
-.card-bg-add       { background-image: url("../../assets/images/cards/backgrounds/card_bg_add_v01.png?v=20260628-startmodal1"); }
-.card-bg-heal      { background-image: url("../../assets/images/cards/backgrounds/card_bg_heal_v01.png?v=20260628-startmodal1"); }
+.card-bg-mul-none  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_none_v01.png?v=20260628-burn1"); }
+.card-bg-mul-fire  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_fire_v01.png?v=20260628-burn1"); }
+.card-bg-mul-water { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_water_v01.png?v=20260628-burn1"); }
+.card-bg-mul-grass { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_grass_v01.png?v=20260628-burn1"); }
+.card-bg-mul-light { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_light_v01.png?v=20260628-burn1"); }
+.card-bg-mul-dark  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_dark_v01.png?v=20260628-burn1"); }
+.card-bg-add       { background-image: url("../../assets/images/cards/backgrounds/card_bg_add_v01.png?v=20260628-burn1"); }
+.card-bg-heal      { background-image: url("../../assets/images/cards/backgrounds/card_bg_heal_v01.png?v=20260628-burn1"); }
 
 /* ============================================================
    プレイヤー情報
@@ -921,6 +921,52 @@ body {
 }
 
 #result-stage-btn:hover { background: rgba(160, 170, 220, 0.12); }
+
+/* ============================================================
+   炎上オーバーレイ（火属性エリア：card-burn-overlay）
+   ============================================================ */
+
+/* .card > * の position:relative; z-index:1 を上書きして絶対配置にする */
+.card > .card-burn-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border-radius: 6px;
+  z-index: 0; /* カードテキスト（z-index:1）より下 */
+  opacity: 0;
+}
+
+.card-burn-overlay.burn-age-1 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn01_v01.png?v=20260628-burn1");
+  opacity: 1;
+}
+.card-burn-overlay.burn-age-2 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn02_v01.png?v=20260628-burn1");
+  opacity: 1;
+}
+.card-burn-overlay.burn-age-3 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn03_v01.png?v=20260628-burn1");
+  opacity: 1;
+}
+.card-burn-overlay.burn-age-4 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn04_v01.png?v=20260628-burn1");
+  opacity: 1;
+}
+.card-burn-overlay.burn-age-5 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn05_v01.png?v=20260628-burn1");
+  opacity: 1;
+}
+
+@keyframes kf-burn-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.card-burn-overlay.burn-fade-in {
+  animation: kf-burn-fade-in 0.22s ease forwards;
+}
 
 /* ============================================================
    バトル開始モーダル

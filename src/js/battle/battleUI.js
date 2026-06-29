@@ -20,6 +20,7 @@
   var bgmStarted = false;
   var bgmAudio = null;
   var battleStarted = false;
+  var burnAgeMap = {};
 
   // ============================================================
   // SE / BGM
@@ -231,7 +232,7 @@
   var AREA_DESCRIPTIONS = {
     none:  "カードをえらんで、バトルスタート！",
     grass: "🌿 草の力で、敵がときどき回復する！\n早めに攻めよう！",
-    fire:  "カードをえらんで、バトルスタート！",
+    fire:  "🔥 手札のカードが少しずつ燃えていく！\n燃え尽きる前にカードを使おう！",
     water: "カードをえらんで、バトルスタート！",
     light: "カードをえらんで、バトルスタート！",
     dark:  "カードをえらんで、バトルスタート！"
@@ -492,6 +493,13 @@
       if (isTargetMul && !locked) classes.push("card-opening-highlight");
 
       div.className = classes.join(" ");
+
+      // 炎上オーバーレイ（火属性エリアのみ、burnAge 1 以上）
+      if (isFireArea() && (burnAgeMap[card.uid] || 0) >= 1) {
+        var burnDiv = document.createElement("div");
+        burnDiv.className = "card-burn-overlay burn-age-" + burnAgeMap[card.uid] + " burn-fade-in";
+        div.appendChild(burnDiv);
+      }
 
       var badgeDiv = document.createElement("div");
       badgeDiv.className = "card-badge";
@@ -880,6 +888,66 @@
   }
 
   // ============================================================
+  // 炎上ギミック（火属性エリア専用）
+  // ============================================================
+
+  function isFireArea() {
+    return session && session.areaDef.enemyType === "fire";
+  }
+
+  // カード使用後、手札に残ったカードの burnAge を +1 する
+  // prePlayUids: カード使用前に手札にあった UID のマップ（使用カード除く）
+  function ageBurnCards(prePlayUids) {
+    session.hand.forEach(function (card) {
+      if (prePlayUids[card.uid]) {
+        burnAgeMap[card.uid] = (burnAgeMap[card.uid] || 0) + 1;
+      } else {
+        // 山札から補充されてきた新カード → age 0
+        burnAgeMap[card.uid] = 0;
+      }
+    });
+    // 手札から離れたカードのエントリを削除
+    var handUids = {};
+    session.hand.forEach(function (c) { handUids[c.uid] = true; });
+    Object.keys(burnAgeMap).forEach(function (uid) {
+      if (!handUids[uid]) delete burnAgeMap[uid];
+    });
+  }
+
+  function hasBurnouts() {
+    var keys = Object.keys(burnAgeMap);
+    for (var i = 0; i < keys.length; i++) {
+      if (burnAgeMap[keys[i]] >= 5) return true;
+    }
+    return false;
+  }
+
+  // burnAge 5 のカードを除外し、山札から補充する
+  function processBurnouts() {
+    var burnedUids = [];
+    Object.keys(burnAgeMap).forEach(function (uid) {
+      if (burnAgeMap[uid] >= 5) burnedUids.push(uid);
+    });
+    // 手札から除外
+    session.hand = session.hand.filter(function (card) {
+      return burnedUids.indexOf(card.uid) === -1;
+    });
+    burnedUids.forEach(function (uid) { delete burnAgeMap[uid]; });
+    // 山札から補充（battle.js の refillHand と同じロジック）
+    while (session.hand.length < 5 && session.deck.length > 0) {
+      var newCard = session.deck.shift();
+      session.hand.push(newCard);
+      burnAgeMap[newCard.uid] = 0;
+    }
+    // 手札・山札ともに空なら敗北 / 撤退
+    if (!session.ended && session.deck.length === 0 && session.hand.length === 0) {
+      session.ended = true;
+      session.outcome = session.stage === "boss" ? "lose" : "retreat";
+    }
+    return burnedUids.length;
+  }
+
+  // ============================================================
   // インタラクション
   // ============================================================
 
@@ -940,6 +1008,14 @@
 
     interactionLocked = true;
 
+    // 火属性エリア：playCard 呼び出し前に手札の残存カード UID を記録
+    var prePlayUids = {};
+    if (isFireArea()) {
+      session.hand.forEach(function (c) {
+        if (c.uid !== uid) prePlayUids[c.uid] = true;
+      });
+    }
+
     startBGMOnce();
     var result = Battle.playCard(session, uid, val);
     if (result.error) {
@@ -975,8 +1051,13 @@
       playPlayerDamageFeedback();
     }
 
+    // 炎上エイジング（火属性エリアのみ）
+    if (isFireArea()) {
+      ageBurnCards(prePlayUids);
+    }
+
     enemyStateEffectsVisible = false;
-    render();
+    render(); // burnAge 5 があれば burn05 オーバーレイが表示される
 
     if (result.enemyRegen) {
       renderEnemyHPValue(result.enemyRegen.beforeHp, session.enemyMaxHp);
@@ -995,43 +1076,67 @@
     }
 
     var regenPresent = !!result.enemyRegen;
-    setTimeout(function () {
-      if (regenPresent) {
-        renderEnemyHPValue(result.enemyRegen.afterHp, session.enemyMaxHp);
-        playSE("enemyRegen");
-        showEnemyRegenEffect();
-        showEnemyRegenMessage(result.enemyRegen);
-      }
+
+    // 敵行動タイミング処理（燃え尽き後も同じシーケンスを使う）
+    function continueEnemyAction() {
       setTimeout(function () {
-        if (!result.enemyAction) {
-          enemyStateEffectsVisible = true;
-          renderEnemySprite();
-          interactionLocked = false;
-          renderHand();
-          renderPlayerSection();
-          return;
+        if (regenPresent) {
+          renderEnemyHPValue(result.enemyRegen.afterHp, session.enemyMaxHp);
+          playSE("enemyRegen");
+          showEnemyRegenEffect();
+          showEnemyRegenMessage(result.enemyRegen);
         }
-        animateEnemyPreAction(function () {
-          enemyStateEffectsVisible = true;
-          showEnemyAction(result.enemyAction);
-          playEnemyActionSE(result.enemyAction);
-          renderEnemySprite();
-          if (session.pendingAttack) {
-            showEnemyAttackEffect(session.pendingAttack.powered);
-            setTimeout(function () {
-              renderEnemyAttackPanel();
-              interactionLocked = false;
-              renderHand();
-              renderPlayerSection();
-            }, 300);
-          } else {
+        setTimeout(function () {
+          if (!result.enemyAction) {
+            enemyStateEffectsVisible = true;
+            renderEnemySprite();
             interactionLocked = false;
             renderHand();
             renderPlayerSection();
+            return;
           }
-        });
-      }, regenPresent ? 600 : 0);
-    }, regenPresent ? 800 : 1100);
+          animateEnemyPreAction(function () {
+            enemyStateEffectsVisible = true;
+            showEnemyAction(result.enemyAction);
+            playEnemyActionSE(result.enemyAction);
+            renderEnemySprite();
+            if (session.pendingAttack) {
+              showEnemyAttackEffect(session.pendingAttack.powered);
+              setTimeout(function () {
+                renderEnemyAttackPanel();
+                interactionLocked = false;
+                renderHand();
+                renderPlayerSection();
+              }, 300);
+            } else {
+              interactionLocked = false;
+              renderHand();
+              renderPlayerSection();
+            }
+          });
+        }, regenPresent ? 600 : 0);
+      }, regenPresent ? 800 : 1100);
+    }
+
+    // 燃え尽き処理（burn05 を 400ms 表示後に除外・補充）
+    if (isFireArea() && hasBurnouts()) {
+      setTimeout(function () {
+        var burnCount = processBurnouts();
+        var burnMsg = burnCount > 1
+          ? "🔥 " + burnCount + "枚のカードが燃え尽きた！"
+          : "🔥 カードが燃え尽きた！";
+        showInfoFeedback(burnMsg);
+        renderHand();
+        renderPlayerSection();
+        if (session.ended) {
+          scheduleEnd();
+          return;
+        }
+        continueEnemyAction();
+      }, 400);
+    } else {
+      continueEnemyAction();
+    }
   }
 
   function onSubmitAttack() {
@@ -1087,9 +1192,20 @@
 
     interactionLocked = true;
 
+    // 火属性エリア：手札に戻るカードの burnAge を破棄
+    if (isFireArea()) {
+      session.hand.forEach(function (c) { delete burnAgeMap[c.uid]; });
+    }
+
     playSE("buttonDecide");
     startBGMOnce();
     var result = Battle.changeHand(session);
+
+    // 火属性エリア：新しい手札は burnAge 0（手札交換直後は進めない）
+    if (isFireArea()) {
+      session.hand.forEach(function (c) { burnAgeMap[c.uid] = 0; });
+    }
+
     showInfoFeedback("手札を入れ替えた（ハート-1）");
     flashScreen("add", null);
 
