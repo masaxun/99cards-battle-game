@@ -141,9 +141,24 @@
   }
 
   function refillHand(session) {
-    while (session.hand.length < 5 && session.deck.length > 0) {
-      session.hand.push(session.deck.shift());
+    var newCards = [];
+    // null スロット（使用済みカード位置）を同スロットで補充
+    for (var i = 0; i < session.hand.length; i++) {
+      if (session.hand[i] === null && session.deck.length > 0) {
+        var newCard = session.deck.shift();
+        session.hand[i] = newCard;
+        newCards.push(newCard);
+      }
     }
+    // 山札切れで補充できなかった null スロットを除去
+    session.hand = session.hand.filter(function (c) { return c !== null; });
+    // 手札交換など手札が 5 枚未満の場合は末尾に補充
+    while (session.hand.length < 5 && session.deck.length > 0) {
+      var nc = session.deck.shift();
+      session.hand.push(nc);
+      newCards.push(nc);
+    }
+    return newCards;
   }
 
   function checkBattleEnd(session) {
@@ -318,7 +333,8 @@
     }
     if (index === -1) return { error: "card-not-found" };
 
-    var card = session.hand.splice(index, 1)[0];
+    var card = session.hand[index];
+    session.hand[index] = null;
     var correct = checkAnswer(card, answerInput);
 
     // 隙あり: プレイヤー行動1回でリセット（正誤・種類問わず）
@@ -413,7 +429,7 @@
     }
 
     session.battleLog.push(logEntry);
-    refillHand(session);
+    var newCards = refillHand(session);
     checkBattleEnd(session);
 
     var enemyAction = null;
@@ -432,7 +448,8 @@
       outcome: session.outcome,
       logEntry: logEntry,
       enemyAction: enemyAction,
-      enemyRegen: regenResult
+      enemyRegen: regenResult,
+      newCards: newCards
     };
   }
 

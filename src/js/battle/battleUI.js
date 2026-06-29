@@ -22,6 +22,7 @@
   var battleStarted = false;
   var burnAgeMap = {};
   var newCardUidMap = {};
+  var usedCardUidMap = {};
 
   // ============================================================
   // SE / BGM
@@ -515,6 +516,11 @@
         div.classList.add("card-new-dealt");
         var dealDelay = newCardUidMap[card.uid] * 70; // 70ms ずつ左→右にスタガー
         if (dealDelay > 0) div.style.animationDelay = dealDelay + "ms";
+      }
+
+      // 通常カード使用後の補充演出
+      if (card.uid in usedCardUidMap) {
+        div.classList.add("card-replaced-after-use");
       }
 
       var badgeDiv = document.createElement("div");
@@ -1082,6 +1088,15 @@
     if (result.error) {
       interactionLocked = false;
       return;
+    }
+
+    // 通常カード使用後の補充カード演出を追跡
+    usedCardUidMap = {};
+    if (result.newCards && result.newCards.length > 0) {
+      result.newCards.forEach(function (c) {
+        usedCardUidMap[c.uid] = true;
+      });
+      setTimeout(function () { usedCardUidMap = {}; }, 600);
     }
 
     showCardFeedback(result);
