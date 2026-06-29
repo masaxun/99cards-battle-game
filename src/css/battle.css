@@ -99,22 +99,22 @@ body {
 
 /* 熱波の山麓 通常戦 */
 #battle-screen.battle-bg-neppa::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_v01.webp?v=20260628-burn2");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_v01.webp?v=20260628-burn3");
 }
 
 /* 熱波の山麓 ぬし戦 */
 #battle-screen.battle-bg-neppa-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_boss_v01.webp?v=20260628-burn2");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_boss_v01.webp?v=20260628-burn3");
 }
 
 /* さざなみの浜辺 通常戦 */
 #battle-screen.battle-bg-sazanami::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_v01.webp?v=20260628-burn2");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_v01.webp?v=20260628-burn3");
 }
 
 /* さざなみの浜辺 ぬし戦 */
 #battle-screen.battle-bg-sazanami-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_boss_v01.webp?v=20260628-burn2");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_boss_v01.webp?v=20260628-burn3");
 }
 
 .section-tag {
@@ -527,9 +527,10 @@ body {
   inset: 0;
   background: rgba(0, 0, 0, 0.12);
   pointer-events: none;
+  z-index: 1; /* burn-overlay(z2) より下、背景より上 */
 }
 
-/* バッジ・式をオーバーレイより手前に */
+/* バッジ・式をオーバーレイより手前に（z-index:1 ベース） */
 .card > * {
   position: relative;
   z-index: 1;
@@ -548,6 +549,12 @@ body {
   pointer-events: none;
 }
 
+/* 燃え尽き演出・補充演出中は opacity を強制的に 1 に（interactionLocked でも見える） */
+.card.card-burning-out,
+.card.card-new-dealt {
+  opacity: 1 !important;
+}
+
 /* 隙あり対象カード強調 */
 .card-opening-highlight {
   border-color: #88ee44 !important;
@@ -559,6 +566,7 @@ body {
   color: #aaa;
   white-space: nowrap;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.90);
+  z-index: 3; /* burn-overlay(z2) / ::after(z2) より必ず前面 */
 }
 
 .card-formula {
@@ -566,6 +574,7 @@ body {
   font-weight: bold;
   white-space: nowrap;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.90);
+  z-index: 3;
 }
 
 /* 属性カラー（background-color のみ指定：背景画像と共存させるため shorthand を使わない） */
@@ -578,14 +587,14 @@ body {
    カード背景画像
    ============================================================ */
 
-.card-bg-mul-none  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_none_v01.png?v=20260628-burn2"); }
-.card-bg-mul-fire  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_fire_v01.png?v=20260628-burn2"); }
-.card-bg-mul-water { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_water_v01.png?v=20260628-burn2"); }
-.card-bg-mul-grass { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_grass_v01.png?v=20260628-burn2"); }
-.card-bg-mul-light { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_light_v01.png?v=20260628-burn2"); }
-.card-bg-mul-dark  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_dark_v01.png?v=20260628-burn2"); }
-.card-bg-add       { background-image: url("../../assets/images/cards/backgrounds/card_bg_add_v01.png?v=20260628-burn2"); }
-.card-bg-heal      { background-image: url("../../assets/images/cards/backgrounds/card_bg_heal_v01.png?v=20260628-burn2"); }
+.card-bg-mul-none  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_none_v01.png?v=20260628-burn3"); }
+.card-bg-mul-fire  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_fire_v01.png?v=20260628-burn3"); }
+.card-bg-mul-water { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_water_v01.png?v=20260628-burn3"); }
+.card-bg-mul-grass { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_grass_v01.png?v=20260628-burn3"); }
+.card-bg-mul-light { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_light_v01.png?v=20260628-burn3"); }
+.card-bg-mul-dark  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_dark_v01.png?v=20260628-burn3"); }
+.card-bg-add       { background-image: url("../../assets/images/cards/backgrounds/card_bg_add_v01.png?v=20260628-burn3"); }
+.card-bg-heal      { background-image: url("../../assets/images/cards/backgrounds/card_bg_heal_v01.png?v=20260628-burn3"); }
 
 /* ============================================================
    プレイヤー情報
@@ -926,7 +935,15 @@ body {
    炎上オーバーレイ（火属性エリア：card-burn-overlay）
    ============================================================ */
 
-/* .card > * の position:relative; z-index:1 を上書きして絶対配置にする */
+/*
+ * レイヤー順（.card 内 stacking context）
+ *   z-index: 3  .card-badge / .card-formula （数式・バッジ）
+ *   z-index: 2  .card-burn-overlay / .card.card-burning-out::after （炎上画像・赤黒発光）
+ *   z-index: 1  .card::before （可読性確保の黒オーバーレイ）
+ *   z-index: 0  カード背景画像
+ */
+
+/* .card > * の z-index:1 を上書きして絶対配置・z-index:2 にする */
 .card > .card-burn-overlay {
   position: absolute;
   inset: 0;
@@ -934,28 +951,28 @@ body {
   background-size: 100% 100%;
   background-repeat: no-repeat;
   border-radius: 6px;
-  z-index: 0; /* カードテキスト（z-index:1）より下 */
+  z-index: 2;
   opacity: 0;
 }
 
 .card-burn-overlay.burn-age-1 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn01_v01.png?v=20260628-burn2");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn01_v01.png?v=20260628-burn3");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-2 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn02_v01.png?v=20260628-burn2");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn02_v01.png?v=20260628-burn3");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-3 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn03_v01.png?v=20260628-burn2");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn03_v01.png?v=20260628-burn3");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-4 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn04_v01.png?v=20260628-burn2");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn04_v01.png?v=20260628-burn3");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-5 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn05_v01.png?v=20260628-burn2");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn05_v01.png?v=20260628-burn3");
   opacity: 1;
 }
 
@@ -969,14 +986,48 @@ body {
 }
 
 @keyframes kf-card-burning-out {
-  0%   { transform: scale(1);    filter: brightness(1); }
-  30%  { transform: scale(1.04) rotate(-1deg); filter: brightness(1.15); }
-  60%  { transform: scale(0.98) rotate(1deg);  filter: brightness(0.85); }
-  100% { transform: scale(0.92); filter: brightness(0.55); }
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  20% {
+    transform: scale(1.08) rotate(-2deg);
+    filter: brightness(1.25);
+  }
+  45% {
+    transform: scale(1.02) rotate(2deg);
+    filter: brightness(0.95);
+  }
+  70% {
+    transform: scale(0.96) rotate(-1deg);
+    filter: brightness(0.70);
+  }
+  100% {
+    transform: scale(0.86);
+    filter: brightness(0.45) grayscale(0.4);
+  }
+}
+
+@keyframes kf-card-burning-glow {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.55; }
+  100% { opacity: 0.85; }
 }
 
 .card.card-burning-out {
   animation: kf-card-burning-out 0.9s ease forwards;
+}
+
+/* 燃え尽きカードの赤黒発光オーバーレイ（burn05 より上、テキストより下） */
+.card.card-burning-out::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, rgba(220, 40, 0, 0.50), rgba(0, 0, 0, 0.65));
+  border-radius: 6px;
+  pointer-events: none;
+  animation: kf-card-burning-glow 0.9s ease forwards;
 }
 
 @keyframes kf-card-new-dealt {
@@ -985,6 +1036,7 @@ body {
 }
 
 .card.card-new-dealt {
+  opacity: 1 !important;
   animation: kf-card-new-dealt 0.45s ease forwards;
 }
 
