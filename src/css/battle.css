@@ -1043,9 +1043,9 @@ body {
 @keyframes kf-card-replaced-after-use {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.92);
+    transform: translateY(24px) scale(0.92);
   }
-  65% {
+  68% {
     opacity: 1;
     transform: translateY(-2px) scale(1.03);
   }
@@ -1057,7 +1057,7 @@ body {
 
 .card.card-replaced-after-use {
   opacity: 1 !important;
-  animation: kf-card-replaced-after-use 0.45s ease-out forwards;
+  animation: kf-card-replaced-after-use 0.55s ease-out forwards;
 }
 
 /* ============================================================
