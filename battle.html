@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>バトル - 九九カードバトル</title>
-  <link rel="stylesheet" href="src/css/battle.css?v=20260630-burn9">
+  <link rel="stylesheet" href="src/css/battle.css?v=20260630-water1">
 </head>
 <body>
 <div id="battle-screen">
@@ -51,7 +51,10 @@
   </div>
 
   <!-- 手札 -->
-  <div id="hand-cards"></div>
+  <div id="hand-area">
+    <div id="hand-cards"></div>
+    <div id="hand-wave-effect" class="hidden"></div>
+  </div>
 
   <!-- プレイヤー情報（手札直下） -->
   <div id="player-section">
@@ -140,6 +143,6 @@
 <script src="src/js/common/data/yomi.js?v=20260629-burn7"></script>
 <script src="src/js/common/gameState.js?v=20260629-burn7"></script>
 <script src="src/js/battle/battle.js?v=20260629-burn7"></script>
-<script src="src/js/battle/battleUI.js?v=20260629-burn7"></script>
+<script src="src/js/battle/battleUI.js?v=20260630-water1"></script>
 </body>
 </html>

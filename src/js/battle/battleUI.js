@@ -3,6 +3,7 @@
 
   var Battle = window.Kuku99.Battle;
   var Areas = window.Kuku99.Areas;
+  var Cards = window.Kuku99.Cards;
   var GameState = window.Kuku99.GameState;
   var Yomi = window.Kuku99.Yomi;
 
@@ -23,6 +24,8 @@
   var burnAgeMap = {};
   var newCardUidMap = {};
   var usedCardUidMap = {};
+  var waveCounter = 0;
+  var waveNewCardUidMap = {};
 
   // ============================================================
   // SE / BGM
@@ -235,7 +238,7 @@
     none:  "カードをえらんで、バトルスタート！",
     grass: "🌿 自然の力で、敵がときどき回復する！\n早めに攻めよう！",
     fire:  "🔥 手札のカードが少しずつ燃えていく！\n燃え尽きる前にカードを使おう！",
-    water: "カードをえらんで、バトルスタート！",
+    water: "🌊 数ターンごとに波が手札を流す！\n使いたいカードは早めに使おう！",
     light: "カードをえらんで、バトルスタート！",
     dark:  "カードをえらんで、バトルスタート！"
   };
@@ -521,6 +524,13 @@
       // 通常カード使用後の補充演出
       if (card.uid in usedCardUidMap) {
         div.classList.add("card-replaced-after-use");
+      }
+
+      // 波リフレッシュ後の新カード演出（左から順にスタガー）
+      if (card.uid in waveNewCardUidMap) {
+        div.classList.add("card-wave-dealt");
+        var waveDelay = waveNewCardUidMap[card.uid] * 70;
+        if (waveDelay > 0) div.style.animationDelay = waveDelay + "ms";
       }
 
       var badgeDiv = document.createElement("div");
@@ -1009,6 +1019,100 @@
   }
 
   // ============================================================
+  // 波ギミック（水属性エリア専用）
+  // ============================================================
+
+  function isWaterArea() {
+    return session && session.areaDef.enemyType === "water";
+  }
+
+  function getWaveRefreshThreshold() {
+    return session.stage === "boss" ? 3 : 4;
+  }
+
+  function refreshHandByWave() {
+    var combined = session.deck.concat(session.hand);
+    session.deck = Cards.shuffleArray(combined);
+    session.hand = [];
+    waveNewCardUidMap = {};
+    while (session.hand.length < 5 && session.deck.length > 0) {
+      var card = session.deck.shift();
+      session.hand.push(card);
+      waveNewCardUidMap[card.uid] = session.hand.length - 1;
+    }
+  }
+
+  function playWaveAnimation(callback) {
+    var waveEl = document.getElementById("hand-wave-effect");
+    if (!waveEl) {
+      refreshHandByWave();
+      renderHand();
+      callback();
+      return;
+    }
+
+    waveEl.classList.remove("hidden", "wave-in", "wave-out");
+    void waveEl.offsetWidth;
+    waveEl.classList.add("wave-in");
+
+    // 波が手札を覆ったタイミング（500ms）でリフレッシュ
+    setTimeout(function () {
+      refreshHandByWave();
+
+      // 山札・手札が尽きた場合は敗北/撤退
+      if (!session.ended && session.deck.length === 0 && session.hand.length === 0) {
+        session.ended = true;
+        session.outcome = session.stage === "boss" ? "lose" : "retreat";
+      }
+
+      // 波フェードアウト開始
+      waveEl.classList.remove("wave-in");
+      void waveEl.offsetWidth;
+      waveEl.classList.add("wave-out");
+
+      // 新カードを描画（波がフェードアウトしながら card-wave-dealt が見える）
+      renderHand();
+
+      // フェードアウト完了（350ms）
+      setTimeout(function () {
+        waveEl.classList.add("hidden");
+        waveEl.classList.remove("wave-out");
+        setTimeout(function () { waveNewCardUidMap = {}; }, 600);
+
+        if (session.ended) {
+          scheduleEnd();
+          return;
+        }
+        callback();
+      }, 350);
+    }, 500);
+  }
+
+  function advanceWaveCounterAndMaybeRefresh(callback) {
+    if (!isWaterArea()) {
+      callback();
+      return;
+    }
+
+    waveCounter++;
+    var threshold = getWaveRefreshThreshold();
+
+    if (waveCounter >= threshold) {
+      waveCounter = 0;
+      showInfoFeedback("🌊 波で手札が流された！");
+      playWaveAnimation(callback);
+    } else {
+      var remaining = threshold - waveCounter;
+      if (remaining === 1) {
+        showInfoFeedback("🌊 大きな波が来る！ あと1ターン");
+      } else if (remaining === 2) {
+        showInfoFeedback("💧 波が近づいている… あと2ターン");
+      }
+      callback();
+    }
+  }
+
+  // ============================================================
   // インタラクション
   // ============================================================
 
@@ -1019,6 +1123,8 @@
     var desc;
     if (session.areaDef.enemyType === "fire" && session.stage === "boss") {
       desc = "🔥 ボス戦ではカードが早く燃え尽きる！\n手札をよく見て、早めに使おう！";
+    } else if (session.areaDef.enemyType === "water" && session.stage === "boss") {
+      desc = "🌊 ボス戦では波が早く押し寄せる！\n手札が流される前にカードを使おう！";
     } else {
       desc = AREA_DESCRIPTIONS[session.areaDef.enemyType] || AREA_DESCRIPTIONS.none;
     }
@@ -1163,33 +1269,36 @@
           showEnemyRegenMessage(result.enemyRegen);
         }
         setTimeout(function () {
-          if (!result.enemyAction) {
-            enemyStateEffectsVisible = true;
-            renderEnemySprite();
-            interactionLocked = false;
-            renderHand();
-            renderPlayerSection();
-            return;
-          }
-          animateEnemyPreAction(function () {
-            enemyStateEffectsVisible = true;
-            showEnemyAction(result.enemyAction);
-            playEnemyActionSE(result.enemyAction);
-            renderEnemySprite();
-            if (session.pendingAttack) {
-              showEnemyAttackEffect(session.pendingAttack.powered);
-              setTimeout(function () {
-                renderEnemyAttackPanel();
-                interactionLocked = false;
-                renderHand();
-                renderPlayerSection();
-              }, 300);
-            } else {
+          var doEnemyAction = function () {
+            if (!result.enemyAction) {
+              enemyStateEffectsVisible = true;
+              renderEnemySprite();
               interactionLocked = false;
               renderHand();
               renderPlayerSection();
+              return;
             }
-          });
+            animateEnemyPreAction(function () {
+              enemyStateEffectsVisible = true;
+              showEnemyAction(result.enemyAction);
+              playEnemyActionSE(result.enemyAction);
+              renderEnemySprite();
+              if (session.pendingAttack) {
+                showEnemyAttackEffect(session.pendingAttack.powered);
+                setTimeout(function () {
+                  renderEnemyAttackPanel();
+                  interactionLocked = false;
+                  renderHand();
+                  renderPlayerSection();
+                }, 300);
+              } else {
+                interactionLocked = false;
+                renderHand();
+                renderPlayerSection();
+              }
+            });
+          };
+          advanceWaveCounterAndMaybeRefresh(doEnemyAction);
         }, regenPresent ? 600 : 0);
       }, regenPresent ? 800 : 1100);
     }
@@ -1313,33 +1422,36 @@
         showEnemyRegenMessage(result.enemyRegen);
       }
       setTimeout(function () {
-        if (!result.enemyAction) {
-          enemyStateEffectsVisible = true;
-          renderEnemySprite();
-          interactionLocked = false;
-          renderHand();
-          renderPlayerSection();
-          return;
-        }
-        animateEnemyPreAction(function () {
-          enemyStateEffectsVisible = true;
-          showEnemyAction(result.enemyAction);
-          playEnemyActionSE(result.enemyAction);
-          renderEnemySprite();
-          if (session.pendingAttack) {
-            showEnemyAttackEffect(session.pendingAttack.powered);
-            setTimeout(function () {
-              renderEnemyAttackPanel();
-              interactionLocked = false;
-              renderHand();
-              renderPlayerSection();
-            }, 300);
-          } else {
+        var doEnemyAction = function () {
+          if (!result.enemyAction) {
+            enemyStateEffectsVisible = true;
+            renderEnemySprite();
             interactionLocked = false;
             renderHand();
             renderPlayerSection();
+            return;
           }
-        });
+          animateEnemyPreAction(function () {
+            enemyStateEffectsVisible = true;
+            showEnemyAction(result.enemyAction);
+            playEnemyActionSE(result.enemyAction);
+            renderEnemySprite();
+            if (session.pendingAttack) {
+              showEnemyAttackEffect(session.pendingAttack.powered);
+              setTimeout(function () {
+                renderEnemyAttackPanel();
+                interactionLocked = false;
+                renderHand();
+                renderPlayerSection();
+              }, 300);
+            } else {
+              interactionLocked = false;
+              renderHand();
+              renderPlayerSection();
+            }
+          });
+        };
+        advanceWaveCounterAndMaybeRefresh(doEnemyAction);
       }, regenPresent ? 600 : 0);
     }, regenPresent ? 800 : 1100);
   }

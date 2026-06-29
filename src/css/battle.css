@@ -492,6 +492,49 @@ body {
    手札
    ============================================================ */
 
+#hand-area {
+  position: relative;
+}
+
+#hand-wave-effect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background-image: url("../../assets/images/effects/effect_wave_sweep_v01.png");
+  background-size: 100% 100%;
+  opacity: 0;
+}
+
+@keyframes kf-wave-in {
+  0%   { opacity: 0; transform: translateX(-110%); }
+  25%  { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes kf-wave-out {
+  0%   { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(30%); }
+}
+
+#hand-wave-effect.wave-in {
+  animation: kf-wave-in 0.50s ease-out forwards;
+}
+
+#hand-wave-effect.wave-out {
+  animation: kf-wave-out 0.35s ease-in forwards;
+}
+
+@keyframes kf-card-wave-dealt {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.card.card-wave-dealt {
+  opacity: 1 !important;
+  animation: kf-card-wave-dealt 0.40s ease-out forwards;
+}
+
 #hand-cards {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
