@@ -510,8 +510,11 @@
       }
 
       // 補充カード演出（燃え尽き後の新規補充カード）
-      if (newCardUidMap[card.uid]) {
+      // newCardUidMap には 0 始まりの順序インデックスが入るため in 演算子で存在確認
+      if (card.uid in newCardUidMap) {
         div.classList.add("card-new-dealt");
+        var dealDelay = newCardUidMap[card.uid] * 70; // 70ms ずつ左→右にスタガー
+        if (dealDelay > 0) div.style.animationDelay = dealDelay + "ms";
       }
 
       var badgeDiv = document.createElement("div");
@@ -915,6 +918,9 @@
   function getBurnVisualAge(age) {
     var threshold = getBurnoutThreshold();
     if (age >= threshold) return 5;
+    if (session.stage === "boss") {
+      return Math.min(age + 1, 4);
+    }
     return age;
   }
 
@@ -946,36 +952,53 @@
     return false;
   }
 
-  // burnAge 閾値以上のカードを除外し、山札から補充する
+  // burnAge 閾値以上のカードを、同一スロット位置で山札から差し替える（左詰めしない）
   function processBurnouts() {
     var threshold = getBurnoutThreshold();
-    var burnedUids = [];
-    Object.keys(burnAgeMap).forEach(function (uid) {
-      if (burnAgeMap[uid] >= threshold) burnedUids.push(uid);
+
+    // 燃え尽き対象の uid と手札 index を収集（index 順 = 左→右）
+    var burnedSlots = [];
+    session.hand.forEach(function (card, index) {
+      if ((burnAgeMap[card.uid] || 0) >= threshold) {
+        burnedSlots.push({ uid: card.uid, index: index });
+      }
     });
-    // 手札から除外
-    session.hand = session.hand.filter(function (card) {
-      return burnedUids.indexOf(card.uid) === -1;
+
+    // burnAgeMap から削除
+    burnedSlots.forEach(function (slot) {
+      delete burnAgeMap[slot.uid];
     });
-    burnedUids.forEach(function (uid) { delete burnAgeMap[uid]; });
-    // 山札から補充（battle.js の refillHand と同じロジック）
+
+    // 同一スロットに新カードを差し替え（山札切れ時は null を仮置き）
     newCardUidMap = {};
-    while (session.hand.length < 5 && session.deck.length > 0) {
-      var newCard = session.deck.shift();
-      session.hand.push(newCard);
-      burnAgeMap[newCard.uid] = 0;
-      newCardUidMap[newCard.uid] = true;
-    }
+    var dealOrder = 0;
+    burnedSlots.forEach(function (slot) {
+      if (session.deck.length > 0) {
+        var newCard = session.deck.shift();
+        session.hand[slot.index] = newCard;
+        burnAgeMap[newCard.uid] = 0;
+        newCardUidMap[newCard.uid] = dealOrder; // 順序インデックス（スタガー遅延に使用）
+        dealOrder++;
+      } else {
+        session.hand[slot.index] = null;
+      }
+    });
+
+    // null スロット（山札切れで補充できなかった位置）を除去
+    session.hand = session.hand.filter(function (card) { return card !== null; });
+
     // 600ms 後に補充カード演出クラスをクリア
     if (Object.keys(newCardUidMap).length > 0) {
       setTimeout(function () { newCardUidMap = {}; }, 600);
     }
+
     // 手札・山札ともに空なら敗北 / 撤退
     if (!session.ended && session.deck.length === 0 && session.hand.length === 0) {
       session.ended = true;
       session.outcome = session.stage === "boss" ? "lose" : "retreat";
     }
-    return burnedUids.length;
+
+    return burnedSlots.length;
   }
 
   // ============================================================

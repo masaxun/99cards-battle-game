@@ -99,22 +99,22 @@ body {
 
 /* 熱波の山麓 通常戦 */
 #battle-screen.battle-bg-neppa::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_v01.webp?v=20260628-burn4");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_v01.webp?v=20260628-burn5");
 }
 
 /* 熱波の山麓 ぬし戦 */
 #battle-screen.battle-bg-neppa-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_boss_v01.webp?v=20260628-burn4");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_neppa_boss_v01.webp?v=20260628-burn5");
 }
 
 /* さざなみの浜辺 通常戦 */
 #battle-screen.battle-bg-sazanami::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_v01.webp?v=20260628-burn4");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_v01.webp?v=20260628-burn5");
 }
 
 /* さざなみの浜辺 ぬし戦 */
 #battle-screen.battle-bg-sazanami-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_boss_v01.webp?v=20260628-burn4");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_sazanami_boss_v01.webp?v=20260628-burn5");
 }
 
 .section-tag {
@@ -587,14 +587,14 @@ body {
    カード背景画像
    ============================================================ */
 
-.card-bg-mul-none  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_none_v01.png?v=20260628-burn4"); }
-.card-bg-mul-fire  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_fire_v01.png?v=20260628-burn4"); }
-.card-bg-mul-water { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_water_v01.png?v=20260628-burn4"); }
-.card-bg-mul-grass { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_grass_v01.png?v=20260628-burn4"); }
-.card-bg-mul-light { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_light_v01.png?v=20260628-burn4"); }
-.card-bg-mul-dark  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_dark_v01.png?v=20260628-burn4"); }
-.card-bg-add       { background-image: url("../../assets/images/cards/backgrounds/card_bg_add_v01.png?v=20260628-burn4"); }
-.card-bg-heal      { background-image: url("../../assets/images/cards/backgrounds/card_bg_heal_v01.png?v=20260628-burn4"); }
+.card-bg-mul-none  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_none_v01.png?v=20260628-burn5"); }
+.card-bg-mul-fire  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_fire_v01.png?v=20260628-burn5"); }
+.card-bg-mul-water { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_water_v01.png?v=20260628-burn5"); }
+.card-bg-mul-grass { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_grass_v01.png?v=20260628-burn5"); }
+.card-bg-mul-light { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_light_v01.png?v=20260628-burn5"); }
+.card-bg-mul-dark  { background-image: url("../../assets/images/cards/backgrounds/card_bg_mul_dark_v01.png?v=20260628-burn5"); }
+.card-bg-add       { background-image: url("../../assets/images/cards/backgrounds/card_bg_add_v01.png?v=20260628-burn5"); }
+.card-bg-heal      { background-image: url("../../assets/images/cards/backgrounds/card_bg_heal_v01.png?v=20260628-burn5"); }
 
 /* ============================================================
    プレイヤー情報
@@ -956,23 +956,23 @@ body {
 }
 
 .card-burn-overlay.burn-age-1 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn01_v01.png?v=20260628-burn4");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn01_v01.png?v=20260628-burn5");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-2 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn02_v01.png?v=20260628-burn4");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn02_v01.png?v=20260628-burn5");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-3 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn03_v01.png?v=20260628-burn4");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn03_v01.png?v=20260628-burn5");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-4 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn04_v01.png?v=20260628-burn4");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn04_v01.png?v=20260628-burn5");
   opacity: 1;
 }
 .card-burn-overlay.burn-age-5 {
-  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn05_v01.png?v=20260628-burn4");
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_burn05_v01.png?v=20260628-burn5");
   opacity: 1;
 }
 
