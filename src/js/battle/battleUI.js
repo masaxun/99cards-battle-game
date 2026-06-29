@@ -21,6 +21,7 @@
   var bgmAudio = null;
   var battleStarted = false;
   var burnAgeMap = {};
+  var newCardUidMap = {};
 
   // ============================================================
   // SE / BGM
@@ -231,7 +232,7 @@
 
   var AREA_DESCRIPTIONS = {
     none:  "カードをえらんで、バトルスタート！",
-    grass: "🌿 草の力で、敵がときどき回復する！\n早めに攻めよう！",
+    grass: "🌿 自然の力で、敵がときどき回復する！\n早めに攻めよう！",
     fire:  "🔥 手札のカードが少しずつ燃えていく！\n燃え尽きる前にカードを使おう！",
     water: "カードをえらんで、バトルスタート！",
     light: "カードをえらんで、バトルスタート！",
@@ -495,10 +496,22 @@
       div.className = classes.join(" ");
 
       // 炎上オーバーレイ（火属性エリアのみ、burnAge 1 以上）
-      if (isFireArea() && (burnAgeMap[card.uid] || 0) >= 1) {
-        var burnDiv = document.createElement("div");
-        burnDiv.className = "card-burn-overlay burn-age-" + burnAgeMap[card.uid] + " burn-fade-in";
-        div.appendChild(burnDiv);
+      if (isFireArea()) {
+        var rawAge = burnAgeMap[card.uid] || 0;
+        var visualAge = getBurnVisualAge(rawAge);
+        if (visualAge >= 1) {
+          var burnDiv = document.createElement("div");
+          burnDiv.className = "card-burn-overlay burn-age-" + visualAge + " burn-fade-in";
+          div.appendChild(burnDiv);
+        }
+        if (rawAge >= getBurnoutThreshold()) {
+          div.classList.add("card-burning-out");
+        }
+      }
+
+      // 補充カード演出（燃え尽き後の新規補充カード）
+      if (newCardUidMap[card.uid]) {
+        div.classList.add("card-new-dealt");
       }
 
       var badgeDiv = document.createElement("div");
@@ -895,6 +908,16 @@
     return session && session.areaDef.enemyType === "fire";
   }
 
+  function getBurnoutThreshold() {
+    return session.stage === "boss" ? 4 : 5;
+  }
+
+  function getBurnVisualAge(age) {
+    var threshold = getBurnoutThreshold();
+    if (age >= threshold) return 5;
+    return age;
+  }
+
   // カード使用後、手札に残ったカードの burnAge を +1 する
   // prePlayUids: カード使用前に手札にあった UID のマップ（使用カード除く）
   function ageBurnCards(prePlayUids) {
@@ -915,18 +938,20 @@
   }
 
   function hasBurnouts() {
+    var threshold = getBurnoutThreshold();
     var keys = Object.keys(burnAgeMap);
     for (var i = 0; i < keys.length; i++) {
-      if (burnAgeMap[keys[i]] >= 5) return true;
+      if (burnAgeMap[keys[i]] >= threshold) return true;
     }
     return false;
   }
 
-  // burnAge 5 のカードを除外し、山札から補充する
+  // burnAge 閾値以上のカードを除外し、山札から補充する
   function processBurnouts() {
+    var threshold = getBurnoutThreshold();
     var burnedUids = [];
     Object.keys(burnAgeMap).forEach(function (uid) {
-      if (burnAgeMap[uid] >= 5) burnedUids.push(uid);
+      if (burnAgeMap[uid] >= threshold) burnedUids.push(uid);
     });
     // 手札から除外
     session.hand = session.hand.filter(function (card) {
@@ -934,10 +959,16 @@
     });
     burnedUids.forEach(function (uid) { delete burnAgeMap[uid]; });
     // 山札から補充（battle.js の refillHand と同じロジック）
+    newCardUidMap = {};
     while (session.hand.length < 5 && session.deck.length > 0) {
       var newCard = session.deck.shift();
       session.hand.push(newCard);
       burnAgeMap[newCard.uid] = 0;
+      newCardUidMap[newCard.uid] = true;
+    }
+    // 600ms 後に補充カード演出クラスをクリア
+    if (Object.keys(newCardUidMap).length > 0) {
+      setTimeout(function () { newCardUidMap = {}; }, 600);
     }
     // 手札・山札ともに空なら敗北 / 撤退
     if (!session.ended && session.deck.length === 0 && session.hand.length === 0) {
@@ -955,7 +986,13 @@
     var titleEl = document.getElementById("battle-start-title");
     var descEl  = document.getElementById("battle-start-description");
     titleEl.textContent = BATTLE_STAGE_TITLES[session.stage] || "Battle";
-    descEl.textContent  = AREA_DESCRIPTIONS[session.areaDef.enemyType] || AREA_DESCRIPTIONS.none;
+    var desc;
+    if (session.areaDef.enemyType === "fire" && session.stage === "boss") {
+      desc = "🔥 ボス戦ではカードが早く燃え尽きる！\n手札をよく見て、早めに使おう！";
+    } else {
+      desc = AREA_DESCRIPTIONS[session.areaDef.enemyType] || AREA_DESCRIPTIONS.none;
+    }
+    descEl.textContent = desc;
   }
 
   function onBattleStart() {
@@ -1118,7 +1155,7 @@
       }, regenPresent ? 800 : 1100);
     }
 
-    // 燃え尽き処理（burn05 を 400ms 表示後に除外・補充）
+    // 燃え尽き処理（burn05 + card-burning-out を 900ms 表示後に除外・補充）
     if (isFireArea() && hasBurnouts()) {
       setTimeout(function () {
         var burnCount = processBurnouts();
@@ -1133,7 +1170,7 @@
           return;
         }
         continueEnemyAction();
-      }, 400);
+      }, 900);
     } else {
       continueEnemyAction();
     }
