@@ -1155,7 +1155,7 @@
       }, regenPresent ? 800 : 1100);
     }
 
-    // 燃え尽き処理（burn05 + card-burning-out を 900ms 表示後に除外・補充）
+    // 燃え尽き処理（burn05 + card-burning-out を 1100ms 表示後に除外・補充）
     if (isFireArea() && hasBurnouts()) {
       setTimeout(function () {
         var burnCount = processBurnouts();
@@ -1170,7 +1170,7 @@
           return;
         }
         continueEnemyAction();
-      }, 900);
+      }, 1100);
     } else {
       continueEnemyAction();
     }
