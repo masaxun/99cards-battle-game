@@ -916,6 +916,7 @@
   }
 
   function getBurnVisualAge(age) {
+    if (age <= 0) return 0; // 配布直後は炎なし（ボス戦でも age+1 しない）
     var threshold = getBurnoutThreshold();
     if (age >= threshold) return 5;
     if (session.stage === "boss") {
