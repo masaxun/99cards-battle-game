@@ -12,6 +12,7 @@
   var navigating = false;
 
   function playSE(name) {
+    try { if (localStorage.getItem("kuku99_sound_enabled") === "0") return; } catch (e) {}
     var def = SE[name];
     if (!def) return;
     try {
