@@ -148,6 +148,14 @@
 
   var ELEMENT_ICONS = { fire: "🔥", water: "💧", grass: "🌱", light: "⭐", none: "✨" };
 
+  function isHolyCard(card) {
+    return card.kind === "mul" && card.a === 1 && card.b === 1;
+  }
+
+  function isMeteorCard(card) {
+    return card.kind === "mul" && card.a === 9 && card.b === 9;
+  }
+
   function isMobile() {
     return window.innerWidth <= 640 || ('ontouchstart' in window);
   }
@@ -737,6 +745,8 @@
 
   function cardBadgeText(card) {
     if (card.kind === "mul") {
+      if (isHolyCard(card)) return "✨ ホーリー";
+      if (isMeteorCard(card)) return "☄️ メテオ";
       var icon = ELEMENT_ICONS[card.element] || "✨";
       return icon + " 必殺";
     }
@@ -767,6 +777,8 @@
 
   function buildCardDescription(card) {
     if (card.kind === "mul") {
+      if (isHolyCard(card)) return "✨ 1×1 ホーリー！ 会心判定が2回！";
+      if (isMeteorCard(card)) return "☄️ 9×9 メテオ！ 敵のガードを貫通！";
       var ename = ELEMENT_NAMES[card.element] || "無属性";
       return ename + "の必殺技で攻撃";
     }
@@ -787,7 +799,7 @@
     if (isWeakness) {
       correctionParts.push("弱点！ダメージ+50%");
     }
-    if (card.kind === "mul" && (card.a === 1 || card.b === 1)) {
+    if (card.kind === "mul" && (card.a === 1 || card.b === 1) && !isHolyCard(card)) {
       correctionParts.push("1が入ったかけ算は会心率UP！");
     }
     var comboText = buildComboStatusText(session.combo);
@@ -1757,7 +1769,7 @@
       parts.push("弱点+" + bd.weaknessBonusAmount);
     }
     if (bd.criticalBonusAmount > 0) {
-      parts.push("会心+" + bd.criticalBonusAmount);
+      parts.push((bd.holy ? "ホーリー会心+" : "会心+") + bd.criticalBonusAmount);
     }
     if (bd.comboBonusAmount > 0) {
       parts.push("コンボ+" + bd.comboBonusAmount);
@@ -1767,6 +1779,9 @@
     }
     if (bd.guardReductionAmount > 0) {
       parts.push("ガード-" + bd.guardReductionAmount);
+    }
+    if (bd.meteor && bd.ignoreGuard) {
+      parts.push("メテオ：ガード貫通");
     }
     if (parts.length === 0) return base;
     return base + "（" + parts.join(" / ") + "）";

@@ -85,6 +85,15 @@
     return 0.40;
   }
 
+  // 特殊カード判定
+  function isHolyCard(card) {
+    return card.kind === "mul" && card.a === 1 && card.b === 1;
+  }
+
+  function isMeteorCard(card) {
+    return card.kind === "mul" && card.a === 9 && card.b === 9;
+  }
+
   // ============================================================
   // セッション生成
   // ============================================================
@@ -369,15 +378,23 @@
         var openingBonus = hadOpening && card.kind === "mul" && card.dan === session.areaDef.dan;
         var openingBonusAmount = openingBonus ? Math.round(baseRawDamage * 0.5) : 0;
 
-        // 会心判定: +10ダメージ
+        // 会心判定: +10ダメージ（ホーリー1×1は2回判定）
         var critRate = getCriticalRate(card);
-        var critical = Math.random() < critRate;
-        var criticalBonusAmount = critical ? 10 : 0;
+        var isHoly = isHolyCard(card);
+        var isMeteor = isMeteorCard(card);
+        var criticalCount;
+        if (isHoly) {
+          criticalCount = (Math.random() < critRate ? 1 : 0) + (Math.random() < critRate ? 1 : 0);
+        } else {
+          criticalCount = Math.random() < critRate ? 1 : 0;
+        }
+        var critical = criticalCount > 0;
+        var criticalBonusAmount = criticalCount * 10;
 
-        // ガード軽減: 最後に適用
+        // ガード軽減: 最後に適用（メテオ9×9はガードを貫通しガード状態を消費しない）
         var guardActive = session.enemyState.guard;
         var guardMult = 1.0;
-        if (guardActive) {
+        if (guardActive && !isMeteor) {
           guardMult = session.stage === "boss" ? 0.5 : 0.7;
           session.enemyState.guard = false;
         }
@@ -385,7 +402,7 @@
         var preGuardDamage = baseRawDamage + weaknessBonusAmount + comboBonusAmount + openingBonusAmount + criticalBonusAmount;
         var finalDamage = Math.round(preGuardDamage * guardMult);
         if (finalDamage < 1) finalDamage = 1;
-        var guardReductionAmount = guardActive ? preGuardDamage - finalDamage : 0;
+        var guardReductionAmount = guardActive && !isMeteor ? preGuardDamage - finalDamage : 0;
 
         session.enemyHp = Math.max(0, session.enemyHp - finalDamage);
         logEntry = buildLogEntry(card, true, answerInput, {
@@ -403,9 +420,13 @@
             comboBonusAmount: comboBonusAmount,
             openingBonus: openingBonus,
             openingBonusAmount: openingBonusAmount,
+            holy: isHoly,
+            criticalCount: criticalCount,
             critical: critical,
             criticalRate: critRate,
             criticalBonusAmount: criticalBonusAmount,
+            meteor: isMeteor,
+            ignoreGuard: isMeteor && guardActive,
             guardActive: guardActive,
             guardMult: guardMult,
             guardReductionAmount: guardReductionAmount,
