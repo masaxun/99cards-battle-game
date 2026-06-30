@@ -501,7 +501,7 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 10;
-  background-image: url("../../assets/images/effects/effect_wave_sweep_v01.png?v=20260630-water1");
+  background-image: url("../../assets/images/effects/effect_wave_sweep_v01.png?v=20260630-water2");
   background-size: 100% 100%;
   opacity: 0;
 }
