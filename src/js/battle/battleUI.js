@@ -1451,7 +1451,7 @@
             }
           });
         };
-        advanceWaveCounterAndMaybeRefresh(doEnemyAction);
+        doEnemyAction();
       }, regenPresent ? 600 : 0);
     }, regenPresent ? 800 : 1100);
   }
