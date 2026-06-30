@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>バトル - 九九カードバトル</title>
-  <link rel="stylesheet" href="src/css/battle.css?v=20260630-water3">
+  <link rel="stylesheet" href="src/css/battle.css?v=20260630-menu1">
 </head>
 <body>
 <div id="battle-screen">
@@ -14,6 +14,11 @@
     <span class="section-tag">ENEMY</span>
     <div id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
     <div id="enemy-hp-text"></div>
+    <button id="battle-menu-btn" type="button" aria-label="メニュー"></button>
+    <div id="battle-menu-popover" class="hidden">
+      <button class="battle-menu-item" id="sound-toggle-btn" type="button">🔊 サウンド OFF にする</button>
+      <button class="battle-menu-item" id="return-stage-btn" type="button">🚪 ステージ選択へ戻る</button>
+    </div>
   </div>
 
   <!-- 敵スプライト：名前→イラスト→行動メッセージ の順 -->
@@ -137,12 +142,24 @@
   </div>
 </div>
 
+<!-- バトル中メニュー 確認モーダル -->
+<div id="battle-menu-confirm-overlay" class="hidden">
+  <div id="battle-menu-confirm-box">
+    <div id="battle-menu-confirm-text">バトルをやめてステージ選択へ戻りますか？</div>
+    <div id="battle-menu-confirm-sub">このバトルの途中結果は保存されません。</div>
+    <div class="confirm-btn-row">
+      <button id="battle-menu-confirm-ok" type="button">戻る</button>
+      <button id="battle-menu-confirm-cancel" type="button">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <script src="src/js/common/storage.js?v=20260629-burn7"></script>
 <script src="src/js/common/data/areas.js?v=20260629-burn7"></script>
 <script src="src/js/common/data/cardDefs.js?v=20260629-burn7"></script>
 <script src="src/js/common/data/yomi.js?v=20260629-burn7"></script>
 <script src="src/js/common/gameState.js?v=20260629-burn7"></script>
 <script src="src/js/battle/battle.js?v=20260629-burn7"></script>
-<script src="src/js/battle/battleUI.js?v=20260630-water2"></script>
+<script src="src/js/battle/battleUI.js?v=20260630-menu1"></script>
 </body>
 </html>

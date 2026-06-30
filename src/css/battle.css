@@ -133,6 +133,7 @@ body {
    ============================================================ */
 
 #enemy-hp-section {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1511,4 +1512,134 @@ body {
   22%  { opacity: 1; background: rgba(190, 20, 20, 0.42); }
   58%  { opacity: 1; background: rgba( 80,  0,  0, 0.70); }
   100% { opacity: 1; background: rgba(  0,  0,  0, 0.92); }
+}
+
+/* ============================================================
+   バトル中メニュー
+   ============================================================ */
+
+/* 2本線ハンバーガーボタン */
+#battle-menu-btn {
+  position: relative;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(20, 20, 28, 0.90);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#battle-menu-btn::before,
+#battle-menu-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 2px;
+  background: #ccc;
+  border-radius: 1px;
+}
+
+#battle-menu-btn::before { top: 10px; }
+#battle-menu-btn::after  { bottom: 10px; }
+
+/* ポップオーバーメニュー */
+#battle-menu-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: rgba(18, 18, 28, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 172px;
+  z-index: 85;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.battle-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: #ddd;
+  font-size: 14px;
+  font-family: sans-serif;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.battle-menu-item:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 確認モーダル */
+#battle-menu-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 105;
+}
+
+#battle-menu-confirm-box {
+  background: rgba(18, 18, 28, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 24px 20px;
+  max-width: 300px;
+  width: calc(100% - 32px);
+  text-align: center;
+}
+
+#battle-menu-confirm-text {
+  font-size: 15px;
+  color: #ddd;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+#battle-menu-confirm-sub {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 20px;
+}
+
+.confirm-btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+#battle-menu-confirm-ok {
+  padding: 10px 20px;
+  background: rgba(180, 50, 50, 0.85);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-family: sans-serif;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#battle-menu-confirm-cancel {
+  padding: 10px 20px;
+  background: rgba(50, 50, 70, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 14px;
+  font-family: sans-serif;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }

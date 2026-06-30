@@ -26,6 +26,10 @@
   var usedCardUidMap = {};
   var waveCounter = 0;
   var waveNewCardUidMap = {};
+  var soundEnabled = (function () {
+    try { return localStorage.getItem("kuku99_sound_enabled") !== "0"; } catch (e) { return true; }
+  })();
+  var menuOpen = false;
 
   // ============================================================
   // SE / BGM
@@ -51,6 +55,7 @@
   };
 
   function playSE(name) {
+    if (!soundEnabled) return;
     var def = SE[name];
     if (!def) return;
     try {
@@ -85,6 +90,7 @@
 
   function startBGMOnce() {
     if (bgmStarted) return;
+    if (!soundEnabled) return;
     var key = getBgmKeyForStage(session.stage);
     var def = BGM[key];
     if (!def) return;
@@ -252,6 +258,64 @@
   };
 
   // ============================================================
+  // サウンド管理 / バトル中メニュー
+  // ============================================================
+
+  function setSoundEnabled(val) {
+    soundEnabled = val;
+    try { localStorage.setItem("kuku99_sound_enabled", val ? "1" : "0"); } catch (e) {}
+    if (!val) {
+      stopBGM();
+      bgmStarted = false;
+      bgmAudio = null;
+    } else if (battleStarted && !bgmStarted) {
+      startBGMOnce();
+    }
+  }
+
+  function updateSoundBtn() {
+    var btn = document.getElementById("sound-toggle-btn");
+    if (btn) btn.textContent = soundEnabled ? "🔊 サウンド OFF にする" : "🔇 サウンド ON にする";
+  }
+
+  function openMenu() {
+    menuOpen = true;
+    document.getElementById("battle-menu-popover").classList.remove("hidden");
+  }
+
+  function closeMenu() {
+    menuOpen = false;
+    document.getElementById("battle-menu-popover").classList.add("hidden");
+  }
+
+  function onBattleMenuBtn(e) {
+    e.stopPropagation();
+    if (menuOpen) closeMenu(); else openMenu();
+  }
+
+  function onSoundToggle(e) {
+    e.stopPropagation();
+    setSoundEnabled(!soundEnabled);
+    updateSoundBtn();
+    closeMenu();
+  }
+
+  function onReturnToStage(e) {
+    e.stopPropagation();
+    closeMenu();
+    document.getElementById("battle-menu-confirm-overlay").classList.remove("hidden");
+  }
+
+  function onConfirmReturn() {
+    var areaId = session ? session.areaDef.id : "hajimari";
+    window.location.href = buildStageUrl(areaId);
+  }
+
+  function onCancelReturn() {
+    document.getElementById("battle-menu-confirm-overlay").classList.add("hidden");
+  }
+
+  // ============================================================
   // 初期化
   // ============================================================
 
@@ -303,6 +367,16 @@
       if (e.key === "Enter") onSubmitAttack();
     });
     document.getElementById("battle-start-btn").addEventListener("click", onBattleStart);
+
+    document.getElementById("battle-menu-btn").addEventListener("click", onBattleMenuBtn);
+    document.getElementById("battle-menu-popover").addEventListener("click", function (e) { e.stopPropagation(); });
+    document.getElementById("sound-toggle-btn").addEventListener("click", onSoundToggle);
+    document.getElementById("return-stage-btn").addEventListener("click", onReturnToStage);
+    document.getElementById("battle-menu-confirm-ok").addEventListener("click", onConfirmReturn);
+    document.getElementById("battle-menu-confirm-cancel").addEventListener("click", onCancelReturn);
+    document.addEventListener("click", function () { if (menuOpen) closeMenu(); });
+
+    updateSoundBtn();
 
     render();
     resetToPlaceholder();
