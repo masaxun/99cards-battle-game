@@ -1384,6 +1384,14 @@
     }
 
     if (session.ended || result.ended || session.enemyHp <= 0 || session.hp <= 0) {
+      if (isHolyHit) {
+        // ホーリーとどめ：演出を最後まで表示してから勝利処理へ
+        playHolyUltimateEffect(function () {
+          interactionLocked = false;
+          scheduleEnd();
+        });
+        return;
+      }
       interactionLocked = false;
       scheduleEnd();
       return;
