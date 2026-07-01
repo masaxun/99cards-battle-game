@@ -51,7 +51,8 @@
     playerDamage:  { src: "assets/audio/se/se_player_damage_v01.mp3",      volume: 0.60 },
     criticalHit:   { src: "assets/audio/se/se_critical_hit_v01.mp3",        volume: 0.70 },
     defeat:        { src: "assets/audio/se/se_defeat_v01.mp3",              volume: 0.70 },
-    enemyRegen:    { src: "assets/audio/se/se_enemy_regen_v01.mp3",         volume: 0.55 }
+    enemyRegen:    { src: "assets/audio/se/se_enemy_regen_v01.mp3",         volume: 0.55 },
+    holyUltimate:  { src: "assets/audio/se/se_holy_ultimate_v01.mp3",       volume: 0.70 }
   };
 
   function playSE(name) {
@@ -932,6 +933,42 @@
     );
   }
 
+  function playHolyUltimateEffect(callback) {
+    playSE("holyUltimate");
+
+    var circle = document.getElementById("holy-effect-circle");
+    var pillar = document.getElementById("holy-effect-pillar");
+
+    if (!circle || !pillar) {
+      if (callback) callback();
+      return;
+    }
+
+    circle.src = "assets/images/effects/spells/holy/fx_holy_circle_v01.png";
+    pillar.src = "assets/images/effects/spells/holy/fx_holy_pillar_v01.png";
+
+    circle.classList.remove("hidden", "holy-circle-animate");
+    pillar.classList.remove("hidden", "holy-pillar-animate");
+    void circle.offsetWidth;
+    void pillar.offsetWidth;
+
+    circle.classList.add("holy-circle-animate");
+
+    setTimeout(function () {
+      pillar.classList.add("holy-pillar-animate");
+    }, 350);
+
+    setTimeout(function () {
+      circle.classList.add("hidden");
+      pillar.classList.add("hidden");
+      circle.classList.remove("holy-circle-animate");
+      pillar.classList.remove("holy-pillar-animate");
+      circle.removeAttribute("src");
+      pillar.removeAttribute("src");
+      if (callback) callback();
+    }, 1700);
+  }
+
   function showEnemyRegenMessage(regen) {
     var msgEl = document.getElementById("enemy-action-msg");
     var textEl = document.getElementById("enemy-action-text");
@@ -1291,28 +1328,43 @@
       setTimeout(function () { usedCardUidMap = {}; }, 600);
     }
 
+    var isHolyHit = result.correct && card && isHolyCard(card) && result.logEntry.damage !== undefined;
     showCardFeedback(result);
 
     if (result.correct && card) {
-      playSE("correct");
-      flashScreen(card.kind, card.element);
-      if (result.logEntry.damage !== undefined) {
-        setTimeout(shakeEnemySprite, 130);
-        if (result.logEntry.damageBreakdown) {
-          showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical, result.logEntry.damageBreakdown.weakness);
+      if (isHolyHit) {
+        flashScreen(card.kind, card.element);
+        var holyBd = result.logEntry.damageBreakdown;
+        setTimeout(function () {
+          shakeEnemySprite();
+          if (holyBd) {
+            showDamagePop(holyBd.finalDamage, holyBd.critical, holyBd.weakness);
+          }
+          if (holyBd && holyBd.critical) {
+            flashCritical();
+          }
+        }, 850);
+      } else {
+        playSE("correct");
+        flashScreen(card.kind, card.element);
+        if (result.logEntry.damage !== undefined) {
+          setTimeout(shakeEnemySprite, 130);
+          if (result.logEntry.damageBreakdown) {
+            showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical, result.logEntry.damageBreakdown.weakness);
+          }
+          var isCritical = result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.critical;
+          var hitSe;
+          if (isCritical) {
+            hitSe = "criticalHit";
+            flashCritical();
+          } else {
+            hitSe = card.kind === "mul" ? "special" : "hit";
+          }
+          setTimeout(function () { playSE(hitSe); }, 40);
+        } else if (result.logEntry.heal) {
+          setTimeout(function () { playSE("heal"); }, 40);
+          showPlayerHealEffect();
         }
-        var isCritical = result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.critical;
-        var hitSe;
-        if (isCritical) {
-          hitSe = "criticalHit";
-          flashCritical();
-        } else {
-          hitSe = card.kind === "mul" ? "special" : "hit";
-        }
-        setTimeout(function () { playSE(hitSe); }, 40);
-      } else if (result.logEntry.heal) {
-        setTimeout(function () { playSE("heal"); }, 40);
-        showPlayerHealEffect();
       }
     } else if (!result.correct) {
       playSE("wrong");
@@ -1390,7 +1442,29 @@
     }
 
     // 燃え尽き処理（burn05 + card-burning-out を 1100ms 表示後に除外・補充）
-    if (isFireArea() && hasBurnouts()) {
+    // ホーリー発動時は演出完了（1700ms）後に続行
+    if (isHolyHit) {
+      playHolyUltimateEffect(function () {
+        if (isFireArea() && hasBurnouts()) {
+          setTimeout(function () {
+            var burnCount = processBurnouts();
+            var burnMsg = burnCount > 1
+              ? "🔥 " + burnCount + "枚のカードが燃え尽きた！"
+              : "🔥 カードが燃え尽きた！";
+            showInfoFeedback(burnMsg);
+            renderHand();
+            renderPlayerSection();
+            if (session.ended) {
+              scheduleEnd();
+              return;
+            }
+            continueEnemyAction();
+          }, 1100);
+        } else {
+          continueEnemyAction();
+        }
+      });
+    } else if (isFireArea() && hasBurnouts()) {
       setTimeout(function () {
         var burnCount = processBurnouts();
         var burnMsg = burnCount > 1

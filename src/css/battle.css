@@ -1643,3 +1643,54 @@ body {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* ============================================================
+   ホーリー究極魔法エフェクト
+   ============================================================ */
+
+.holy-effect {
+  position: absolute;
+  pointer-events: none;
+  object-fit: contain;
+  opacity: 0;
+}
+
+#holy-effect-circle {
+  left: 50%;
+  top: 72%;
+  width: 150%;
+  height: 70%;
+  transform: translate(-50%, -50%) scale(0.75);
+  z-index: 0;
+}
+
+#holy-effect-pillar {
+  left: 50%;
+  top: 45%;
+  width: 180%;
+  height: 190%;
+  transform: translate(-50%, -50%) translateY(-20px) scaleY(0.92);
+  z-index: 4;
+}
+
+.holy-effect-circle.holy-circle-animate {
+  animation: holyCircle 1.7s ease-out forwards;
+}
+
+.holy-effect-pillar.holy-pillar-animate {
+  animation: holyPillar 1.35s ease-out forwards;
+}
+
+@keyframes holyCircle {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.00); }
+  80%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+@keyframes holyPillar {
+  0%   { opacity: 0; transform: translate(-50%, -50%) translateY(-20px) scaleY(0.92); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) translateY(0) scaleY(1.00); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(1.00); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+}
