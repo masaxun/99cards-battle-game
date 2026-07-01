@@ -304,7 +304,7 @@ body {
   position: absolute;
   top: 24px;
   right: -20px;
-  z-index: 5;
+  z-index: 7;
   background: #c0392b;
   color: #fff;
   font-size: 15px;
@@ -1693,4 +1693,74 @@ body {
   15%  { opacity: 1; transform: translate(-50%, -50%) translateY(0) scaleY(1.00); }
   70%  { opacity: 1; transform: translate(-50%, -50%) scale(1.00); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+/* ============================================================
+   メテオ究極魔法エフェクト
+   ============================================================ */
+
+.meteor-effect {
+  position: absolute;
+  pointer-events: none;
+  object-fit: contain;
+  opacity: 0;
+}
+
+#meteor-effect-circle {
+  left: 50%;
+  top: 72%;
+  width: 150%;
+  height: 70%;
+  transform: translate(-50%, -50%) scale(0.75);
+  z-index: 0;
+}
+
+#meteor-effect-fall {
+  left: 50%;
+  top: 45%;
+  width: 190%;
+  height: 190%;
+  transform: translate(-140%, -120%) scale(0.65) rotate(-8deg);
+  z-index: 5;
+}
+
+#meteor-effect-impact {
+  left: 50%;
+  top: 58%;
+  width: 190%;
+  height: 150%;
+  transform: translate(-50%, -50%) scale(0.75);
+  z-index: 6;
+}
+
+.meteor-effect-circle.meteor-circle-animate {
+  animation: meteorCircle 2.1s ease-out forwards;
+}
+
+.meteor-effect-fall.meteor-fall-animate {
+  animation: meteorFall 0.6s ease-in forwards;
+}
+
+.meteor-effect-impact.meteor-impact-animate {
+  animation: meteorImpact 0.7s ease-out forwards;
+}
+
+@keyframes meteorCircle {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
+  10%  { opacity: 1; transform: translate(-50%, -50%) scale(1.00); }
+  80%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+@keyframes meteorFall {
+  0%   { opacity: 0; transform: translate(-140%, -120%) scale(0.65) rotate(-8deg); }
+  10%  { opacity: 1; }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.30) rotate(-8deg); }
+}
+
+@keyframes meteorImpact {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
+  8%   { opacity: 1; transform: translate(-50%, -50%) scale(0.85); }
+  30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.15); }
 }

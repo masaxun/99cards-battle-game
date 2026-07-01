@@ -52,7 +52,8 @@
     criticalHit:   { src: "assets/audio/se/se_critical_hit_v01.mp3",        volume: 0.70 },
     defeat:        { src: "assets/audio/se/se_defeat_v01.mp3",              volume: 0.70 },
     enemyRegen:    { src: "assets/audio/se/se_enemy_regen_v01.mp3",         volume: 0.55 },
-    holyUltimate:  { src: "assets/audio/se/se_holy_ultimate_v01.mp3",       volume: 0.70 }
+    holyUltimate:   { src: "assets/audio/se/se_holy_ultimate_v01.mp3",        volume: 0.70 },
+    meteorUltimate: { src: "assets/audio/se/se_meteor_ultimate_v01.mp3",     volume: 0.70 }
   };
 
   function playSE(name) {
@@ -1004,6 +1005,57 @@
     }, 1700);
   }
 
+  function playMeteorUltimateEffect(callback) {
+    playSE("meteorUltimate");
+
+    var circle = document.getElementById("meteor-effect-circle");
+    var fall   = document.getElementById("meteor-effect-fall");
+    var impact = document.getElementById("meteor-effect-impact");
+
+    if (!circle || !fall || !impact) {
+      if (callback) callback();
+      return;
+    }
+
+    circle.src = "assets/images/effects/spells/meteor/fx_meteor_circle_v01.png";
+    fall.src   = "assets/images/effects/spells/meteor/fx_meteor_fall_v01.png";
+    impact.src = "assets/images/effects/spells/meteor/fx_meteor_impact_v01.png";
+
+    circle.classList.remove("hidden", "meteor-circle-animate");
+    fall.classList.remove("hidden", "meteor-fall-animate");
+    impact.classList.remove("hidden", "meteor-impact-animate");
+    void circle.offsetWidth;
+    void fall.offsetWidth;
+    void impact.offsetWidth;
+
+    // 0ms: 魔法陣フェードイン開始
+    circle.classList.add("meteor-circle-animate");
+
+    // 450ms: 隕石落下開始
+    setTimeout(function () {
+      fall.classList.add("meteor-fall-animate");
+    }, 450);
+
+    // 1050ms: 着弾 → 隕石を非表示 → 爆発表示
+    setTimeout(function () {
+      fall.classList.add("hidden");
+      fall.classList.remove("meteor-fall-animate");
+      impact.classList.add("meteor-impact-animate");
+    }, 1050);
+
+    // 2100ms: 全て非表示 → コールバック
+    setTimeout(function () {
+      circle.classList.add("hidden");
+      impact.classList.add("hidden");
+      circle.classList.remove("meteor-circle-animate");
+      impact.classList.remove("meteor-impact-animate");
+      circle.removeAttribute("src");
+      fall.removeAttribute("src");
+      impact.removeAttribute("src");
+      if (callback) callback();
+    }, 2100);
+  }
+
   function showEnemyRegenMessage(regen) {
     var msgEl = document.getElementById("enemy-action-msg");
     var textEl = document.getElementById("enemy-action-text");
@@ -1363,7 +1415,8 @@
       setTimeout(function () { usedCardUidMap = {}; }, 600);
     }
 
-    var isHolyHit = result.correct && card && isHolyCard(card) && result.logEntry.damage !== undefined;
+    var isHolyHit   = result.correct && card && isHolyCard(card)   && result.logEntry.damage !== undefined;
+    var isMeteorHit = result.correct && card && isMeteorCard(card) && result.logEntry.damage !== undefined;
     showCardFeedback(result);
 
     if (result.correct && card) {
@@ -1379,6 +1432,18 @@
             flashCritical();
           }
         }, 850);
+      } else if (isMeteorHit) {
+        flashScreen(card.kind, card.element);
+        var meteorBd = result.logEntry.damageBreakdown;
+        setTimeout(function () {
+          shakeEnemySprite();
+          if (meteorBd) {
+            showDamagePop(meteorBd.finalDamage, meteorBd.critical, meteorBd.weakness);
+          }
+          if (meteorBd && meteorBd.critical) {
+            flashCritical();
+          }
+        }, 1400);
       } else {
         playSE("correct");
         flashScreen(card.kind, card.element);
@@ -1422,6 +1487,14 @@
       if (isHolyHit) {
         // ホーリーとどめ：演出を最後まで表示してから勝利処理へ
         playHolyUltimateEffect(function () {
+          interactionLocked = false;
+          scheduleEnd();
+        });
+        return;
+      }
+      if (isMeteorHit) {
+        // メテオとどめ：演出を最後まで表示してから勝利処理へ
+        playMeteorUltimateEffect(function () {
           interactionLocked = false;
           scheduleEnd();
         });
@@ -1485,9 +1558,30 @@
     }
 
     // 燃え尽き処理（burn05 + card-burning-out を 1100ms 表示後に除外・補充）
-    // ホーリー発動時は演出完了（1700ms）後に続行
+    // ホーリー/メテオ発動時は演出完了後に続行
     if (isHolyHit) {
       playHolyUltimateEffect(function () {
+        if (isFireArea() && hasBurnouts()) {
+          setTimeout(function () {
+            var burnCount = processBurnouts();
+            var burnMsg = burnCount > 1
+              ? "🔥 " + burnCount + "枚のカードが燃え尽きた！"
+              : "🔥 カードが燃え尽きた！";
+            showInfoFeedback(burnMsg);
+            renderHand();
+            renderPlayerSection();
+            if (session.ended) {
+              scheduleEnd();
+              return;
+            }
+            continueEnemyAction();
+          }, 1100);
+        } else {
+          continueEnemyAction();
+        }
+      });
+    } else if (isMeteorHit) {
+      playMeteorUltimateEffect(function () {
         if (isFireArea() && hasBurnouts()) {
           setTimeout(function () {
             var burnCount = processBurnouts();
