@@ -359,6 +359,10 @@
 
     session = Battle.createBattleSession(areaDef, stage, gameState);
 
+    if (params.debugCards) {
+      applyDebugCards(session, params.debugCards);
+    }
+
     applyBattleBg(areaId, stage);
 
     document.getElementById("submit-answer-btn").addEventListener("click", onSubmitAnswer);
@@ -390,6 +394,37 @@
     render();
     resetToPlaceholder();
     showBattleStartModal();
+  }
+
+  // ============================================================
+  // デバッグ：初期手札差し替え（debugCards URLパラメータ専用）
+  // ============================================================
+
+  function applyDebugCards(session, debugCardsParam) {
+    var specs = debugCardsParam.split(",");
+    var debugCards = [];
+    var usedSpecs = [];
+
+    for (var i = 0; i < specs.length && debugCards.length < 5; i++) {
+      var spec = specs[i].trim();
+      var match = spec.match(/^(\d+)[xX](\d+)$/);
+      if (!match) continue;
+      var a = parseInt(match[1], 10);
+      var b = parseInt(match[2], 10);
+      if (a < 1 || a > 9 || b < 1 || b > 9) continue;
+      debugCards.push(Cards.createMulCard(a, b));
+      usedSpecs.push(a + "x" + b);
+    }
+
+    if (debugCards.length === 0) return;
+
+    console.info("[DEBUG CARDS]", usedSpecs);
+
+    // 手札の先頭からデバッグカードに差し替える（押し出されたカードは破棄）
+    // 山札・合計枚数は変わらない（手札5枚・山札25枚を維持）
+    for (var j = 0; j < debugCards.length; j++) {
+      session.hand[j] = debugCards[j];
+    }
   }
 
   // ============================================================
