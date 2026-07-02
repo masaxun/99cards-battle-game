@@ -71,8 +71,8 @@
   var BGM = {
     normal:         { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3?v=20260703-normalbgm2",          volume: 0.24 },
     boss:           { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",                                  volume: 0.24 },
-    advancedNormal: { src: "assets/audio/bgm/bgm_battle_advanced_normal_v01.mp3?v=20260703-kodai1",     volume: 0.24 },
-    advancedBoss:   { src: "assets/audio/bgm/bgm_battle_advanced_boss_v01.mp3?v=20260703-kodai1",       volume: 0.24 }
+    advancedNormal: { src: "assets/audio/bgm/bgm_battle_advanced_normal_v01.mp3?v=20260703-kodai2",     volume: 0.24 },
+    advancedBoss:   { src: "assets/audio/bgm/bgm_battle_advanced_boss_v01.mp3?v=20260703-kodai2",       volume: 0.24 }
   };
 
   function isAdvancedArea(areaDef) {

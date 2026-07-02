@@ -119,12 +119,12 @@ body {
 
 /* 古代の遺跡 通常戦 */
 #battle-screen.battle-bg-kodai::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_kodai_v01.webp?v=20260703-kodai1");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_kodai_v01.webp?v=20260703-kodai2");
 }
 
 /* 古代の遺跡 ぬし戦 */
 #battle-screen.battle-bg-kodai-boss::before {
-  background-image: url("../../assets/images/backgrounds/battle/bg_battle_kodai_boss_v01.webp?v=20260703-kodai1");
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_kodai_boss_v01.webp?v=20260703-kodai2");
 }
 
 .section-tag {
