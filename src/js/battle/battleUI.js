@@ -69,7 +69,7 @@
   }
 
   var BGM = {
-    normal: { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3", volume: 0.24 },
+    normal: { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3?v=20260703-normalbgm2", volume: 0.24 },
     boss:   { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",   volume: 0.24 }
   };
 
