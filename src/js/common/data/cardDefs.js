@@ -75,18 +75,23 @@
     [2,9],[9,2],[3,8],[8,3],[4,7],[7,4],[5,6],[6,5]
   ];
 
-  function createAddCard() {
-    var r = Math.random();
+  function createAddCard(isAdvanced) {
     var a, b, pair;
-    if (r < 0.70) {
-      pair = ADD_HIGH_PAIRS[randomInt(0, ADD_HIGH_PAIRS.length - 1)];
-      a = pair[0]; b = pair[1];
-    } else if (r < 0.90) {
-      pair = ADD_MID_PAIRS[randomInt(0, ADD_MID_PAIRS.length - 1)];
+    if (isAdvanced && Math.random() < 0.40) {
+      pair = ADVANCED_ADD_PAIRS[randomInt(0, ADVANCED_ADD_PAIRS.length - 1)];
       a = pair[0]; b = pair[1];
     } else {
-      a = randomInt(1, 9);
-      b = randomInt(1, 9);
+      var r = Math.random();
+      if (r < 0.70) {
+        pair = ADD_HIGH_PAIRS[randomInt(0, ADD_HIGH_PAIRS.length - 1)];
+        a = pair[0]; b = pair[1];
+      } else if (r < 0.90) {
+        pair = ADD_MID_PAIRS[randomInt(0, ADD_MID_PAIRS.length - 1)];
+        a = pair[0]; b = pair[1];
+      } else {
+        a = randomInt(1, 9);
+        b = randomInt(1, 9);
+      }
     }
     return {
       uid: nextUid(),
@@ -101,6 +106,11 @@
     };
   }
 
+  // 上級足し算プール（2桁だが筆算に頼らず解ける軽めの問題）
+  var ADVANCED_ADD_PAIRS = [
+    [12, 7], [14, 8], [18, 6], [23, 9], [24, 15], [16, 7], [25, 8], [32, 6]
+  ];
+
   // 通常回復カードの問題プール（答えが2〜9の二桁引き算。引く数は一桁・二桁両方あり）
   var NORMAL_SUB_PROBLEMS = [
     [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [11, 9],
@@ -112,13 +122,21 @@
     [18, 9], [18, 10], [18, 11], [18, 12], [18, 13], [18, 14]
   ];
 
+  // 上級引き算プール（答えが7〜24の範囲。やや難しめだが暗算可能な問題）
+  var ADVANCED_SUB_PROBLEMS = [
+    [15, 8], [21, 6], [23, 7], [31, 9], [34, 12], [36, 14]
+  ];
+
   // difficulty: "normal"(ハート1回復) | "pinch"(ハート3回復、難しめ)
-  function createSubCard(difficulty) {
+  function createSubCard(difficulty, isAdvanced) {
     var diff = difficulty === "pinch" ? "pinch" : "normal";
     var a, b;
     if (diff === "pinch") {
       a = randomInt(11, 18);
       b = randomInt(2, 9);
+    } else if (isAdvanced && Math.random() < 0.40) {
+      var pair = ADVANCED_SUB_PROBLEMS[randomInt(0, ADVANCED_SUB_PROBLEMS.length - 1)];
+      a = pair[0]; b = pair[1];
     } else {
       var pair = NORMAL_SUB_PROBLEMS[randomInt(0, NORMAL_SUB_PROBLEMS.length - 1)];
       a = pair[0];
@@ -211,18 +229,18 @@
     return cards;
   }
 
-  function buildAddCards(count) {
+  function buildAddCards(count, isAdvanced) {
     var cards = [];
     for (var i = 0; i < count; i++) {
-      cards.push(createAddCard());
+      cards.push(createAddCard(isAdvanced));
     }
     return cards;
   }
 
-  function buildSubCards(count) {
+  function buildSubCards(count, isAdvanced) {
     var cards = [];
     for (var i = 0; i < count; i++) {
-      cards.push(createSubCard("normal"));
+      cards.push(createSubCard("normal", isAdvanced));
     }
     return cards;
   }
@@ -230,12 +248,13 @@
   // stageType: "normal" | "boss"
   function buildDeck(areaDef, stageType) {
     var isBoss = stageType === "boss";
+    var isAdvanced = areaDef.rank === "upper" || areaDef.rank === "last";
     var comp = isBoss ? BOSS_COMPOSITION : NORMAL_COMPOSITION;
     var cards = [];
     cards = cards.concat(buildTargetDanCards(areaDef.dan, comp.target, isBoss));
     cards = cards.concat(buildOtherElementCards(areaDef, comp.other, isBoss));
-    cards = cards.concat(buildAddCards(comp.add));
-    cards = cards.concat(buildSubCards(comp.sub));
+    cards = cards.concat(buildAddCards(comp.add, isAdvanced));
+    cards = cards.concat(buildSubCards(comp.sub, isAdvanced));
     return shuffleArray(cards);
   }
 

@@ -45,12 +45,16 @@
     hajimari: { normal1: "スライム",         normal2: "コウモリ",     normal3: "ゴーレム" },
     soyokaze: { normal1: "リーフスライム",   normal2: "コノハモリ",   normal3: "モスゴーレム" },
     neppa:    { normal1: "フレイムスライム", normal2: "ヒノコモリ",   normal3: "マグマゴーレム" },
-    sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" }
+    sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" },
+    kodai:    { normal1: "ウルフ",           normal2: "グリフォン",   normal3: "タイタン",    boss: "ベヒーモス" }
   };
 
   function getStageEnemyName(areaDef, stage) {
-    if (stage === "boss") return areaDef.name + "のぬし";
-    var areaNames = STAGE_ENEMY_NAMES[areaDef.id] || STAGE_ENEMY_NAMES.hajimari;
+    var areaNames = STAGE_ENEMY_NAMES[areaDef.id];
+    if (stage === "boss") {
+      return (areaNames && areaNames.boss) || (areaDef.name + "のぬし");
+    }
+    areaNames = areaNames || STAGE_ENEMY_NAMES.hajimari;
     return (areaNames && areaNames[stage]) || (STAGE_ENEMY_NAMES.hajimari[stage]) || "モンスター";
   }
 

@@ -1,9 +1,8 @@
 (function () {
   "use strict";
 
-  // v0.1.2現在、実装済みなのは下級4エリア（hajimari / soyokaze / neppa / sazanami）。
-  // 上級4エリアとラストエリアはマップ表示・ロック判定用の最小データだけ持ち、
-  // implemented: false としてエリア選択画面からは選択不可にする。
+  // 実装済み下級4エリア（hajimari / soyokaze / neppa / sazanami）＋上級1エリア（kodai）。
+  // 未実装の上級エリアとラストエリアはマップ表示・ロック判定用の最小データのみ。
   var AREA_LIST = [
     {
       id: "hajimari",
@@ -67,7 +66,7 @@
       playerElement: "none",
       enemyHp: { normal1: 180, normal2: 230, normal3: 280, boss: 480 },
       requiredBossAreaIds: ["hajimari"],
-      implemented: false,
+      implemented: true,
       mapPosition: { row: 1, col: 0 }
     },
     {

@@ -69,12 +69,20 @@
   }
 
   var BGM = {
-    normal: { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3?v=20260703-normalbgm2", volume: 0.24 },
-    boss:   { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",   volume: 0.24 }
+    normal:         { src: "assets/audio/bgm/bgm_battle_normal_v01.mp3?v=20260703-normalbgm2",          volume: 0.24 },
+    boss:           { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",                                  volume: 0.24 },
+    advancedNormal: { src: "assets/audio/bgm/bgm_battle_advanced_normal_v01.mp3?v=20260703-kodai1",     volume: 0.24 },
+    advancedBoss:   { src: "assets/audio/bgm/bgm_battle_advanced_boss_v01.mp3?v=20260703-kodai1",       volume: 0.24 }
   };
 
-  function getBgmKeyForStage(stage) {
-    return stage === "boss" ? "boss" : "normal";
+  function isAdvancedArea(areaDef) {
+    return areaDef && (areaDef.rank === "upper" || areaDef.rank === "last");
+  }
+
+  function getBgmKeyForStage(stage, areaDef) {
+    var advanced = isAdvancedArea(areaDef);
+    if (stage === "boss") return advanced ? "advancedBoss" : "boss";
+    return advanced ? "advancedNormal" : "normal";
   }
 
   function fadeInBGM(targetVolume, duration) {
@@ -93,7 +101,7 @@
   function startBGMOnce() {
     if (bgmStarted) return;
     if (!soundEnabled) return;
-    var key = getBgmKeyForStage(session.stage);
+    var key = getBgmKeyForStage(session.stage, session.areaDef);
     var def = BGM[key];
     if (!def) return;
     try {
@@ -214,6 +222,12 @@
       normal2: "assets/images/enemies/bat/enemy_normal2_bat_water_v01.png",
       normal3: "assets/images/enemies/golem/enemy_normal3_golem_water_v01.png",
       boss:    "assets/images/enemies/dragon/enemy_boss_dragon_water_v01.png"
+    },
+    kodai: {
+      normal1: "assets/images/enemies/wolf/enemy_normal1_wolf_none_v01.png",
+      normal2: "assets/images/enemies/griffin/enemy_normal2_griffin_none_v01.png",
+      normal3: "assets/images/enemies/titan/enemy_normal3_titan_none_v01.png",
+      boss:    "assets/images/enemies/behemoth/enemy_boss_behemoth_none_v01.png"
     }
   };
   var STAGE_FALLBACK_SPRITES = { normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉" };
@@ -223,12 +237,16 @@
     hajimari: { normal1: "スライム",         normal2: "コウモリ",     normal3: "ゴーレム" },
     soyokaze: { normal1: "リーフスライム",   normal2: "コノハモリ",   normal3: "モスゴーレム" },
     neppa:    { normal1: "フレイムスライム", normal2: "ヒノコモリ",   normal3: "マグマゴーレム" },
-    sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" }
+    sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" },
+    kodai:    { normal1: "ウルフ",           normal2: "グリフォン",   normal3: "タイタン",    boss: "ベヒーモス" }
   };
 
   function getEnemyName(areaDef, stage) {
-    if (stage === "boss") return areaDef.name + "のぬし";
-    var areaNames = ENEMY_NAMES[areaDef.id] || ENEMY_NAMES.hajimari;
+    var areaNames = ENEMY_NAMES[areaDef.id];
+    if (stage === "boss") {
+      return (areaNames && areaNames.boss) || (areaDef.name + "のぬし");
+    }
+    areaNames = areaNames || ENEMY_NAMES.hajimari;
     return (areaNames && areaNames[stage]) || (ENEMY_NAMES.hajimari[stage]) || "モンスター";
   }
 
@@ -438,7 +456,8 @@
       "battle-bg-hajimari", "battle-bg-hajimari-boss",
       "battle-bg-soyokaze", "battle-bg-soyokaze-boss",
       "battle-bg-neppa",    "battle-bg-neppa-boss",
-      "battle-bg-sazanami", "battle-bg-sazanami-boss"
+      "battle-bg-sazanami", "battle-bg-sazanami-boss",
+      "battle-bg-kodai",    "battle-bg-kodai-boss"
     );
     var isBoss = (stage === "boss");
     if (areaId === "hajimari") {
@@ -449,6 +468,8 @@
       el.classList.add(isBoss ? "battle-bg-neppa-boss" : "battle-bg-neppa");
     } else if (areaId === "sazanami") {
       el.classList.add(isBoss ? "battle-bg-sazanami-boss" : "battle-bg-sazanami");
+    } else if (areaId === "kodai") {
+      el.classList.add(isBoss ? "battle-bg-kodai-boss" : "battle-bg-kodai");
     }
   }
 
