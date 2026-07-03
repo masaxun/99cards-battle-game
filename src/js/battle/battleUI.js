@@ -506,6 +506,8 @@
     var section = document.getElementById("enemy-sprite-section");
     section.classList.remove("enemy-stage-normal1", "enemy-stage-normal2", "enemy-stage-normal3", "enemy-stage-boss");
     section.classList.add("enemy-stage-" + stage);
+    section.classList.remove("enemy-rank-lower", "enemy-rank-upper", "enemy-rank-last");
+    section.classList.add("enemy-rank-" + (session.areaDef.rank || "lower"));
     var spriteEl = document.getElementById("enemy-sprite");
     var areaId = session.areaDef.id;
     var areaImgs = ENEMY_IMAGE_PATHS[areaId] || ENEMY_IMAGE_PATHS.hajimari;

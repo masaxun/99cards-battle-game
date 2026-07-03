@@ -309,6 +309,33 @@ body {
   max-height: 220px;
 }
 
+/* 上級エリア（rank=upper/last）は通常敵・ボスともに一回り大きく表示 */
+#enemy-sprite-section.enemy-rank-upper .enemy-image,
+#enemy-sprite-section.enemy-rank-last .enemy-image {
+  max-width: 230px;
+  max-height: 230px;
+}
+
+#enemy-sprite-section.enemy-rank-upper .enemy-image.enemy-boss,
+#enemy-sprite-section.enemy-rank-last .enemy-image.enemy-boss {
+  max-width: 300px;
+  max-height: 300px;
+}
+
+@media (max-width: 440px) {
+  #enemy-sprite-section.enemy-rank-upper .enemy-image,
+  #enemy-sprite-section.enemy-rank-last .enemy-image {
+    max-width: 220px;
+    max-height: 220px;
+  }
+
+  #enemy-sprite-section.enemy-rank-upper .enemy-image.enemy-boss,
+  #enemy-sprite-section.enemy-rank-last .enemy-image.enemy-boss {
+    max-width: 280px;
+    max-height: 280px;
+  }
+}
+
 /* ダメージポップ（敵スプライト付近に浮かぶ） */
 #enemy-damage-pop {
   position: absolute;
