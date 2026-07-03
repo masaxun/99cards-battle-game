@@ -48,9 +48,52 @@
     { type: "opening",    weight:  5 }
   ];
 
+  // 上級通常敵行動テーブル（none なし）
+  var UPPER_ENEMY_PROBS = {
+    normal1: [  // ウルフ: バランス型
+      { type: "counter", weight: 40 },
+      { type: "guard",   weight: 25 },
+      { type: "opening", weight: 20 },
+      { type: "powerUp", weight: 15 }
+    ],
+    normal2: [  // グリフォン: 攻撃寄り
+      { type: "counter", weight: 45 },
+      { type: "guard",   weight: 20 },
+      { type: "opening", weight: 15 },
+      { type: "powerUp", weight: 20 }
+    ],
+    normal3: [  // タイタン: ガード・力ため強め
+      { type: "counter", weight: 35 },
+      { type: "guard",   weight: 35 },
+      { type: "powerUp", weight: 25 },
+      { type: "opening", weight: 5 }
+    ]
+  };
+
+  // 上級ボス行動テーブル（none なし）
+  var UPPER_BOSS_ENEMY_PROBS = [  // ベヒーモス: 攻撃多め
+    { type: "bossAttack", weight: 45 },
+    { type: "guard",      weight: 25 },
+    { type: "powerUp",    weight: 20 },
+    { type: "opening",    weight: 10 }
+  ];
+
   // ============================================================
   // ユーティリティ
   // ============================================================
+
+  function isAdvancedArea(areaDef) {
+    return areaDef && (areaDef.rank === "upper" || areaDef.rank === "last");
+  }
+
+  // 攻撃ミス時のハート減少量（rank に応じて分岐）
+  function getEnemyAttackHpDamage(session, attack) {
+    var advanced = isAdvancedArea(session.areaDef);
+    if (attack.kind === "boss") {
+      return advanced ? (attack.powered ? 5 : 3) : (attack.powered ? 3 : 2);
+    }
+    return advanced ? (attack.powered ? 3 : 2) : (attack.powered ? 2 : 1);
+  }
 
   // 力ため後の難問優先: 7,8,9 → 4,6 → ランダム
   function pickHardB() {
@@ -254,6 +297,7 @@
 
     var state = session.enemyState;
     var stage = session.stage;
+    var advanced = isAdvancedArea(session.areaDef);
 
     var chosen;
 
@@ -261,9 +305,16 @@
     if (state.powerUp) {
       chosen = stage === "boss" ? "bossAttack" : "counter";
     } else {
-      var probs = stage === "boss"
-        ? BOSS_ENEMY_PROBS
-        : (NORMAL_ENEMY_PROBS[stage] || NORMAL_ENEMY_PROBS.normal1);
+      var probs;
+      if (advanced) {
+        probs = stage === "boss"
+          ? UPPER_BOSS_ENEMY_PROBS
+          : (UPPER_ENEMY_PROBS[stage] || UPPER_ENEMY_PROBS.normal1);
+      } else {
+        probs = stage === "boss"
+          ? BOSS_ENEMY_PROBS
+          : (NORMAL_ENEMY_PROBS[stage] || NORMAL_ENEMY_PROBS.normal1);
+      }
 
       // 制約チェック付き抽選（最大10回リトライ）
       chosen = "none";
@@ -274,6 +325,11 @@
         if (candidate === "powerUp" && state.powerUp) continue;
         chosen = candidate;
         break;
+      }
+
+      // 上級エリアでは none を許さない: fallback として攻撃を選ぶ
+      if (advanced && chosen === "none") {
+        chosen = stage === "boss" ? "bossAttack" : "counter";
       }
     }
 
@@ -498,9 +554,7 @@
     var hpDamage = 0;
 
     if (!correct) {
-      hpDamage = (attack.kind === "boss")
-        ? (attack.powered ? 3 : 2)
-        : (attack.powered ? 2 : 1);
+      hpDamage = getEnemyAttackHpDamage(session, attack);
       session.hp -= hpDamage;
       session.combo = 0;
     }

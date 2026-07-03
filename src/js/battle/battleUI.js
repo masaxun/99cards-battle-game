@@ -578,22 +578,23 @@
       var att = session.pendingAttack;
       var q   = att.question;
 
+      var advanced = session.areaDef && (session.areaDef.rank === "upper" || session.areaDef.rank === "last");
       var labelText, hpWarning;
       if (att.kind === "counter") {
         if (att.powered) {
           labelText = "⚡ 力をこめた反撃！";
-          hpWarning = "ミスするとハート-2";
+          hpWarning = advanced ? "ミスするとハート-3" : "ミスするとハート-2";
         } else {
           labelText = "⚡ 敵が反撃してきた！";
-          hpWarning = "ミスするとハート-1";
+          hpWarning = advanced ? "ミスするとハート-2" : "ミスするとハート-1";
         }
       } else {
         if (att.powered) {
           labelText = "💥 力をこめた強力なこうげき！";
-          hpWarning = "ミスするとハート-3";
+          hpWarning = advanced ? "ミスするとハート-5" : "ミスするとハート-3";
         } else {
           labelText = "💥 ボスの強力なこうげき！";
-          hpWarning = "ミスするとハート-2";
+          hpWarning = advanced ? "ミスするとハート-3" : "ミスするとハート-2";
         }
       }
 
