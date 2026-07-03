@@ -346,9 +346,15 @@
     } else if (chosen === "powerUp") {
       state.powerUp = true;
       state.lastActionWasCounter = false;
-      result.label = stage === "boss"
-        ? "ボスが力をためた！ 次のこうげきをミスするとハート-3"
-        : "敵が力をためた！ 次のこうげきをミスするとハート-2";
+      if (stage === "boss") {
+        result.label = advanced
+          ? "ボスが力をためた！ 次のこうげきをミスするとハート-5"
+          : "ボスが力をためた！ 次のこうげきをミスするとハート-3";
+      } else {
+        result.label = advanced
+          ? "敵が力をためた！ 次のこうげきをミスするとハート-3"
+          : "敵が力をためた！ 次のこうげきをミスするとハート-2";
+      }
 
     } else if (chosen === "opening") {
       state.opening = true;
