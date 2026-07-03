@@ -106,9 +106,13 @@
     };
   }
 
-  // 上級足し算プール（2桁だが筆算に頼らず解ける軽めの問題）
+  // 上級足し算プール（2桁+1桁、くり上がりあり、答え20以下）
   var ADVANCED_ADD_PAIRS = [
-    [12, 7], [14, 8], [18, 6], [23, 9], [24, 15], [16, 7], [25, 8], [32, 6]
+    [11, 8], [11, 9],
+    [12, 7], [12, 8],
+    [13, 6], [13, 7],
+    [14, 5], [14, 6],
+    [15, 4], [16, 3]
   ];
 
   // 通常回復カードの問題プール（答えが2〜9の二桁引き算。引く数は一桁・二桁両方あり）
@@ -206,25 +210,32 @@
     return cards;
   }
 
-  // 他属性かけ算カード: 自分と異なる属性のエリアから出題する。
-  // ボス戦では factor をボス戦用重みで生成して火力補助を高める。
-  // 候補がない場合は足し算ではなく対象段カードにフォールバック。
+  // other枠の段を選ぶ。下級復習カード中心、高段は低確率救済枠。
+  function pickOtherDan(areaDef) {
+    var lowerReviewDans = [1, 2, 3, 4].filter(function (dan) {
+      return dan !== areaDef.dan;
+    });
+    var highRescueDans = [6, 7, 8, 9].filter(function (dan) {
+      return dan !== areaDef.dan;
+    });
+    var isAdvanced = areaDef.rank === "upper" || areaDef.rank === "last";
+    var rescueRate = isAdvanced ? 0.12 : 0.04;
+    if (highRescueDans.length > 0 && Math.random() < rescueRate) {
+      return highRescueDans[randomInt(0, highRescueDans.length - 1)];
+    }
+    if (lowerReviewDans.length > 0) {
+      return lowerReviewDans[randomInt(0, lowerReviewDans.length - 1)];
+    }
+    return areaDef.dan;
+  }
+
+  // other枠: 段をグループで先決めし、エリアリスト件数に依存しない抽選にする。
   function buildOtherElementCards(areaDef, count, isBoss) {
-    var list = window.Kuku99.Areas.LIST;
-    var candidates = [];
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].id !== areaDef.id && list[i].playerElement !== areaDef.playerElement) {
-        candidates.push(list[i]);
-      }
-    }
-    if (candidates.length === 0) {
-      return buildTargetDanCards(areaDef.dan, count, isBoss);
-    }
     var cards = [];
     for (var i = 0; i < count; i++) {
-      var area = candidates[randomInt(0, candidates.length - 1)];
+      var dan = pickOtherDan(areaDef);
       var factor = isBoss ? getBossWeightedFactor() : randomInt(1, 9);
-      cards.push(createMulCard(area.dan, factor));
+      cards.push(createMulCard(dan, factor));
     }
     return cards;
   }
@@ -269,12 +280,16 @@
   // 基礎ダメージ(カードの答え) + 弱点ボーナス + コンボボーナス。熟練度補正なし。
   function calcDamage(card, areaDef, combo) {
     var base = card.answer;
+    var defenderIsHigh = areaDef.rank === "upper" || areaDef.rank === "last";
 
     if (card.kind === "mul") {
-      var defenderIsHigh = areaDef.rank === "upper" || areaDef.rank === "last";
       if (card.rank === "lower" && defenderIsHigh) {
         base = Math.round(base * 0.5);
       }
+    }
+
+    if (card.kind === "add" && defenderIsHigh) {
+      base = Math.round(base * 0.5);
     }
 
     var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === areaDef.weakness;

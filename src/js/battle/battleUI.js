@@ -860,6 +860,12 @@
     if (card.kind === "mul" && (card.a === 1 || card.b === 1) && !isHolyCard(card)) {
       correctionParts.push("1が入ったかけ算は会心率UP！");
     }
+    if (card.kind === "add") {
+      var areaRank = session.areaDef.rank;
+      if (areaRank === "upper" || areaRank === "last") {
+        correctionParts.push("上級敵：攻撃半減");
+      }
+    }
     var comboText = buildComboStatusText(session.combo);
     if (comboText) correctionParts.push(comboText);
     document.getElementById("feedback-correction").textContent = correctionParts.join(" / ");

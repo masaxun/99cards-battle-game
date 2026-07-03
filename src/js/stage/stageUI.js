@@ -182,4 +182,8 @@
   }
 
   document.addEventListener("DOMContentLoaded", init);
+
+  window.addEventListener("pageshow", function () {
+    navigating = false;
+  });
 })();
