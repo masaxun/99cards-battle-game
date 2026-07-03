@@ -865,7 +865,7 @@
     if (card.kind === "add") {
       var areaRank = session.areaDef.rank;
       if (areaRank === "upper" || areaRank === "last") {
-        correctionParts.push("上級敵：攻撃半減");
+        correctionParts.push("上級敵は-50%");
       }
     }
     var comboText = buildComboStatusText(session.combo);
@@ -2005,6 +2005,9 @@
     var bd = logEntry.damageBreakdown;
     var base = bd.finalDamage + "ダメージ！";
     var parts = [];
+    if (bd.addAdvancedReduced) {
+      parts.push("上級敵は-50%");
+    }
     if (bd.weakness && bd.weaknessBonusAmount > 0) {
       parts.push("弱点+" + bd.weaknessBonusAmount);
     }

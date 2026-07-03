@@ -367,6 +367,16 @@
           }
         }
 
+        // 上級エリアへの足し算攻撃半減（引き算回復は対象外）
+        var addAdvancedReduced = false;
+        if (card.kind === "add") {
+          var addDefenderIsHigh = session.areaDef.rank === "upper" || session.areaDef.rank === "last";
+          if (addDefenderIsHigh) {
+            baseRawDamage = Math.round(baseRawDamage * 0.5);
+            addAdvancedReduced = true;
+          }
+        }
+
         // 弱点ボーナス: 基礎ダメージにだけ適用（足し算カードは弱点なし）
         var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === session.areaDef.weakness;
         var weaknessBonusAmount = isWeakness ? Math.round(baseRawDamage * 0.5) : 0;
@@ -391,7 +401,7 @@
         var critical = criticalCount > 0;
         var criticalBonusAmount = criticalCount * 10;
 
-        // ガード軽減: 最後に適用（メテオ9×9はガードを貫通しガード状態を消費しない）
+        // ガード軽減: 会心より先に適用（メテオ9×9はガードを貫通しガード状態を消費しない）
         var guardActive = session.enemyState.guard;
         var guardMult = 1.0;
         if (guardActive && !isMeteor) {
@@ -399,10 +409,12 @@
           session.enemyState.guard = false;
         }
 
-        var preGuardDamage = baseRawDamage + weaknessBonusAmount + comboBonusAmount + openingBonusAmount + criticalBonusAmount;
-        var finalDamage = Math.round(preGuardDamage * guardMult);
+        // 会心ボーナスはガード後に加算（ガードで会心の気持ちよさを削らない）
+        var preGuardDamage = baseRawDamage + weaknessBonusAmount + comboBonusAmount + openingBonusAmount;
+        var guardedDamage = Math.round(preGuardDamage * guardMult);
+        var finalDamage = guardedDamage + criticalBonusAmount;
         if (finalDamage < 1) finalDamage = 1;
-        var guardReductionAmount = guardActive && !isMeteor ? preGuardDamage - finalDamage : 0;
+        var guardReductionAmount = guardActive && !isMeteor ? preGuardDamage - guardedDamage : 0;
 
         session.enemyHp = Math.max(0, session.enemyHp - finalDamage);
         logEntry = buildLogEntry(card, true, answerInput, {
@@ -415,6 +427,7 @@
           damageBreakdown: {
             formulaResult: card.answer,
             baseRawDamage: baseRawDamage,
+            addAdvancedReduced: addAdvancedReduced,
             weakness: isWeakness,
             weaknessBonusAmount: weaknessBonusAmount,
             comboBonusAmount: comboBonusAmount,
