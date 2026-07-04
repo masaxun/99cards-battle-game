@@ -358,10 +358,11 @@ body {
 }
 
 /* ダメージポップ（敵スプライト付近に浮かぶ） */
+/* top/rightは#enemy-sprite-wrap（敵画像サイズ）基準の%指定。px固定だと敵ごとのサイズ差で位置が不自然になるため。 */
 #enemy-damage-pop {
   position: absolute;
-  top: 24px;
-  right: -20px;
+  top: 8%;
+  right: -5%;
   z-index: 7;
   background: #c0392b;
   color: #fff;
