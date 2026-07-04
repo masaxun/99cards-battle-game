@@ -357,12 +357,12 @@ body {
   }
 }
 
-/* ダメージポップ（敵スプライト付近に浮かぶ） */
-/* top/rightは#enemy-sprite-wrap（敵画像サイズ）基準の%指定。px固定だと敵ごとのサイズ差で位置が不自然になるため。 */
+/* ダメージポップ（敵本体の中央下側に表示。ENEMY HPバーと被らないよう右上表示はやめた） */
 #enemy-damage-pop {
   position: absolute;
-  top: 8%;
-  right: -5%;
+  left: 50%;
+  top: 65%;
+  transform: translate(-50%, -50%);
   z-index: 7;
   background: #c0392b;
   color: #fff;
@@ -1219,12 +1219,12 @@ body {
    演出アニメーション
    ============================================================ */
 
-/* ダメージポップ（敵スプライト付近） */
+/* ダメージポップ（敵本体中央下側。基準transformのtranslate(-50%,-50%)を保ったまま、少し下に落ちながら消える） */
 @keyframes kf-damage-pop {
-  0%   { opacity: 0; transform: translateY(4px) scale(0.9); }
-  12%  { opacity: 1; transform: translateY(0) scale(1.08); }
-  70%  { opacity: 1; transform: translateY(-8px) scale(1.08); }
-  100% { opacity: 0; transform: translateY(-16px) scale(0.95); }
+  0%   { opacity: 0; transform: translate(-50%, calc(-50% - 8px)) scale(0.95); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  70%  { opacity: 1; transform: translate(-50%, calc(-50% + 10px)) scale(1.04); }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% + 18px)) scale(0.95); }
 }
 
 /* 画面フラッシュオーバーレイ（UI全体を一瞬だけ色づけ） */
