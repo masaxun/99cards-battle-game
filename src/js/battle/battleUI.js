@@ -170,21 +170,22 @@
     return window.innerWidth <= 640 || ('ontouchstart' in window);
   }
 
+  // iOSのキーボード閉じアニメーションが長引く端末でもスクロール復帰が間に合うよう、
+  // 複数回リトライする（250msまでの2回だと戻り切らない実機があったため延長）。
+  var MOBILE_SCROLL_RESTORE_DELAYS = [50, 150, 300, 500];
+
   function restoreMobileScroll() {
     if (!isMobile()) return;
     if (document.activeElement && document.activeElement.blur) {
       document.activeElement.blur();
     }
-    setTimeout(function () {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }, 50);
-    setTimeout(function () {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }, 250);
+    MOBILE_SCROLL_RESTORE_DELAYS.forEach(function (ms) {
+      setTimeout(function () {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, ms);
+    });
   }
 
   function updateAnsweringClass() {
@@ -1480,7 +1481,16 @@
         if (result.logEntry.damage !== undefined) {
           setTimeout(shakeEnemySprite, 130);
           if (result.logEntry.damageBreakdown) {
-            showDamagePop(result.logEntry.damageBreakdown.finalDamage, result.logEntry.damageBreakdown.critical, result.logEntry.damageBreakdown.weakness);
+            var normalBd = result.logEntry.damageBreakdown;
+            if (isMobile()) {
+              // モバイルはスクロール復帰（最大500ms）より先にポップが出て
+              // ENEMY HPバーの下に隠れないよう、復帰後まで表示を遅らせる。
+              setTimeout(function () {
+                showDamagePop(normalBd.finalDamage, normalBd.critical, normalBd.weakness);
+              }, 550);
+            } else {
+              showDamagePop(normalBd.finalDamage, normalBd.critical, normalBd.weakness);
+            }
           }
           var isCritical = result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.critical;
           var hitSe;
