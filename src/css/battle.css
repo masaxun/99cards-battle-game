@@ -322,6 +322,17 @@ body {
   max-height: 300px;
 }
 
+/* 古代の遺跡 グリフォン(normal2)・タイタン(normal3) は上級内でも一回り大きく表示 */
+#enemy-sprite-section.enemy-rank-upper.enemy-stage-normal2 .enemy-image {
+  max-width: 250px;
+  max-height: 250px;
+}
+
+#enemy-sprite-section.enemy-rank-upper.enemy-stage-normal3 .enemy-image {
+  max-width: 260px;
+  max-height: 260px;
+}
+
 @media (max-width: 440px) {
   #enemy-sprite-section.enemy-rank-upper .enemy-image,
   #enemy-sprite-section.enemy-rank-last .enemy-image {
@@ -333,6 +344,16 @@ body {
   #enemy-sprite-section.enemy-rank-last .enemy-image.enemy-boss {
     max-width: 280px;
     max-height: 280px;
+  }
+
+  #enemy-sprite-section.enemy-rank-upper.enemy-stage-normal2 .enemy-image {
+    max-width: 240px;
+    max-height: 240px;
+  }
+
+  #enemy-sprite-section.enemy-rank-upper.enemy-stage-normal3 .enemy-image {
+    max-width: 248px;
+    max-height: 248px;
   }
 }
 
