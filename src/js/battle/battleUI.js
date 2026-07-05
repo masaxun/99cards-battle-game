@@ -26,6 +26,7 @@
   var usedCardUidMap = {};
   var waveCounter = 0;
   var waveNewCardUidMap = {};
+  var idlePauseCount = 0;
   var soundEnabled = (function () {
     try { return localStorage.getItem("kuku99_sound_enabled") !== "0"; } catch (e) { return true; }
   })();
@@ -567,6 +568,25 @@
     var areaId = session.areaDef.id;
     var areaImgs = ENEMY_IMAGE_PATHS[areaId] || ENEMY_IMAGE_PATHS.hajimari;
     var imgPath = (areaImgs && areaImgs[stage]) || (ENEMY_IMAGE_PATHS.hajimari[stage]);
+
+    var wrapEl = document.getElementById("enemy-sprite-wrap");
+    if (wrapEl) {
+      var idleClasses = ENEMY_IDLE_SPECIES.map(function (s) { return "enemy-idle-" + s; });
+      wrapEl.classList.remove.apply(wrapEl.classList, idleClasses);
+      var species = null;
+      if (imgPath) {
+        for (var i = 0; i < ENEMY_IDLE_SPECIES.length; i++) {
+          if (imgPath.indexOf("/enemies/" + ENEMY_IDLE_SPECIES[i] + "/") !== -1) {
+            species = ENEMY_IDLE_SPECIES[i];
+            break;
+          }
+        }
+      }
+      if (species) {
+        wrapEl.classList.add("enemy-idle-" + species);
+      }
+    }
+
     if (imgPath) {
       var img = document.createElement("img");
       img.className = "enemy-image" + (stage === "boss" ? " enemy-boss" : "");
@@ -988,12 +1008,34 @@
     setTimeout(function () { overlay.classList.remove("flash-miss"); }, 400);
   }
 
+  var ENEMY_IDLE_SPECIES = ["slime", "bat", "golem", "dragon", "wolf", "griffin", "titan", "behemoth"];
+
+  function pauseIdleAnimation() {
+    var wrapEl = document.getElementById("enemy-sprite-wrap");
+    if (!wrapEl) return;
+    idlePauseCount++;
+    wrapEl.classList.add("enemy-idle-paused");
+  }
+
+  function resumeIdleAnimation() {
+    var wrapEl = document.getElementById("enemy-sprite-wrap");
+    if (!wrapEl) return;
+    idlePauseCount = Math.max(0, idlePauseCount - 1);
+    if (idlePauseCount === 0) {
+      wrapEl.classList.remove("enemy-idle-paused");
+    }
+  }
+
   function shakeEnemySprite() {
+    pauseIdleAnimation();
     var el = document.getElementById("enemy-sprite");
     el.classList.remove("enemy-shake");
     void el.offsetWidth;
     el.classList.add("enemy-shake");
-    setTimeout(function () { el.classList.remove("enemy-shake"); }, 550);
+    setTimeout(function () {
+      el.classList.remove("enemy-shake");
+      resumeIdleAnimation();
+    }, 550);
   }
 
   function shakeScreen() {
@@ -1041,6 +1083,7 @@
   function showEnemyAttackEffect(powered) {
     var el = document.getElementById("enemy-attack-effect");
     if (!el) return;
+    pauseIdleAnimation();
     el.src = powered
       ? "assets/images/effects/effect_enemy_attack_strong_v01.png"
       : "assets/images/effects/effect_enemy_attack_normal_v01.png";
@@ -1051,12 +1094,14 @@
     setTimeout(function () {
       el.classList.remove("attack-normal", "attack-strong", "attack-animate");
       el.classList.add("hidden");
+      resumeIdleAnimation();
     }, 700);
   }
 
   function showEnemyIntimidateEffect() {
     var el = document.getElementById("enemy-intimidate-effect");
     if (!el) return;
+    pauseIdleAnimation();
     el.src = "assets/images/effects/effect_enemy_intimidate_v01.png";
     el.classList.remove("hidden", "intimidate-animate");
     void el.offsetWidth;
@@ -1064,6 +1109,7 @@
     setTimeout(function () {
       el.classList.remove("intimidate-animate");
       el.classList.add("hidden");
+      resumeIdleAnimation();
     }, 900);
   }
 
@@ -1080,6 +1126,8 @@
   }
 
   function showEnemyRegenEffect() {
+    pauseIdleAnimation();
+    setTimeout(function () { resumeIdleAnimation(); }, 1000);
     animateRegenLayer(
       document.getElementById("enemy-regen-effect-back"),
       "assets/images/effects/effect_enemy_regen_back_v01.png"
@@ -1100,6 +1148,8 @@
       if (callback) callback();
       return;
     }
+
+    pauseIdleAnimation();
 
     circle.src = "assets/images/effects/spells/holy/fx_holy_circle_v01.png";
     pillar.src = "assets/images/effects/spells/holy/fx_holy_pillar_v01.png";
@@ -1122,6 +1172,7 @@
       pillar.classList.remove("holy-pillar-animate");
       circle.removeAttribute("src");
       pillar.removeAttribute("src");
+      resumeIdleAnimation();
       if (callback) callback();
     }, 1700);
   }
@@ -1137,6 +1188,8 @@
       if (callback) callback();
       return;
     }
+
+    pauseIdleAnimation();
 
     circle.src = "assets/images/effects/spells/meteor/fx_meteor_circle_v01.png";
     fall.src   = "assets/images/effects/spells/meteor/fx_meteor_fall_v01.png";
@@ -1173,6 +1226,7 @@
       circle.removeAttribute("src");
       fall.removeAttribute("src");
       impact.removeAttribute("src");
+      resumeIdleAnimation();
       if (callback) callback();
     }, 2100);
   }
@@ -1225,12 +1279,14 @@
   }
 
   function animateEnemyPreAction(callback) {
+    pauseIdleAnimation();
     var el = document.getElementById("enemy-sprite");
     el.classList.remove("enemy-preaction");
     void el.offsetWidth;
     el.classList.add("enemy-preaction");
     setTimeout(function () {
       el.classList.remove("enemy-preaction");
+      resumeIdleAnimation();
       if (callback) callback();
     }, 550);
   }

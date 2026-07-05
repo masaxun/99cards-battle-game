@@ -1422,6 +1422,64 @@ body {
 }
 
 
+/* 敵待機モーション（種族別・常時ループ） */
+@keyframes kf-idle-slime {
+  0%, 100% { transform: translateY(var(--enemy-sprite-offset-y)) scaleY(1); }
+  50%      { transform: translateY(calc(var(--enemy-sprite-offset-y) - 3px)) scaleY(1.03); }
+}
+@keyframes kf-idle-bat {
+  0%, 50%, 100% { transform: translateY(var(--enemy-sprite-offset-y)) rotate(0deg); }
+  25%           { transform: translateY(calc(var(--enemy-sprite-offset-y) - 2px)) rotate(-1deg); }
+  75%           { transform: translateY(calc(var(--enemy-sprite-offset-y) - 2px)) rotate(1deg); }
+}
+@keyframes kf-idle-golem {
+  0%, 100% { transform: translate(0, var(--enemy-sprite-offset-y)); }
+  33%      { transform: translate(1px, calc(var(--enemy-sprite-offset-y) - 1px)); }
+  66%      { transform: translate(-1px, var(--enemy-sprite-offset-y)); }
+}
+@keyframes kf-idle-dragon {
+  0%, 100% { transform: translateY(var(--enemy-sprite-offset-y)) scale(1); }
+  50%      { transform: translateY(var(--enemy-sprite-offset-y)) scale(1.015); }
+}
+@keyframes kf-idle-wolf {
+  0%, 100% { transform: translateY(var(--enemy-sprite-offset-y)) scale(1); }
+  50%      { transform: translateY(var(--enemy-sprite-offset-y)) scale(1.012); }
+}
+@keyframes kf-idle-griffin {
+  0%, 100% { transform: translate(0, var(--enemy-sprite-offset-y)); }
+  50%      { transform: translate(1px, calc(var(--enemy-sprite-offset-y) - 3px)); }
+}
+@keyframes kf-idle-titan {
+  0%, 100% { transform: translate(0, var(--enemy-sprite-offset-y)); }
+  40%      { transform: translate(-1.5px, calc(var(--enemy-sprite-offset-y) - 1px)); }
+  70%      { transform: translate(1.5px, var(--enemy-sprite-offset-y)); }
+}
+@keyframes kf-idle-behemoth {
+  0%, 100% { transform: translateY(var(--enemy-sprite-offset-y)) scale(1); }
+  45%      { transform: translateY(calc(var(--enemy-sprite-offset-y) - 1px)) scale(1.02); }
+  85%      { transform: translateY(var(--enemy-sprite-offset-y)) scale(1.01) translateX(1px); }
+}
+
+#enemy-sprite-wrap.enemy-idle-slime    { animation: kf-idle-slime    2.4s ease-in-out infinite; }
+#enemy-sprite-wrap.enemy-idle-bat      { animation: kf-idle-bat      1.6s ease-in-out infinite; }
+#enemy-sprite-wrap.enemy-idle-golem    { animation: kf-idle-golem    3.2s ease-in-out infinite; }
+#enemy-sprite-wrap.enemy-idle-dragon   { animation: kf-idle-dragon   3.0s ease-in-out infinite; }
+#enemy-sprite-wrap.enemy-idle-wolf     { animation: kf-idle-wolf     2.0s ease-in-out infinite; }
+#enemy-sprite-wrap.enemy-idle-griffin  { animation: kf-idle-griffin  2.2s ease-in-out infinite; }
+#enemy-sprite-wrap.enemy-idle-titan    { animation: kf-idle-titan    3.6s ease-in-out infinite; }
+#enemy-sprite-wrap.enemy-idle-behemoth { animation: kf-idle-behemoth 4.0s ease-in-out infinite; }
+
+/* 一時演出中は待機モーションを停止（種族ルールより後ろに置き、animation-play-stateを確実に上書きする） */
+#enemy-sprite-wrap.enemy-idle-paused {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #enemy-sprite-wrap {
+    animation: none !important;
+  }
+}
+
 /* 敵ダメージシェイク */
 @keyframes kf-enemy-shake {
   0%, 100% { transform: translateX(0); }
