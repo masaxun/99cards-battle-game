@@ -294,6 +294,7 @@ body {
   width: 150%;
   height: 150%;
   opacity: 0.8;
+  top: calc(50% - 10px);
 }
 
 /* 力ため前面スパーク（ガード#enemy-effect-frontとは別要素で競合を避ける） */
