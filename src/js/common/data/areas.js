@@ -92,7 +92,7 @@
       playerElement: "water",
       enemyHp: { normal1: 240, normal2: 310, normal3: 380, boss: 650 },
       requiredBossAreaIds: ["neppa"],
-      implemented: false,
+      implemented: true,
       mapPosition: { row: 1, col: 2 }
     },
     {

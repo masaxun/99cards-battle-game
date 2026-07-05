@@ -137,6 +137,16 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_mayoi_boss_v01.webp?v=20260705-mayoi1");
 }
 
+/* 灼熱の火口 通常戦 */
+#battle-screen.battle-bg-shakunetsu::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_shakunetsu_v01.webp?v=20260706-shakunetsu1");
+}
+
+/* 灼熱の火口 ぬし戦 */
+#battle-screen.battle-bg-shakunetsu-boss::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_shakunetsu_boss_v01.webp?v=20260706-shakunetsu1");
+}
+
 .section-tag {
   font-size: 10px;
   font-weight: bold;
