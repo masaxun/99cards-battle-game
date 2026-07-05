@@ -197,6 +197,11 @@
     deck.splice(insertIndex, 0, card);
   }
 
+  // ガードは「次のプレイヤー行動1回」で消費される一時防御。メテオ貫通時も消費する。
+  function clearGuardAfterPlayerAction(session) {
+    session.enemyState.guard = false;
+  }
+
   function refillHand(session) {
     var newCards = [];
     // null スロット（使用済みカード位置）を同スロットで補充
@@ -492,13 +497,13 @@
         var critical = criticalCount > 0;
         var criticalBonusAmount = criticalCount * 10;
 
-        // ガード軽減: 会心より先に適用（メテオ9×9はガードを貫通しガード状態を消費しない）
+        // ガード軽減: 会心より先に適用（メテオ9×9はガードを貫通するが、ガード状態は消費する）
         var guardActive = session.enemyState.guard;
         var guardMult = 1.0;
         if (guardActive && !isMeteor) {
           guardMult = session.stage === "boss" ? 0.5 : 0.7;
-          session.enemyState.guard = false;
         }
+        clearGuardAfterPlayerAction(session);
 
         // 会心ボーナスはガード後に加算（ガードで会心の気持ちよさを削らない）
         var preGuardDamage = baseRawDamage + weaknessBonusAmount + comboBonusAmount + openingBonusAmount;
@@ -538,19 +543,21 @@
           }
         });
       } else {
-        // sub: 回復。ガードは維持したまま（攻撃ではないため）
+        // sub: 回復。攻撃ではないが、プレイヤー行動1回としてガードは解除する
         session.hp = Math.min(session.maxHp, session.hp + card.healAmount);
         logEntry = buildLogEntry(card, true, answerInput, { heal: card.healAmount });
+        clearGuardAfterPlayerAction(session);
       }
       session.trash.push(card);
 
     } else {
       session.hp -= 1;
       session.combo = 0;
-      // ミスではガードは解除しない
+      // 不正解でダメージを与えなくても、プレイヤー行動1回としてガードは解除する
       var hint = card.kind === "mul" ? Yomi.getHint(card.dan) : null;
       logEntry = buildLogEntry(card, false, answerInput, { hint: hint });
       returnCardToDeck(session, card);
+      clearGuardAfterPlayerAction(session);
     }
 
     session.battleLog.push(logEntry);
@@ -636,6 +643,7 @@
     session.hand = [];
     session.enemyState.opening = false;  // 手札チェンジで隙あり解除
     session.enemyState.intimidateLocked = [];  // 手札チェンジで威嚇ロック解除
+    clearGuardAfterPlayerAction(session);  // 手札チェンジもプレイヤー行動1回としてガード解除
     refillHand(session);
     checkBattleEnd(session);
 
