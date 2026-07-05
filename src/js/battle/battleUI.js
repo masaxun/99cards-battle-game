@@ -53,7 +53,9 @@
     defeat:        { src: "assets/audio/se/se_defeat_v01.mp3",              volume: 0.70 },
     enemyRegen:    { src: "assets/audio/se/se_enemy_regen_v01.mp3",         volume: 0.55 },
     holyUltimate:   { src: "assets/audio/se/se_holy_ultimate_v01.mp3",        volume: 0.70 },
-    meteorUltimate: { src: "assets/audio/se/se_meteor_ultimate_v01.mp3",     volume: 0.70 }
+    meteorUltimate: { src: "assets/audio/se/se_meteor_ultimate_v01.mp3",     volume: 0.70 },
+    enemyIntimidateNormal: { src: "assets/audio/se/se_enemy_intimidate_v01.mp3", volume: 0.60 },
+    enemyIntimidateBoss:   { src: "assets/audio/se/se_boss_intimidate_v01.mp3",  volume: 0.65 }
   };
 
   function playSE(name) {
@@ -535,6 +537,7 @@
     if (session.enemyState.guard)   badges.push("🛡 ガード");
     if (session.enemyState.powerUp) badges.push("🔥 力ため");
     if (session.enemyState.opening) badges.push("✨ 隙あり");
+    if (session.enemyState.intimidateLocked && session.enemyState.intimidateLocked.length > 0) badges.push("😤 威嚇中");
     badgesEl.textContent = badges.join("  ");
     badgesEl.className = badges.length > 0 ? "badges-visible" : "";
 
@@ -617,10 +620,12 @@
     handEl.innerHTML = "";
     var locked = !!session.pendingAttack || session.ended || interactionLocked || !battleStarted;
     var hasOpening = session.enemyState.opening;
+    var intimidateLocked = session.enemyState.intimidateLocked || [];
 
     session.hand.forEach(function (card) {
       var div = document.createElement("div");
       var classes = ["card", "card-" + card.kind];
+      var isIntimidateLocked = intimidateLocked.indexOf(card.uid) !== -1;
 
       if (card.kind === "mul" && card.element && card.element !== "none") {
         classes.push("element-" + card.element);
@@ -637,6 +642,7 @@
 
       if (card.uid === selectedCardUid) classes.push("card-selected");
       if (locked) classes.push("card-disabled");
+      if (isIntimidateLocked) classes.push("card-intimidate-locked");
 
       var isTargetMul = hasOpening && card.kind === "mul" && card.dan === session.areaDef.dan;
       if (isTargetMul && !locked) classes.push("card-opening-highlight");
@@ -687,7 +693,15 @@
       questionDiv.textContent = cardFormula(card);
       div.appendChild(questionDiv);
 
-      if (!locked) {
+      // 威嚇ロック中は暗転オーバーレイ + ×表示（タップ不可）
+      if (isIntimidateLocked) {
+        var lockOverlay = document.createElement("div");
+        lockOverlay.className = "card-intimidate-lock";
+        lockOverlay.textContent = "×";
+        div.appendChild(lockOverlay);
+      }
+
+      if (!locked && !isIntimidateLocked) {
         (function (uid) {
           div.addEventListener("click", function () { onSelectCard(uid); });
         })(card.uid);
@@ -975,6 +989,19 @@
       el.classList.remove("attack-normal", "attack-strong", "attack-animate");
       el.classList.add("hidden");
     }, 700);
+  }
+
+  function showEnemyIntimidateEffect() {
+    var el = document.getElementById("enemy-intimidate-effect");
+    if (!el) return;
+    el.src = "assets/images/effects/effect_enemy_intimidate_v01.png";
+    el.classList.remove("hidden", "intimidate-animate");
+    void el.offsetWidth;
+    el.classList.add("intimidate-animate");
+    setTimeout(function () {
+      el.classList.remove("intimidate-animate");
+      el.classList.add("hidden");
+    }, 900);
   }
 
   function animateRegenLayer(el, src) {
@@ -1577,6 +1604,9 @@
               showEnemyAction(result.enemyAction);
               playEnemyActionSE(result.enemyAction);
               renderEnemySprite();
+              if (result.enemyAction.type === "intimidate") {
+                showEnemyIntimidateEffect();
+              }
               if (session.pendingAttack) {
                 showEnemyAttackEffect(session.pendingAttack.powered);
                 setTimeout(function () {
@@ -1773,6 +1803,9 @@
             showEnemyAction(result.enemyAction);
             playEnemyActionSE(result.enemyAction);
             renderEnemySprite();
+            if (result.enemyAction.type === "intimidate") {
+              showEnemyIntimidateEffect();
+            }
             if (session.pendingAttack) {
               showEnemyAttackEffect(session.pendingAttack.powered);
               setTimeout(function () {
@@ -1976,6 +2009,9 @@
     if (action.type === "guard")                                         playSE("enemyGuard");
     else if (action.type === "powerUp")                                  playSE("enemyPowerUp");
     else if (action.type === "counter" || action.type === "bossAttack") playSE("enemyAttack");
+    else if (action.type === "intimidate") {
+      playSE(session.stage === "boss" ? "enemyIntimidateBoss" : "enemyIntimidateNormal");
+    }
   }
 
   // 敵行動メッセージ
@@ -1987,6 +2023,9 @@
     if (action.type === "none") {
       var pool = session.stage === "boss" ? IDLE_REACTIONS_BOSS : IDLE_REACTIONS_NORMAL;
       label = pool[Math.floor(Math.random() * pool.length)];
+    } else if (action.type === "intimidate") {
+      var enemyName = getEnemyName(session.areaDef, session.stage);
+      label = enemyName + "が威嚇してきた！ 手札" + action.lockedCount + "枚が使えなくなった！";
     }
 
     if (!label) {

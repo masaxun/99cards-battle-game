@@ -48,34 +48,38 @@
     { type: "opening",    weight:  5 }
   ];
 
-  // 上級通常敵行動テーブル（none なし）
+  // 上級通常敵行動テーブル（none なし）。intimidate 追加に伴い既存重みを約9割にスケール。
   var UPPER_ENEMY_PROBS = {
     normal1: [  // ウルフ: バランス型
-      { type: "counter", weight: 40 },
-      { type: "guard",   weight: 25 },
-      { type: "opening", weight: 20 },
-      { type: "powerUp", weight: 15 }
+      { type: "counter",    weight: 36 },
+      { type: "guard",      weight: 22 },
+      { type: "opening",    weight: 18 },
+      { type: "powerUp",    weight: 14 },
+      { type: "intimidate", weight: 10 }
     ],
     normal2: [  // グリフォン: 攻撃寄り
-      { type: "counter", weight: 45 },
-      { type: "guard",   weight: 20 },
-      { type: "opening", weight: 15 },
-      { type: "powerUp", weight: 20 }
+      { type: "counter",    weight: 40 },
+      { type: "guard",      weight: 18 },
+      { type: "opening",    weight: 14 },
+      { type: "powerUp",    weight: 18 },
+      { type: "intimidate", weight: 10 }
     ],
     normal3: [  // タイタン: ガード・力ため強め
-      { type: "counter", weight: 35 },
-      { type: "guard",   weight: 35 },
-      { type: "powerUp", weight: 25 },
-      { type: "opening", weight: 5 }
+      { type: "counter",    weight: 32 },
+      { type: "guard",      weight: 31 },
+      { type: "powerUp",    weight: 23 },
+      { type: "opening",    weight: 4 },
+      { type: "intimidate", weight: 10 }
     ]
   };
 
-  // 上級ボス行動テーブル（none なし）
+  // 上級ボス行動テーブル（none なし）。intimidate 追加に伴い既存重みを約85%にスケール。
   var UPPER_BOSS_ENEMY_PROBS = [  // ベヒーモス: 攻撃多め
-    { type: "bossAttack", weight: 45 },
-    { type: "guard",      weight: 25 },
-    { type: "powerUp",    weight: 20 },
-    { type: "opening",    weight: 10 }
+    { type: "bossAttack",  weight: 38 },
+    { type: "guard",       weight: 21 },
+    { type: "powerUp",     weight: 17 },
+    { type: "opening",     weight: 9 },
+    { type: "intimidate",  weight: 15 }
   ];
 
   // ============================================================
@@ -168,7 +172,8 @@
         guard: false,
         powerUp: false,    // ボス専用: 次のボス攻撃を強化
         opening: false,    // 次のプレイヤー行動1回だけ有効
-        lastActionWasCounter: false  // ザコ反撃連続防止
+        lastActionWasCounter: false,  // ザコ反撃連続防止
+        intimidateLocked: []  // 威嚇でロック中の手札uid（上級敵専用）
       },
       pendingAttack: null, // { question, kind:"boss"|"counter", powered:bool }
       battleLog: [],
@@ -320,9 +325,10 @@
       chosen = "none";
       for (var t = 0; t < 10; t++) {
         var candidate = weightedRandom(probs);
-        if (candidate === "guard"   && state.guard)   continue;
-        if (candidate === "opening" && state.opening) continue;
-        if (candidate === "powerUp" && state.powerUp) continue;
+        if (candidate === "guard"      && state.guard)   continue;
+        if (candidate === "opening"    && state.opening) continue;
+        if (candidate === "powerUp"    && state.powerUp) continue;
+        if (candidate === "intimidate" && (state.intimidateLocked.length > 0 || session.hand.length < 2)) continue;
         chosen = candidate;
         break;
       }
@@ -360,6 +366,23 @@
       state.opening = true;
       state.lastActionWasCounter = false;
       result.label = "敵が隙を見せた！ " + dan + "の段のかけ算で正解するとダメージ+50%";
+
+    } else if (chosen === "intimidate") {
+      state.lastActionWasCounter = false;
+      var targetLockCount = stage === "boss" ? 3 : 2;
+      // 最低1枚は使用可能カードを残す
+      var lockableCount = Math.max(0, session.hand.length - 1);
+      var lockCount = Math.min(targetLockCount, lockableCount);
+      var lockCandidates = session.hand.map(function (c) { return c.uid; });
+      for (var si = lockCandidates.length - 1; si > 0; si--) {
+        var sj = Math.floor(Math.random() * (si + 1));
+        var tmp = lockCandidates[si];
+        lockCandidates[si] = lockCandidates[sj];
+        lockCandidates[sj] = tmp;
+      }
+      state.intimidateLocked = lockCandidates.slice(0, lockCount);
+      result.lockedCount = state.intimidateLocked.length;
+      // ラベルは敵名を知るUI側（showEnemyAction）で組み立てる
 
     } else if (chosen === "counter" || chosen === "bossAttack") {
       var isPowered = state.powerUp;  // 力ため後の攻撃は常にpowered
@@ -403,10 +426,16 @@
       if (session.hand[i].uid === cardUid) { index = i; break; }
     }
     if (index === -1) return { error: "card-not-found" };
+    if (session.enemyState.intimidateLocked.indexOf(cardUid) !== -1) return { error: "card-intimidate-locked" };
 
     var card = session.hand[index];
     session.hand[index] = null;
     var correct = checkAnswer(card, answerInput);
+
+    // 威嚇ロック: 使用可能カードを1枚使ったら解除
+    if (session.enemyState.intimidateLocked.length > 0) {
+      session.enemyState.intimidateLocked = [];
+    }
 
     // 隙あり: プレイヤー行動1回でリセット（正誤・種類問わず）
     var hadOpening = session.enemyState.opening;
@@ -606,6 +635,7 @@
     session.deck = Cards.shuffleArray(session.deck.concat(session.hand));
     session.hand = [];
     session.enemyState.opening = false;  // 手札チェンジで隙あり解除
+    session.enemyState.intimidateLocked = [];  // 手札チェンジで威嚇ロック解除
     refillHand(session);
     checkBattleEnd(session);
 
