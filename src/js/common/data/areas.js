@@ -79,7 +79,7 @@
       playerElement: "fire",
       enemyHp: { normal1: 220, normal2: 280, normal3: 340, boss: 580 },
       requiredBossAreaIds: ["soyokaze"],
-      implemented: false,
+      implemented: true,
       mapPosition: { row: 1, col: 1 }
     },
     {

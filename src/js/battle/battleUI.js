@@ -284,6 +284,12 @@
       normal2: "assets/images/enemies/griffin/enemy_normal2_griffin_none_v01.png",
       normal3: "assets/images/enemies/titan/enemy_normal3_titan_none_v01.png",
       boss:    "assets/images/enemies/behemoth/enemy_boss_behemoth_none_v01.png"
+    },
+    mayoi: {
+      normal1: "assets/images/enemies/wolf/enemy_normal1_wolf_grass_v01.png",
+      normal2: "assets/images/enemies/griffin/enemy_normal2_griffin_grass_v01.png",
+      normal3: "assets/images/enemies/titan/enemy_normal3_titan_grass_v01.png",
+      boss:    "assets/images/enemies/behemoth/enemy_boss_behemoth_grass_v01.png"
     }
   };
   var STAGE_FALLBACK_SPRITES = { normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉" };
@@ -294,7 +300,8 @@
     soyokaze: { normal1: "リーフスライム",   normal2: "コノハモリ",   normal3: "モスゴーレム" },
     neppa:    { normal1: "フレイムスライム", normal2: "ヒノコモリ",   normal3: "マグマゴーレム" },
     sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" },
-    kodai:    { normal1: "ウルフ",           normal2: "グリフォン",   normal3: "タイタン",    boss: "ベヒーモス" }
+    kodai:    { normal1: "ウルフ",           normal2: "グリフォン",   normal3: "タイタン",    boss: "ベヒーモス" },
+    mayoi:    { normal1: "モスウルフ",       normal2: "リーフグリフォン", normal3: "フォレストタイタン" }
   };
 
   function getEnemyName(areaDef, stage) {
@@ -513,7 +520,8 @@
       "battle-bg-soyokaze", "battle-bg-soyokaze-boss",
       "battle-bg-neppa",    "battle-bg-neppa-boss",
       "battle-bg-sazanami", "battle-bg-sazanami-boss",
-      "battle-bg-kodai",    "battle-bg-kodai-boss"
+      "battle-bg-kodai",    "battle-bg-kodai-boss",
+      "battle-bg-mayoi",    "battle-bg-mayoi-boss"
     );
     var isBoss = (stage === "boss");
     if (areaId === "hajimari") {
@@ -526,6 +534,8 @@
       el.classList.add(isBoss ? "battle-bg-sazanami-boss" : "battle-bg-sazanami");
     } else if (areaId === "kodai") {
       el.classList.add(isBoss ? "battle-bg-kodai-boss" : "battle-bg-kodai");
+    } else if (areaId === "mayoi") {
+      el.classList.add(isBoss ? "battle-bg-mayoi-boss" : "battle-bg-mayoi");
     }
   }
 

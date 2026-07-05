@@ -127,6 +127,16 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_kodai_boss_v01.webp?v=20260703-kodai2");
 }
 
+/* 迷いの森 通常戦 */
+#battle-screen.battle-bg-mayoi::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_mayoi_v01.webp?v=20260705-mayoi1");
+}
+
+/* 迷いの森 ぬし戦 */
+#battle-screen.battle-bg-mayoi-boss::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_mayoi_boss_v01.webp?v=20260705-mayoi1");
+}
+
 .section-tag {
   font-size: 10px;
   font-weight: bold;
