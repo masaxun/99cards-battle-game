@@ -155,6 +155,57 @@
   }
 
   // ============================================================
+  // プリロード（Netlify等での初回演出の読み込み遅延対策）
+  // ============================================================
+
+  // バトル中に発生する演出画像（頻度の低いホーリー/メテオ/威嚇/力ため等を優先）
+  var BATTLE_PRELOAD_IMAGES = [
+    "assets/images/effects/effect_enemy_attack_normal_v01.png",
+    "assets/images/effects/effect_enemy_attack_strong_v01.png",
+    "assets/images/effects/effect_enemy_intimidate_v01.png",
+    "assets/images/effects/effect_opening_marker_v01.png",
+    "assets/images/effects/effect_guard_barrier_v01.png",
+    "assets/images/effects/effect_power_up_aura_v01.png",
+    "assets/images/effects/effect_enemy_regen_back_v01.png",
+    "assets/images/effects/effect_enemy_regen_front_v01.png",
+    "assets/images/effects/effect_player_heal_v01.png",
+    "assets/images/effects/spells/holy/fx_holy_circle_v01.png",
+    "assets/images/effects/spells/holy/fx_holy_pillar_v01.png",
+    "assets/images/effects/spells/meteor/fx_meteor_circle_v01.png",
+    "assets/images/effects/spells/meteor/fx_meteor_fall_v01.png",
+    "assets/images/effects/spells/meteor/fx_meteor_impact_v01.png"
+  ];
+
+  function preloadImage(src) {
+    try {
+      var img = new Image();
+      img.onerror = function () {};
+      img.src = src;
+    } catch (e) {}
+  }
+
+  // session作成後・バトル開始モーダル表示時に呼ぶ（ユーザー操作不要）
+  function preloadBattleImages() {
+    BATTLE_PRELOAD_IMAGES.forEach(preloadImage);
+  }
+
+  function preloadAudio(src) {
+    try {
+      var audio = new Audio();
+      audio.preload = "auto";
+      audio.src = src;
+      if (audio.load) audio.load();
+    } catch (e) {}
+  }
+
+  // STARTボタン押下後（ユーザー操作後）に呼ぶ。iOS Safariの自動再生制限のためplay()はしない
+  function preloadBattleAudio() {
+    Object.keys(SE).forEach(function (key) {
+      preloadAudio(SE[key].src);
+    });
+  }
+
+  // ============================================================
   // 定数
   // ============================================================
 
@@ -1397,11 +1448,14 @@
       desc = AREA_DESCRIPTIONS[session.areaDef.enemyType] || AREA_DESCRIPTIONS.none;
     }
     descEl.textContent = desc;
+
+    preloadBattleImages();
   }
 
   function onBattleStart() {
     playSE("buttonDecide");
     startBGMOnce();
+    preloadBattleAudio();
     battleStarted = true;
     document.getElementById("battle-start-overlay").classList.add("hidden");
     renderHand();

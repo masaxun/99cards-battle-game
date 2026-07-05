@@ -48,38 +48,38 @@
     { type: "opening",    weight:  5 }
   ];
 
-  // 上級通常敵行動テーブル（none なし）。intimidate 追加に伴い既存重みを約9割にスケール。
+  // 上級通常敵行動テーブル（none なし）。intimidateは上級敵らしさの軸として少し出やすめに調整。
   var UPPER_ENEMY_PROBS = {
     normal1: [  // ウルフ: バランス型
-      { type: "counter",    weight: 36 },
-      { type: "guard",      weight: 22 },
-      { type: "opening",    weight: 18 },
-      { type: "powerUp",    weight: 14 },
-      { type: "intimidate", weight: 10 }
+      { type: "counter",    weight: 34 },
+      { type: "guard",      weight: 20 },
+      { type: "opening",    weight: 16 },
+      { type: "powerUp",    weight: 15 },
+      { type: "intimidate", weight: 15 }
     ],
     normal2: [  // グリフォン: 攻撃寄り
-      { type: "counter",    weight: 40 },
-      { type: "guard",      weight: 18 },
-      { type: "opening",    weight: 14 },
+      { type: "counter",    weight: 38 },
+      { type: "guard",      weight: 17 },
+      { type: "opening",    weight: 12 },
       { type: "powerUp",    weight: 18 },
-      { type: "intimidate", weight: 10 }
+      { type: "intimidate", weight: 15 }
     ],
     normal3: [  // タイタン: ガード・力ため強め
-      { type: "counter",    weight: 32 },
-      { type: "guard",      weight: 31 },
-      { type: "powerUp",    weight: 23 },
+      { type: "counter",    weight: 30 },
+      { type: "guard",      weight: 29 },
+      { type: "powerUp",    weight: 22 },
       { type: "opening",    weight: 4 },
-      { type: "intimidate", weight: 10 }
+      { type: "intimidate", weight: 15 }
     ]
   };
 
-  // 上級ボス行動テーブル（none なし）。intimidate 追加に伴い既存重みを約85%にスケール。
+  // 上級ボス行動テーブル（none なし）。intimidateは上級敵らしさの軸として少し出やすめに調整。
   var UPPER_BOSS_ENEMY_PROBS = [  // ベヒーモス: 攻撃多め
-    { type: "bossAttack",  weight: 38 },
-    { type: "guard",       weight: 21 },
+    { type: "bossAttack",  weight: 35 },
+    { type: "guard",       weight: 20 },
     { type: "powerUp",     weight: 17 },
-    { type: "opening",     weight: 9 },
-    { type: "intimidate",  weight: 15 }
+    { type: "opening",     weight: 8 },
+    { type: "intimidate",  weight: 20 }
   ];
 
   // ============================================================
