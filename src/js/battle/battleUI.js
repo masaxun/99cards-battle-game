@@ -968,6 +968,10 @@
     if (isWeakness) {
       correctionParts.push("弱点！ダメージ+50%");
     }
+    var areaRankForLowDan = session.areaDef.rank;
+    if (card.kind === "mul" && card.rank === "lower" && (areaRankForLowDan === "upper" || areaRankForLowDan === "last")) {
+      correctionParts.push("低い段の攻撃は上級敵では威力半減");
+    }
     if (card.kind === "mul" && (card.a === 1 || card.b === 1) && !isHolyCard(card)) {
       correctionParts.push("1が入ったかけ算は会心率UP！");
     }
@@ -2192,6 +2196,9 @@
     }
     if (bd.weakness && bd.weaknessBonusAmount > 0) {
       parts.push("弱点+" + bd.weaknessBonusAmount);
+    }
+    if (bd.lowDanReduced) {
+      parts.push("低い段-50%");
     }
     if (bd.criticalBonusAmount > 0) {
       parts.push((bd.holy ? "ホーリー会心+" : "会心+") + bd.criticalBonusAmount);

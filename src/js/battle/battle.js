@@ -282,8 +282,10 @@
     if (session.regenCounter % 3 !== 0) return null;
     if (session.enemyHp >= session.enemyMaxHp) return null;
 
+    var area = session.areaDef;
+    var regenRate = (area.rank === "upper" || area.rank === "last") ? 0.07 : 0.05;
     var before = session.enemyHp;
-    var heal = Math.max(1, Math.ceil(session.enemyMaxHp * 0.05));
+    var heal = Math.max(1, Math.ceil(session.enemyMaxHp * regenRate));
     session.enemyHp = Math.min(session.enemyMaxHp, session.enemyHp + heal);
 
     var actualHeal = session.enemyHp - before;
@@ -456,10 +458,12 @@
         var baseRawDamage = card.answer;
 
         // ランク補正: 低ランクカードで高ランク相手を攻撃すると半減
+        var lowDanReduced = false;
         if (card.kind === "mul") {
           var defenderIsHigh = session.areaDef.rank === "upper" || session.areaDef.rank === "last";
           if (card.rank === "lower" && defenderIsHigh) {
             baseRawDamage = Math.round(baseRawDamage * 0.5);
+            lowDanReduced = true;
           }
         }
 
@@ -524,6 +528,7 @@
             formulaResult: card.answer,
             baseRawDamage: baseRawDamage,
             addAdvancedReduced: addAdvancedReduced,
+            lowDanReduced: lowDanReduced,
             weakness: isWeakness,
             weaknessBonusAmount: weaknessBonusAmount,
             comboBonusAmount: comboBonusAmount,
