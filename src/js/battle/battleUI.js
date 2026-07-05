@@ -165,7 +165,8 @@
     "assets/images/effects/effect_enemy_intimidate_v01.png",
     "assets/images/effects/effect_opening_marker_v01.png",
     "assets/images/effects/effect_guard_barrier_v01.png",
-    "assets/images/effects/effect_power_up_aura_v01.png",
+    "assets/images/effects/effect_power_up_aura_back_v01.png",
+    "assets/images/effects/effect_power_up_spark_front_v01.png",
     "assets/images/effects/effect_enemy_regen_back_v01.png",
     "assets/images/effects/effect_enemy_regen_front_v01.png",
     "assets/images/effects/effect_player_heal_v01.png",
@@ -598,11 +599,12 @@
   function renderEnemyEffects() {
     var backEl    = document.getElementById("enemy-effect-back");
     var frontEl   = document.getElementById("enemy-effect-front");
+    var sparkEl   = document.getElementById("enemy-power-spark-effect");
     var openingEl = document.getElementById("enemy-opening-effect");
 
     if (enemyStateEffectsVisible && session.enemyState.powerUp) {
       backEl.className = "enemy-state-effect effect-power-up";
-      backEl.src = "assets/images/effects/effect_power_up_aura_v01.png";
+      backEl.src = "assets/images/effects/effect_power_up_aura_back_v01.png";
     } else {
       backEl.className = "enemy-state-effect hidden";
       backEl.removeAttribute("src");
@@ -614,6 +616,16 @@
     } else {
       frontEl.className = "enemy-state-effect hidden";
       frontEl.removeAttribute("src");
+    }
+
+    if (sparkEl) {
+      if (enemyStateEffectsVisible && session.enemyState.powerUp) {
+        sparkEl.className = "enemy-power-spark-effect";
+        sparkEl.src = "assets/images/effects/effect_power_up_spark_front_v01.png";
+      } else {
+        sparkEl.className = "enemy-power-spark-effect hidden";
+        sparkEl.removeAttribute("src");
+      }
     }
 
     if (openingEl) {

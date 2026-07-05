@@ -293,7 +293,22 @@ body {
 .enemy-state-effect.effect-power-up {
   width: 150%;
   height: 150%;
-  opacity: 0.85;
+  opacity: 0.8;
+}
+
+/* 力ため前面スパーク（ガード#enemy-effect-frontとは別要素で競合を避ける） */
+.enemy-power-spark-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 140%;
+  height: 140%;
+  object-fit: contain;
+  pointer-events: none;
+  display: block;
+  z-index: 3;
+  opacity: 0.75;
 }
 
 .enemy-image {
