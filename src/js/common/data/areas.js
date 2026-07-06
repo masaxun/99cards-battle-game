@@ -12,7 +12,7 @@
       enemyType: "none",
       weakness: "none",
       playerElement: "none",
-      enemyHp: { normal1: 50, normal2: 70, normal3: 95, boss: 140 },
+      enemyHp: { normal1: 50, normal2: 75, normal3: 105, boss: 160 },
       requiredBossAreaIds: [],
       implemented: true,
       mapPosition: { row: 2, col: 0 }
@@ -25,7 +25,7 @@
       enemyType: "grass",
       weakness: "fire",
       playerElement: "fire",
-      enemyHp: { normal1: 100, normal2: 130, normal3: 160, boss: 280 },
+      enemyHp: { normal1: 100, normal2: 130, normal3: 170, boss: 240 },
       requiredBossAreaIds: [],
       implemented: true,
       mapPosition: { row: 2, col: 1 }
@@ -38,7 +38,7 @@
       enemyType: "fire",
       weakness: "water",
       playerElement: "water",
-      enemyHp: { normal1: 120, normal2: 150, normal3: 180, boss: 320 },
+      enemyHp: { normal1: 120, normal2: 170, normal3: 250, boss: 340 },
       requiredBossAreaIds: [],
       implemented: true,
       mapPosition: { row: 2, col: 2 }
@@ -51,7 +51,7 @@
       enemyType: "water",
       weakness: "grass",
       playerElement: "grass",
-      enemyHp: { normal1: 140, normal2: 180, normal3: 220, boss: 380 },
+      enemyHp: { normal1: 140, normal2: 220, normal3: 300, boss: 430 },
       requiredBossAreaIds: [],
       implemented: true,
       mapPosition: { row: 2, col: 3 }
