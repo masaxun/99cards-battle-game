@@ -1461,6 +1461,9 @@
       session.hand.push(card);
       waveNewCardUidMap[card.uid] = session.hand.length - 1;
     }
+    if (session.enemyState.intimidateLocked && session.enemyState.intimidateLocked.length > 0) {
+      session.enemyState.intimidateLocked = [];
+    }
   }
 
   function playWaveAnimation(callback) {
