@@ -147,6 +147,16 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_shakunetsu_boss_v01.webp?v=20260706-shakunetsu1");
 }
 
+/* 深海の神殿 通常戦 */
+#battle-screen.battle-bg-shinkai::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_shinkai_v01.webp?v=20260706-shinkai1");
+}
+
+/* 深海の神殿 ぬし戦 */
+#battle-screen.battle-bg-shinkai-boss::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_shinkai_boss_v01.webp?v=20260706-shinkai1");
+}
+
 .section-tag {
   font-size: 10px;
   font-weight: bold;

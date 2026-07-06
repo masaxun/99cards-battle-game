@@ -296,6 +296,12 @@
       normal2: "assets/images/enemies/griffin/enemy_normal2_griffin_fire_v01.png",
       normal3: "assets/images/enemies/titan/enemy_normal3_titan_fire_v01.png",
       boss:    "assets/images/enemies/behemoth/enemy_boss_behemoth_fire_v01.png"
+    },
+    shinkai: {
+      normal1: "assets/images/enemies/wolf/enemy_normal1_wolf_water_v01.png",
+      normal2: "assets/images/enemies/griffin/enemy_normal2_griffin_water_v01.png",
+      normal3: "assets/images/enemies/titan/enemy_normal3_titan_water_v01.png",
+      boss:    "assets/images/enemies/behemoth/enemy_boss_behemoth_water_v01.png"
     }
   };
   var STAGE_FALLBACK_SPRITES = { normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉" };
@@ -308,7 +314,8 @@
     sazanami: { normal1: "アクアスライム",   normal2: "シズクモリ",   normal3: "ナミゴーレム" },
     kodai:    { normal1: "ウルフ",           normal2: "グリフォン",   normal3: "タイタン",    boss: "ベヒーモス" },
     mayoi:    { normal1: "モスウルフ",       normal2: "リーフグリフォン", normal3: "フォレストタイタン" },
-    shakunetsu: { normal1: "フレイムウルフ", normal2: "フレアグリフォン", normal3: "マグマタイタン" }
+    shakunetsu: { normal1: "フレイムウルフ", normal2: "フレアグリフォン", normal3: "マグマタイタン" },
+    shinkai:  { normal1: "アクアウルフ",     normal2: "シーグリフォン", normal3: "コーラルタイタン" }
   };
 
   function getEnemyName(areaDef, stage) {
@@ -529,7 +536,8 @@
       "battle-bg-sazanami", "battle-bg-sazanami-boss",
       "battle-bg-kodai",    "battle-bg-kodai-boss",
       "battle-bg-mayoi",    "battle-bg-mayoi-boss",
-      "battle-bg-shakunetsu", "battle-bg-shakunetsu-boss"
+      "battle-bg-shakunetsu", "battle-bg-shakunetsu-boss",
+      "battle-bg-shinkai",  "battle-bg-shinkai-boss"
     );
     var isBoss = (stage === "boss");
     if (areaId === "hajimari") {
@@ -546,6 +554,8 @@
       el.classList.add(isBoss ? "battle-bg-mayoi-boss" : "battle-bg-mayoi");
     } else if (areaId === "shakunetsu") {
       el.classList.add(isBoss ? "battle-bg-shakunetsu-boss" : "battle-bg-shakunetsu");
+    } else if (areaId === "shinkai") {
+      el.classList.add(isBoss ? "battle-bg-shinkai-boss" : "battle-bg-shinkai");
     }
   }
 

@@ -105,7 +105,7 @@
       playerElement: "grass",
       enemyHp: { normal1: 260, normal2: 340, normal3: 420, boss: 720 },
       requiredBossAreaIds: ["sazanami"],
-      implemented: false,
+      implemented: true,
       mapPosition: { row: 1, col: 3 }
     },
     {
