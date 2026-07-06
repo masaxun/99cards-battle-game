@@ -77,7 +77,7 @@
       enemyType: "grass",
       weakness: "fire",
       playerElement: "fire",
-      enemyHp: { normal1: 220, normal2: 280, normal3: 340, boss: 580 },
+      enemyHp: { normal1: 270, normal2: 320, normal3: 380, boss: 590 },
       requiredBossAreaIds: ["soyokaze"],
       implemented: true,
       mapPosition: { row: 1, col: 1 }
@@ -90,7 +90,7 @@
       enemyType: "fire",
       weakness: "water",
       playerElement: "water",
-      enemyHp: { normal1: 240, normal2: 310, normal3: 380, boss: 650 },
+      enemyHp: { normal1: 340, normal2: 420, normal3: 510, boss: 880 },
       requiredBossAreaIds: ["neppa"],
       implemented: true,
       mapPosition: { row: 1, col: 2 }
@@ -103,7 +103,7 @@
       enemyType: "water",
       weakness: "grass",
       playerElement: "grass",
-      enemyHp: { normal1: 260, normal2: 340, normal3: 420, boss: 720 },
+      enemyHp: { normal1: 380, normal2: 480, normal3: 580, boss: 1000 },
       requiredBossAreaIds: ["sazanami"],
       implemented: true,
       mapPosition: { row: 1, col: 3 }
