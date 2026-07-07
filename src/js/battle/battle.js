@@ -119,10 +119,11 @@
     return probs[probs.length - 1].type;
   }
 
-  // 会心率: sub(回復)は0、add(足し算)は5%、mul(かけ算)は1を含む場合に高率
+  // 会心率: sub(回復)は0、add(足し算)は5%、ホーリー(1×1)は100%、mul(かけ算)は1を含む場合に高率
   function getCriticalRate(card) {
     if (card.kind === "sub") return 0;
     if (card.kind === "add") return 0.05;
+    if (isHolyCard(card)) return 1.0;
     var a = card.a, b = card.b;
     var hasOne = (a === 1 || b === 1);
     if (!hasOne) return 0.05;
@@ -139,6 +140,13 @@
 
   function isMeteorCard(card) {
     return card.kind === "mul" && card.a === 9 && card.b === 9;
+  }
+
+  // ホーリー専用属性ボーナス: 通常の弱点属性計算とは別枠（会心100%化とあわせて none:21 / grass・fire・water:31〜32 / dark:42 相当になる）
+  var HOLY_BASE_DAMAGE = 21;
+  var HOLY_BONUS_RATE = { none: 0, grass: 0.5, fire: 0.5, water: 0.5, dark: 1.0 };
+  function getHolyBonusRate(enemyType) {
+    return HOLY_BONUS_RATE.hasOwnProperty(enemyType) ? HOLY_BONUS_RATE[enemyType] : 0;
   }
 
   // ============================================================
@@ -488,7 +496,7 @@
         var openingBonus = hadOpening && card.kind === "mul" && card.dan === session.areaDef.dan;
         var openingBonusAmount = openingBonus ? Math.round(baseRawDamage * 0.5) : 0;
 
-        // 会心判定: +10ダメージ（ホーリー1×1は2回判定）
+        // 会心判定: +10ダメージ（ホーリー1×1は会心確定・2回判定）
         var critRate = getCriticalRate(card);
         var isHoly = isHolyCard(card);
         var isMeteor = isMeteorCard(card);
@@ -501,6 +509,10 @@
         var critical = criticalCount > 0;
         var criticalBonusAmount = criticalCount * 10;
 
+        // ホーリー専用属性ボーナス: 通常の弱点計算(weaknessBonusAmount)とは別枠。敵タイプ(enemyType)基準。
+        var holyBonusRate = isHoly ? getHolyBonusRate(session.areaDef.enemyType) : 0;
+        var holyBonusAmount = isHoly ? Math.round(HOLY_BASE_DAMAGE * holyBonusRate) : 0;
+
         // ガード軽減: 会心より先に適用（メテオ9×9はガードを貫通するが、ガード状態は消費する）
         var guardActive = session.enemyState.guard;
         var guardMult = 1.0;
@@ -509,10 +521,10 @@
         }
         clearGuardAfterPlayerAction(session);
 
-        // 会心ボーナスはガード後に加算（ガードで会心の気持ちよさを削らない）
+        // 会心ボーナス・ホーリー属性ボーナスはガード後に加算（ガードで気持ちよさを削らない）
         var preGuardDamage = baseRawDamage + weaknessBonusAmount + comboBonusAmount + openingBonusAmount;
         var guardedDamage = Math.round(preGuardDamage * guardMult);
-        var finalDamage = guardedDamage + criticalBonusAmount;
+        var finalDamage = guardedDamage + criticalBonusAmount + holyBonusAmount;
         if (finalDamage < 1) finalDamage = 1;
         var guardReductionAmount = guardActive && !isMeteor ? preGuardDamage - guardedDamage : 0;
 
@@ -535,6 +547,8 @@
             openingBonus: openingBonus,
             openingBonusAmount: openingBonusAmount,
             holy: isHoly,
+            holyBonusRate: holyBonusRate,
+            holyBonusAmount: holyBonusAmount,
             criticalCount: criticalCount,
             critical: critical,
             criticalRate: critRate,

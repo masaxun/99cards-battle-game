@@ -2226,6 +2226,9 @@
     if (bd.criticalBonusAmount > 0) {
       parts.push((bd.holy ? "ホーリー会心+" : "会心+") + bd.criticalBonusAmount);
     }
+    if (bd.holy && bd.holyBonusAmount > 0) {
+      parts.push("ホーリー属性+" + bd.holyBonusAmount);
+    }
     if (bd.comboBonusAmount > 0) {
       parts.push("コンボ+" + bd.comboBonusAmount);
     }
