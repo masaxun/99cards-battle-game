@@ -34,11 +34,24 @@
 
   var STAGE_ORDER = ["normal1", "normal2", "normal3", "boss"];
 
+  // 漆黒の塔は9ステージ構成のため専用の並び順を持つ。現在は低層4戦のみ実装。
+  var STAGE_ORDER_BY_AREA = {
+    shikkoku: ["stage1", "stage2", "stage3", "stage4"]
+  };
+
+  function getStageOrderForArea(areaDef) {
+    return (areaDef && STAGE_ORDER_BY_AREA[areaDef.id]) || STAGE_ORDER;
+  }
+
   var STAGE_LABEL = {
     normal1: "通常戦 1",
     normal2: "通常戦 2",
     normal3: "通常戦 3",
-    boss:    "ぬし戦"
+    boss:    "ぬし戦",
+    stage1:  "第1戦",
+    stage2:  "第2戦",
+    stage3:  "第3戦",
+    stage4:  "第4戦"
   };
 
   var STAGE_ENEMY_NAMES = {
@@ -49,7 +62,8 @@
     kodai:    { normal1: "ウルフ",           normal2: "グリフォン",   normal3: "タイタン",    boss: "ベヒーモス" },
     mayoi:    { normal1: "モスウルフ",       normal2: "リーフグリフォン", normal3: "フォレストタイタン" },
     shakunetsu: { normal1: "フレイムウルフ", normal2: "フレアグリフォン", normal3: "マグマタイタン" },
-    shinkai:  { normal1: "アクアウルフ",     normal2: "シーグリフォン", normal3: "コーラルタイタン" }
+    shinkai:  { normal1: "アクアウルフ",     normal2: "シーグリフォン", normal3: "コーラルタイタン" },
+    shikkoku: { stage1: "シャドウスライム",  stage2: "シャドウバット", stage3: "ダークゴーレム", stage4: "ダークドラゴン" }
   };
 
   function getStageEnemyName(areaDef, stage) {
@@ -76,14 +90,14 @@
   }
 
   // ステージが「解放済み」かを判定する
-  // bossCleared 済みなら全ステージ解放
-  function isUnlocked(stage, progress) {
+  // bossCleared 済みなら全ステージ解放。それ以外は stageOrder 上の直前ステージのクリア状況を見る。
+  function isUnlocked(stage, progress, stageOrder) {
     if (progress.bossCleared) return true;
-    if (stage === "normal1") return true;
-    if (stage === "normal2") return !!(progress.normalCleared && progress.normalCleared.normal1);
-    if (stage === "normal3") return !!(progress.normalCleared && progress.normalCleared.normal2);
-    if (stage === "boss")    return !!(progress.normalCleared && progress.normalCleared.normal3);
-    return false;
+    var idx = stageOrder.indexOf(stage);
+    if (idx <= 0) return true;
+    var prevStage = stageOrder[idx - 1];
+    if (prevStage === "boss") return !!progress.bossCleared;
+    return !!(progress.normalCleared && progress.normalCleared[prevStage]);
   }
 
   function isCleared(stage, progress) {
@@ -94,9 +108,10 @@
   function renderStageList(areaDef, progress) {
     var listEl = document.getElementById("stage-list");
     listEl.innerHTML = "";
+    var stageOrder = getStageOrderForArea(areaDef);
 
-    STAGE_ORDER.forEach(function (stage) {
-      var unlocked = isUnlocked(stage, progress);
+    stageOrder.forEach(function (stage) {
+      var unlocked = isUnlocked(stage, progress, stageOrder);
       var cleared  = isCleared(stage, progress);
 
       var card = document.createElement("div");

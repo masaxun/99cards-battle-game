@@ -70,6 +70,35 @@
       { type: "powerUp",    weight: 22 },
       { type: "opening",    weight: 4 },
       { type: "intimidate", weight: 15 }
+    ],
+    // 漆黒の塔 低層4戦（2026-07-09）。フォールバックに頼らず個別定義。闇侵食・闇バリアは未実装のため素の行動傾向のみ。
+    stage1: [  // シャドウスライム: 上級normal1相当のバランス型
+      { type: "counter",    weight: 34 },
+      { type: "guard",      weight: 20 },
+      { type: "opening",    weight: 16 },
+      { type: "powerUp",    weight: 15 },
+      { type: "intimidate", weight: 15 }
+    ],
+    stage2: [  // シャドウバット: 上級normal2相当の攻撃寄り
+      { type: "counter",    weight: 38 },
+      { type: "guard",      weight: 17 },
+      { type: "opening",    weight: 12 },
+      { type: "powerUp",    weight: 18 },
+      { type: "intimidate", weight: 15 }
+    ],
+    stage3: [  // ダークゴーレム: 上級normal3相当のガード・力ため強め
+      { type: "counter",    weight: 30 },
+      { type: "guard",      weight: 29 },
+      { type: "powerUp",    weight: 22 },
+      { type: "opening",    weight: 4 },
+      { type: "intimidate", weight: 15 }
+    ],
+    stage4: [  // ダークドラゴン: 低層の締め。normal3よりやや攻撃的だがboss未満に抑制
+      { type: "counter",    weight: 36 },
+      { type: "guard",      weight: 24 },
+      { type: "powerUp",    weight: 22 },
+      { type: "opening",    weight: 3 },
+      { type: "intimidate", weight: 15 }
     ]
   };
 

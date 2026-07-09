@@ -259,7 +259,9 @@
   function buildDeck(areaDef, stageType) {
     var isBoss = stageType === "boss";
     var isAdvanced = areaDef.rank === "upper" || areaDef.rank === "last";
-    var comp = isBoss ? BOSS_COMPOSITION : NORMAL_COMPOSITION;
+    var comp = isBoss
+      ? (areaDef.bossDeckComposition || BOSS_COMPOSITION)
+      : (areaDef.normalDeckComposition || NORMAL_COMPOSITION);
     var cards = [];
     cards = cards.concat(buildTargetDanCards(areaDef.dan, comp.target, isBoss));
     cards = cards.concat(buildOtherElementCards(areaDef, comp.other, isBoss));
