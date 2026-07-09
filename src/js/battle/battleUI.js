@@ -22,6 +22,9 @@
   var bgmAudio = null;
   var battleStarted = false;
   var burnAgeMap = {};
+  var darkCorruptAgeMap = {};
+  var corruptFinalFlashUidMap = {};
+  var newlyHolyUidMap = {};
   var newCardUidMap = {};
   var usedCardUidMap = {};
   var waveCounter = 0;
@@ -804,6 +807,27 @@
         }
       }
 
+      // 闇侵食オーバーレイ（闇属性エリアのみ、1×1ホーリーは対象外）
+      // 通常はage(1〜4)に応じてdark01〜04。変化直前フラッシュ中(corruptFinalFlashUidMap)だけdark05+corrupting-out。
+      if (isDarkArea() && !isHolyCard(card)) {
+        var inFinalFlash = card.uid in corruptFinalFlashUidMap;
+        var rawCorruptAge = darkCorruptAgeMap[card.uid] || 0;
+        var visualCorruptAge = inFinalFlash ? 5 : getDarkCorruptVisualAge(rawCorruptAge);
+        if (visualCorruptAge >= 1) {
+          var corruptDiv = document.createElement("div");
+          corruptDiv.className = "card-corrupt-overlay corrupt-age-" + visualCorruptAge + " corrupt-fade-in";
+          div.appendChild(corruptDiv);
+        }
+        if (inFinalFlash) {
+          div.classList.add("card-corrupting-out");
+        }
+      }
+
+      // ホーリー化演出（闇侵食で1×1ホーリーに変化した直後、白く発光）
+      if (card.uid in newlyHolyUidMap) {
+        div.classList.add("card-holy-transform-flash");
+      }
+
       // 補充カード演出（燃え尽き後の新規補充カード）
       // newCardUidMap には 0 始まりの順序インデックスが入るため in 演算子で存在確認
       if (card.uid in newCardUidMap) {
@@ -1468,6 +1492,189 @@
   }
 
   // ============================================================
+  // 闇侵食ギミック（闇属性エリア専用）
+  // burnAgeMap/processBurnouts と同じ構造だが、かけ算カードは消滅ではなく
+  // その場で弱化（またはホーリー化）する点が火属性と異なる。
+  // ============================================================
+
+  function isDarkArea() {
+    return session && session.areaDef.enemyType === "dark";
+  }
+
+  // 低層(stage1〜stage4)は共通で4（＝4ターンかけて吸収される）。高層・ボスでの短縮は未実装（将来検討、要件定義書セクション70参照）。
+  function getDarkCorruptThreshold() {
+    return 4;
+  }
+
+  // age1〜4はdark01〜04を安定表示。dark05（変化直前フラッシュ）は markCorruptionFinalFlash() 側で
+  // corruptFinalFlashUidMap に載ったカードだけに個別適用するため、ここではage4で頭打ちにする。
+  function getDarkCorruptVisualAge(age) {
+    if (age <= 0) return 0;
+    var threshold = getDarkCorruptThreshold();
+    return Math.min(age, threshold);
+  }
+
+  // カード使用後、手札に残っている侵食対象カードの age を+1する。1×1ホーリーは対象外（侵食されない）。
+  function ageDarkCorruptCards(prePlayUids) {
+    session.hand.forEach(function (card) {
+      if (isHolyCard(card)) {
+        delete darkCorruptAgeMap[card.uid];
+        return;
+      }
+      if (prePlayUids[card.uid]) {
+        darkCorruptAgeMap[card.uid] = (darkCorruptAgeMap[card.uid] || 0) + 1;
+      } else {
+        // 山札から補充されてきた新カード → age 0
+        darkCorruptAgeMap[card.uid] = 0;
+      }
+    });
+    var handUids = {};
+    session.hand.forEach(function (c) { handUids[c.uid] = true; });
+    Object.keys(darkCorruptAgeMap).forEach(function (uid) {
+      if (!handUids[uid]) delete darkCorruptAgeMap[uid];
+    });
+  }
+
+  function hasCorruptions() {
+    var threshold = getDarkCorruptThreshold();
+    var keys = Object.keys(darkCorruptAgeMap);
+    for (var i = 0; i < keys.length; i++) {
+      if (darkCorruptAgeMap[keys[i]] >= threshold) return true;
+    }
+    return false;
+  }
+
+  // 閾値到達カードを「変化直前フラッシュ（dark05 + card-corrupting-out）」表示に切り替える。
+  // 4ターン目はdark04を表示済みのため、変化処理の直前だけ短時間dark05へ差し替える。
+  function markCorruptionFinalFlash() {
+    var threshold = getDarkCorruptThreshold();
+    corruptFinalFlashUidMap = {};
+    session.hand.forEach(function (card) {
+      if ((darkCorruptAgeMap[card.uid] || 0) >= threshold) {
+        corruptFinalFlashUidMap[card.uid] = true;
+      }
+    });
+  }
+
+  // 侵食が閾値に達したカードを処理する。
+  // かけ算カード: 同一uid・同一スロットのまま弱化（またはホーリー化）。age は 0 にリセットして再侵食に備える。
+  // 引き算カード: 消滅し、同一スロットへ山札から補充（山札切れならスロット除去）。
+  function processCorruptions() {
+    var threshold = getDarkCorruptThreshold();
+    var weakenedCount = 0, holyCount = 0, vanishedCount = 0;
+    var vanishedSlots = [];
+
+    session.hand.forEach(function (card, index) {
+      if (!card) return;
+      if ((darkCorruptAgeMap[card.uid] || 0) < threshold) return;
+
+      if (card.kind === "mul") {
+        var becameHoly = Cards.corruptMulCard(card);
+        darkCorruptAgeMap[card.uid] = 0;
+        if (becameHoly) {
+          holyCount++;
+          newlyHolyUidMap[card.uid] = true;
+        } else {
+          weakenedCount++;
+        }
+      } else if (card.kind === "sub") {
+        vanishedSlots.push({ uid: card.uid, index: index });
+      }
+    });
+
+    vanishedSlots.forEach(function (slot) {
+      delete darkCorruptAgeMap[slot.uid];
+    });
+
+    if (vanishedSlots.length > 0) {
+      newCardUidMap = {};
+      var dealOrder = 0;
+      vanishedSlots.forEach(function (slot) {
+        if (session.deck.length > 0) {
+          var newCard = session.deck.shift();
+          session.hand[slot.index] = newCard;
+          darkCorruptAgeMap[newCard.uid] = 0;
+          newCardUidMap[newCard.uid] = dealOrder;
+          dealOrder++;
+        } else {
+          session.hand[slot.index] = null;
+        }
+        vanishedCount++;
+      });
+      session.hand = session.hand.filter(function (c) { return c !== null; });
+      setTimeout(function () { newCardUidMap = {}; }, 600);
+    }
+
+    if (holyCount > 0) {
+      setTimeout(function () { newlyHolyUidMap = {}; }, 900);
+    }
+
+    if (!session.ended && session.deck.length === 0 && session.hand.length === 0) {
+      session.ended = true;
+      session.outcome = session.stage === "boss" ? "lose" : "retreat";
+    }
+
+    corruptFinalFlashUidMap = {};
+    return { weakenedCount: weakenedCount, holyCount: holyCount, vanishedCount: vanishedCount };
+  }
+
+  function buildCorruptionMessage(result) {
+    var parts = [];
+    if (result.holyCount > 0) {
+      parts.push(result.holyCount > 1 ? "闇から" + result.holyCount + "枚のホーリーが生まれた！" : "闇からホーリーが生まれた！");
+    }
+    if (result.weakenedCount > 0) {
+      parts.push(result.weakenedCount > 1 ? result.weakenedCount + "枚のカードの力が闇に吸われた…" : "カードの力が闇に吸われた…");
+    }
+    if (result.vanishedCount > 0) {
+      parts.push(result.vanishedCount > 1 ? result.vanishedCount + "枚の回復カードが闇に飲まれた！" : "回復カードが闇に飲まれた！");
+    }
+    return parts.length > 0 ? "🌑 " + parts.join(" ") : "";
+  }
+
+  // 火属性の燃え尽き／闇属性の侵食、どちらか該当する方の1100ms処理を実行してから続行する。
+  // 両エリアは enemyType が排他のため同時に走ることはない。
+  function processPendingCardTransformAndContinue(continueFn) {
+    if (isFireArea() && hasBurnouts()) {
+      setTimeout(function () {
+        var burnCount = processBurnouts();
+        var burnMsg = burnCount > 1
+          ? "🔥 " + burnCount + "枚のカードが燃え尽きた！"
+          : "🔥 カードが燃え尽きた！";
+        showInfoFeedback(burnMsg);
+        renderHand();
+        renderPlayerSection();
+        if (session.ended) {
+          scheduleEnd();
+          return;
+        }
+        continueFn();
+      }, 1100);
+    } else if (isDarkArea() && hasCorruptions()) {
+      // 2段階タイミング：dark04表示（既にrender済み）を600ms見せた後、変化直前フラッシュ(dark05)を500ms見せてから変化させる。
+      // 合計1100msは火属性の燃え尽きと同じ演出尺。
+      setTimeout(function () {
+        markCorruptionFinalFlash();
+        renderHand();
+        setTimeout(function () {
+          var corruptResult = processCorruptions();
+          var msg = buildCorruptionMessage(corruptResult);
+          if (msg) showInfoFeedback(msg);
+          renderHand();
+          renderPlayerSection();
+          if (session.ended) {
+            scheduleEnd();
+            return;
+          }
+          continueFn();
+        }, 500);
+      }, 600);
+    } else {
+      continueFn();
+    }
+  }
+
+  // ============================================================
   // 波ギミック（水属性エリア専用）
   // ============================================================
 
@@ -1636,9 +1843,9 @@
 
     interactionLocked = true;
 
-    // 火属性エリア：playCard 呼び出し前に手札の残存カード UID を記録
+    // 火属性/闇属性エリア：playCard 呼び出し前に手札の残存カード UID を記録
     var prePlayUids = {};
-    if (isFireArea()) {
+    if (isFireArea() || isDarkArea()) {
       session.hand.forEach(function (c) {
         if (c.uid !== uid) prePlayUids[c.uid] = true;
       });
@@ -1725,13 +1932,15 @@
       playPlayerDamageFeedback();
     }
 
-    // 炎上エイジング（火属性エリアのみ）
+    // 炎上/闇侵食エイジング（火属性/闇属性エリアのみ）
     if (isFireArea()) {
       ageBurnCards(prePlayUids);
+    } else if (isDarkArea()) {
+      ageDarkCorruptCards(prePlayUids);
     }
 
     enemyStateEffectsVisible = false;
-    render(); // burnAge 5 があれば burn05 オーバーレイが表示される
+    render(); // burnAge/darkCorruptAge が閾値ならそれぞれ burn05/dark05 オーバーレイが表示される
 
     if (result.enemyRegen) {
       renderEnemyHPValue(result.enemyRegen.beforeHp, session.enemyMaxHp);
@@ -1814,67 +2023,18 @@
       }, regenPresent ? 800 : 1100);
     }
 
-    // 燃え尽き処理（burn05 + card-burning-out を 1100ms 表示後に除外・補充）
+    // 燃え尽き/闇侵食処理（burn05/dark05 を 1100ms 表示後に除外・補充・弱化）
     // ホーリー/メテオ発動時は演出完了後に続行
     if (isHolyHit) {
       playHolyUltimateEffect(function () {
-        if (isFireArea() && hasBurnouts()) {
-          setTimeout(function () {
-            var burnCount = processBurnouts();
-            var burnMsg = burnCount > 1
-              ? "🔥 " + burnCount + "枚のカードが燃え尽きた！"
-              : "🔥 カードが燃え尽きた！";
-            showInfoFeedback(burnMsg);
-            renderHand();
-            renderPlayerSection();
-            if (session.ended) {
-              scheduleEnd();
-              return;
-            }
-            continueEnemyAction();
-          }, 1100);
-        } else {
-          continueEnemyAction();
-        }
+        processPendingCardTransformAndContinue(continueEnemyAction);
       });
     } else if (isMeteorHit) {
       playMeteorUltimateEffect(function () {
-        if (isFireArea() && hasBurnouts()) {
-          setTimeout(function () {
-            var burnCount = processBurnouts();
-            var burnMsg = burnCount > 1
-              ? "🔥 " + burnCount + "枚のカードが燃え尽きた！"
-              : "🔥 カードが燃え尽きた！";
-            showInfoFeedback(burnMsg);
-            renderHand();
-            renderPlayerSection();
-            if (session.ended) {
-              scheduleEnd();
-              return;
-            }
-            continueEnemyAction();
-          }, 1100);
-        } else {
-          continueEnemyAction();
-        }
+        processPendingCardTransformAndContinue(continueEnemyAction);
       });
-    } else if (isFireArea() && hasBurnouts()) {
-      setTimeout(function () {
-        var burnCount = processBurnouts();
-        var burnMsg = burnCount > 1
-          ? "🔥 " + burnCount + "枚のカードが燃え尽きた！"
-          : "🔥 カードが燃え尽きた！";
-        showInfoFeedback(burnMsg);
-        renderHand();
-        renderPlayerSection();
-        if (session.ended) {
-          scheduleEnd();
-          return;
-        }
-        continueEnemyAction();
-      }, 1100);
     } else {
-      continueEnemyAction();
+      processPendingCardTransformAndContinue(continueEnemyAction);
     }
   }
 
@@ -1934,6 +2094,9 @@
     // 火属性エリア：手札に戻るカードの burnAge を破棄
     if (isFireArea()) {
       session.hand.forEach(function (c) { delete burnAgeMap[c.uid]; });
+    } else if (isDarkArea()) {
+      session.hand.forEach(function (c) { delete darkCorruptAgeMap[c.uid]; });
+      corruptFinalFlashUidMap = {};
     }
 
     playSE("buttonDecide");
@@ -1943,6 +2106,9 @@
     // 火属性エリア：新しい手札は burnAge 0（手札交換直後は進めない）
     if (isFireArea()) {
       session.hand.forEach(function (c) { burnAgeMap[c.uid] = 0; });
+    } else if (isDarkArea()) {
+      // 1×1ホーリーは侵食対象外のため age を持たせない
+      session.hand.forEach(function (c) { if (!isHolyCard(c)) darkCorruptAgeMap[c.uid] = 0; });
     }
 
     showInfoFeedback("手札を入れ替えた（ハート-1）");

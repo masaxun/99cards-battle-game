@@ -366,6 +366,12 @@
       }
 
       // 制約チェック付き抽選（最大10回リトライ）
+      // 設計メモ（未実装・アビスウォール本体実装時に対応予定）：
+      // 漆黒の塔でアビスウォール（闇バリア）が未破壊の間は、通常ガードとの役割重複・演出の重なりを避けるため
+      // guard を候補から除外する想定。ここに
+      //   if (candidate === "guard" && session.enemyState.abyssWallActive) continue;
+      // のような1行を追加できる構造にしてある（テーブル自体からguardを削除せず、抽選時の制約として実装する）。
+      // 要件定義書セクション70参照。
       chosen = "none";
       for (var t = 0; t < 10; t++) {
         var candidate = weightedRandom(probs);

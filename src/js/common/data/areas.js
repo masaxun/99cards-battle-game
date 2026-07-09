@@ -118,8 +118,8 @@
       playerElement: "light",
       // 低層4戦のみ実装（2026-07-09）。高層(stage5-8)・最上階(boss)は未実装のため意図的に未登録。
       enemyHp: { stage1: 260, stage2: 340, stage3: 430, stage4: 540 },
-      // 低層は9の段中心・足し算カードなし（要件定義書セクション70参照）。高層・ボスは未定義のため通常構成にフォールバック。
-      normalDeckComposition: { target: 18, other: 8, add: 0, sub: 4 },
+      // 低層は9の段中心・足し算カードなし・1×1ホーリー保証枠あり（要件定義書セクション70参照）。高層・ボスは未定義のため通常構成にフォールバック。
+      normalDeckComposition: { target: 18, holy: 1, other: 7, add: 0, sub: 4 },
       requiredBossAreaIds: ["kodai", "mayoi", "shakunetsu", "shinkai"],
       implemented: true,
       mapPosition: { row: 0, col: 1.5 }

@@ -704,8 +704,10 @@ body {
   pointer-events: none;
 }
 
-/* 燃え尽き演出・補充演出中は opacity を強制的に 1 に（interactionLocked でも見える） */
+/* 燃え尽き演出・侵食演出・補充演出中は opacity を強制的に 1 に（interactionLocked でも見える） */
 .card.card-burning-out,
+.card.card-corrupting-out,
+.card.card-holy-transform-flash,
 .card.card-new-dealt {
   opacity: 1 !important;
 }
@@ -1234,6 +1236,111 @@ body {
 .card.card-replaced-after-use {
   opacity: 1 !important;
   animation: kf-card-replaced-after-use 0.55s ease-out forwards;
+}
+
+/* ============================================================
+   闇侵食オーバーレイ（闇属性エリア：card-corrupt-overlay）
+   炎上オーバーレイと同じレイヤー構造（z-index 2、::after で z-index 2 の発光）。
+   1×1ホーリーはこの演出の対象外（呼び出し側で除外済み）。
+   ============================================================ */
+
+.card > .card-corrupt-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border-radius: 6px;
+  z-index: 2;
+  opacity: 0;
+}
+
+.card-corrupt-overlay.corrupt-age-1 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_corrupt_dark01_v01.png?v=20260709-corrupt1");
+  opacity: 1;
+}
+.card-corrupt-overlay.corrupt-age-2 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_corrupt_dark02_v01.png?v=20260709-corrupt1");
+  opacity: 1;
+}
+.card-corrupt-overlay.corrupt-age-3 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_corrupt_dark03_v01.png?v=20260709-corrupt1");
+  opacity: 1;
+}
+.card-corrupt-overlay.corrupt-age-4 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_corrupt_dark04_v01.png?v=20260709-corrupt1");
+  opacity: 1;
+}
+.card-corrupt-overlay.corrupt-age-5 {
+  background-image: url("../../assets/images/cards/backgrounds/card_bg_corrupt_dark05_v01.png?v=20260709-corrupt1");
+  opacity: 1;
+}
+
+.card-corrupt-overlay.corrupt-fade-in {
+  animation: kf-burn-fade-in 0.22s ease forwards;
+}
+
+@keyframes kf-card-corrupting-out {
+  0% {
+    transform: scale(1);
+    filter: none;
+  }
+  20% {
+    transform: scale(1.04) rotate(1deg);
+    filter: brightness(0.95) saturate(0.8);
+  }
+  50% {
+    transform: scale(1.00) rotate(-1deg);
+    filter: brightness(0.80) saturate(0.6);
+  }
+  75% {
+    transform: scale(0.97);
+    filter: brightness(0.68) saturate(0.4);
+  }
+  100% {
+    transform: scale(0.94);
+    filter: brightness(0.55) saturate(0.3);
+  }
+}
+
+@keyframes kf-card-corrupting-glow {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.40; }
+  100% { opacity: 0.68; }
+}
+
+.card.card-corrupting-out {
+  animation: kf-card-corrupting-out 1.1s ease forwards;
+}
+
+/* 侵食中カードの紫黒発光オーバーレイ（corrupt-age-5 より上、テキストより下） */
+.card.card-corrupting-out::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, rgba(110, 20, 160, 0.38), rgba(0, 0, 0, 0.55));
+  border-radius: 6px;
+  pointer-events: none;
+  animation: kf-card-corrupting-glow 1.1s ease forwards;
+}
+
+/* ホーリー化演出：闇侵食で1×1ホーリーに変化した直後、カード全体を白〜金色にフラッシュ */
+@keyframes kf-card-holy-transform-flash {
+  0%   { opacity: 0; }
+  35%  { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+.card.card-holy-transform-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.95), rgba(255, 215, 120, 0.65) 60%, transparent 100%);
+  border-radius: 6px;
+  pointer-events: none;
+  animation: kf-card-holy-transform-flash 0.85s ease-out forwards;
 }
 
 /* ============================================================

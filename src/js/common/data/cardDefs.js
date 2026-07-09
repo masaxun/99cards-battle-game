@@ -31,6 +31,24 @@
     return a + "x" + b;
   }
 
+  // 闇侵食（漆黒の塔専用）: bを1下げる。b=1のカードが侵食されるとa/bとも1（1×1ホーリー）になる。
+  // 呼び出し側で1×1ホーリー自体は対象から除外すること（このカードにこれ以上侵食はない）。
+  // uidは呼び出し側の手札スロットを維持するため、このカードを直接書き換える（新規カードは生成しない）。
+  function corruptMulCard(card) {
+    if (card.b <= 1) {
+      card.a = 1;
+      card.b = 1;
+    } else {
+      card.b -= 1;
+    }
+    card.answer = card.a * card.b;
+    card.element = elementForDan(card.a);
+    card.rank = rankForDan(card.a);
+    card.dan = card.a;
+    card.factKey = factKeyForMul(card.a, card.b);
+    return card.a === 1 && card.b === 1; // 今回の侵食でホーリーになったか
+  }
+
   function randomInt(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
   }
@@ -239,6 +257,35 @@
     return cards;
   }
 
+  // 1×1ホーリー保証枠（漆黒の塔専用）
+  function buildHolyCards(count) {
+    var cards = [];
+    for (var i = 0; i < count; i++) {
+      cards.push(createMulCard(1, 1));
+    }
+    return cards;
+  }
+
+  // 漆黒の塔専用 other枠: アビスウォール（異なる段で破壊）を見据え、5〜8の段を優先して1枚以上ずつ入れる。
+  // 残りは2〜4の段から抽選。1の段（1×1ホーリー保証枠と役割重複・低火力）と9の段（target枠で十分）は原則除外。
+  var SHIKKOKU_OTHER_PRIORITY_DANS = [5, 6, 7, 8];
+  var SHIKKOKU_OTHER_FILLER_DANS = [2, 3, 4];
+
+  function buildShikkokuOtherCards(count, isBoss) {
+    var dans = [];
+    for (var i = 0; i < SHIKKOKU_OTHER_PRIORITY_DANS.length && dans.length < count; i++) {
+      dans.push(SHIKKOKU_OTHER_PRIORITY_DANS[i]);
+    }
+    while (dans.length < count) {
+      dans.push(SHIKKOKU_OTHER_FILLER_DANS[randomInt(0, SHIKKOKU_OTHER_FILLER_DANS.length - 1)]);
+    }
+    dans = shuffleArray(dans);
+    return dans.map(function (dan) {
+      var factor = isBoss ? getBossWeightedFactor() : randomInt(1, 9);
+      return createMulCard(dan, factor);
+    });
+  }
+
   function buildAddCards(count, isAdvanced) {
     var cards = [];
     for (var i = 0; i < count; i++) {
@@ -264,7 +311,15 @@
       : (areaDef.normalDeckComposition || NORMAL_COMPOSITION);
     var cards = [];
     cards = cards.concat(buildTargetDanCards(areaDef.dan, comp.target, isBoss));
-    cards = cards.concat(buildOtherElementCards(areaDef, comp.other, isBoss));
+    if (comp.holy) {
+      cards = cards.concat(buildHolyCards(comp.holy));
+    }
+    if (areaDef.id === "shikkoku") {
+      // 漆黒の塔専用: other枠は段・属性がばらけるよう専用ロジックで生成（既存8エリアには影響しない）
+      cards = cards.concat(buildShikkokuOtherCards(comp.other, isBoss));
+    } else {
+      cards = cards.concat(buildOtherElementCards(areaDef, comp.other, isBoss));
+    }
     cards = cards.concat(buildAddCards(comp.add, isAdvanced));
     cards = cards.concat(buildSubCards(comp.sub, isAdvanced));
     return shuffleArray(cards);
@@ -308,6 +363,7 @@
     createAddCard: createAddCard,
     createSubCard: createSubCard,
     regenerateAsPinch: regenerateAsPinch,
+    corruptMulCard: corruptMulCard,
     buildDeck: buildDeck,
     calcDamage: calcDamage,
     getComboMultiplier: getComboMultiplier,
