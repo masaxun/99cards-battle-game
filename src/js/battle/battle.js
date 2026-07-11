@@ -99,6 +99,35 @@
       { type: "powerUp",    weight: 22 },
       { type: "opening",    weight: 3 },
       { type: "intimidate", weight: 15 }
+    ],
+    // 漆黒の塔 高層4戦（2026-07-12）。アビスウォールの存在感を強めるため低層よりguard/counterの比重を高めに調整。
+    stage5: [  // ナイトウルフ: normal1よりやや強め
+      { type: "counter",    weight: 36 },
+      { type: "guard",      weight: 18 },
+      { type: "opening",    weight: 12 },
+      { type: "powerUp",    weight: 18 },
+      { type: "intimidate", weight: 16 }
+    ],
+    stage6: [  // ナイトグリフォン: normal2より攻撃寄り
+      { type: "counter",    weight: 40 },
+      { type: "guard",      weight: 15 },
+      { type: "opening",    weight: 10 },
+      { type: "powerUp",    weight: 20 },
+      { type: "intimidate", weight: 15 }
+    ],
+    stage7: [  // アビスタイタン: normal3より重め
+      { type: "counter",    weight: 34 },
+      { type: "guard",      weight: 24 },
+      { type: "opening",    weight: 4 },
+      { type: "powerUp",    weight: 24 },
+      { type: "intimidate", weight: 14 }
+    ],
+    stage8: [  // アビスベヒーモス: 高層締め。ボス寄りだがstage扱い（bossAttackではなくcounter）
+      { type: "counter",    weight: 38 },
+      { type: "guard",      weight: 18 },
+      { type: "opening",    weight: 6 },
+      { type: "powerUp",    weight: 20 },
+      { type: "intimidate", weight: 18 }
     ]
   };
 
@@ -182,9 +211,9 @@
   // セッション生成
   // ============================================================
 
-  // アビスウォール破壊に必要な異なる段数。stage4=2種類版。将来stage8/bossで3種類版を想定（テーブルに追加するだけで拡張可）。
+  // アビスウォール破壊に必要な異なる段数。stage4〜stage7=2種類版、stage8=3種類版。将来bossで3種類版を想定（テーブルに追加するだけで拡張可）。
   var ABYSS_WALL_REQUIRED_COUNT = {
-    shikkoku: { stage4: 2 }
+    shikkoku: { stage4: 2, stage5: 2, stage6: 2, stage7: 2, stage8: 3 }
   };
 
   function getAbyssWallRequiredCount(areaDef, stage) {

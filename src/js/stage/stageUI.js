@@ -34,9 +34,9 @@
 
   var STAGE_ORDER = ["normal1", "normal2", "normal3", "boss"];
 
-  // 漆黒の塔は9ステージ構成のため専用の並び順を持つ。現在は低層4戦のみ実装。
+  // 漆黒の塔は9ステージ構成のため専用の並び順を持つ。低層4戦＋高層4戦を実装済み。最上階(boss)は未実装。
   var STAGE_ORDER_BY_AREA = {
-    shikkoku: ["stage1", "stage2", "stage3", "stage4"]
+    shikkoku: ["stage1", "stage2", "stage3", "stage4", "stage5", "stage6", "stage7", "stage8"]
   };
 
   function getStageOrderForArea(areaDef) {
@@ -51,7 +51,11 @@
     stage1:  "第1戦",
     stage2:  "第2戦",
     stage3:  "第3戦",
-    stage4:  "第4戦"
+    stage4:  "第4戦",
+    stage5:  "第5戦",
+    stage6:  "第6戦",
+    stage7:  "第7戦",
+    stage8:  "第8戦"
   };
 
   var STAGE_ENEMY_NAMES = {
@@ -63,7 +67,10 @@
     mayoi:    { normal1: "モスウルフ",       normal2: "リーフグリフォン", normal3: "フォレストタイタン" },
     shakunetsu: { normal1: "フレイムウルフ", normal2: "フレアグリフォン", normal3: "マグマタイタン" },
     shinkai:  { normal1: "アクアウルフ",     normal2: "シーグリフォン", normal3: "コーラルタイタン" },
-    shikkoku: { stage1: "シャドウスライム",  stage2: "シャドウバット", stage3: "ダークゴーレム", stage4: "ダークドラゴン" }
+    shikkoku: {
+      stage1: "シャドウスライム",  stage2: "シャドウバット", stage3: "ダークゴーレム", stage4: "ダークドラゴン",
+      stage5: "ナイトウルフ",      stage6: "ナイトグリフォン", stage7: "アビスタイタン", stage8: "アビスベヒーモス"
+    }
   };
 
   function getStageEnemyName(areaDef, stage) {

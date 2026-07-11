@@ -157,9 +157,14 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_shinkai_boss_v01.webp?v=20260706-shinkai1");
 }
 
-/* 漆黒の塔 低層（第1〜4戦共通）。高層・最上階背景は未実装のため未使用。 */
+/* 漆黒の塔 低層（第1〜4戦共通） */
 #battle-screen.battle-bg-shikkoku-low::before {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_low_v01.webp?v=20260709-shikkoku1");
+}
+
+/* 漆黒の塔 高層（第5〜8戦共通）。最上階背景は未実装のため未使用。 */
+#battle-screen.battle-bg-shikkoku-high::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_high_v01.webp?v=20260712-shikkoku-high1");
 }
 
 .section-tag {

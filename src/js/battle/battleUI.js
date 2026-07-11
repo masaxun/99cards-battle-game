@@ -84,11 +84,13 @@
     boss:           { src: "assets/audio/bgm/bgm_battle_boss_v01.mp3",                                  volume: 0.24 },
     advancedNormal: { src: "assets/audio/bgm/bgm_battle_advanced_normal_v01.mp3?v=20260703-kodai2",     volume: 0.24 },
     advancedBoss:   { src: "assets/audio/bgm/bgm_battle_advanced_boss_v01.mp3?v=20260703-kodai2",       volume: 0.24 },
-    shikkokuLow:    { src: "assets/audio/bgm/bgm_battle_black_tower_lower_v01.mp3",                     volume: 0.24 }
-    // 高層(shikkokuHigh)・最上階(shikkokuTop)用BGMは制作中のため未登録
+    shikkokuLow:    { src: "assets/audio/bgm/bgm_battle_black_tower_lower_v01.mp3",                     volume: 0.24 },
+    shikkokuHigh:   { src: "assets/audio/bgm/bgm_battle_black_tower_upper_v01.mp3",                     volume: 0.24 }
+    // 最上階(shikkokuTop)用BGMは制作中のため未登録
   };
 
   var SHIKKOKU_LOW_STAGES = { stage1: true, stage2: true, stage3: true, stage4: true };
+  var SHIKKOKU_HIGH_STAGES = { stage5: true, stage6: true, stage7: true, stage8: true };
 
   function isAdvancedArea(areaDef) {
     return areaDef && (areaDef.rank === "upper" || areaDef.rank === "last");
@@ -97,6 +99,9 @@
   function getBgmKeyForStage(stage, areaDef) {
     if (areaDef && areaDef.id === "shikkoku" && SHIKKOKU_LOW_STAGES[stage]) {
       return "shikkokuLow";
+    }
+    if (areaDef && areaDef.id === "shikkoku" && SHIKKOKU_HIGH_STAGES[stage]) {
+      return "shikkokuHigh";
     }
     var advanced = isAdvancedArea(areaDef);
     if (stage === "boss") return advanced ? "advancedBoss" : "boss";
@@ -329,12 +334,17 @@
       stage1: "assets/images/enemies/slime/enemy_normal1_slime_dark_v01.png",
       stage2: "assets/images/enemies/bat/enemy_normal2_bat_dark_v01.png",
       stage3: "assets/images/enemies/golem/enemy_normal3_golem_dark_v01.png",
-      stage4: "assets/images/enemies/dragon/enemy_boss_dragon_dark_v01.png"
+      stage4: "assets/images/enemies/dragon/enemy_boss_dragon_dark_v01.png",
+      stage5: "assets/images/enemies/wolf/enemy_normal1_wolf_dark_v01.png",
+      stage6: "assets/images/enemies/griffin/enemy_normal2_griffin_dark_v01.png",
+      stage7: "assets/images/enemies/titan/enemy_normal3_titan_dark_v01.png",
+      stage8: "assets/images/enemies/behemoth/enemy_boss_behemoth_dark_v01.png"
     }
   };
   var STAGE_FALLBACK_SPRITES = {
     normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉",
-    stage1: "👻", stage2: "🦇", stage3: "🪨", stage4: "🐲"
+    stage1: "👻", stage2: "🦇", stage3: "🪨", stage4: "🐲",
+    stage5: "🐺", stage6: "🦅", stage7: "🗿", stage8: "👹"
   };
   var STAGE_LABELS  = { normal1: "通常戦1", normal2: "通常戦2", normal3: "通常戦3", boss: "ぬし戦" };
 
@@ -347,7 +357,10 @@
     mayoi:    { normal1: "モスウルフ",       normal2: "リーフグリフォン", normal3: "フォレストタイタン" },
     shakunetsu: { normal1: "フレイムウルフ", normal2: "フレアグリフォン", normal3: "マグマタイタン" },
     shinkai:  { normal1: "アクアウルフ",     normal2: "シーグリフォン", normal3: "コーラルタイタン" },
-    shikkoku: { stage1: "シャドウスライム",  stage2: "シャドウバット", stage3: "ダークゴーレム", stage4: "ダークドラゴン" }
+    shikkoku: {
+      stage1: "シャドウスライム",  stage2: "シャドウバット", stage3: "ダークゴーレム", stage4: "ダークドラゴン",
+      stage5: "ナイトウルフ",      stage6: "ナイトグリフォン", stage7: "アビスタイタン", stage8: "アビスベヒーモス"
+    }
   };
 
   function getEnemyName(areaDef, stage) {
@@ -378,7 +391,11 @@
     stage1:  "Battle 1",
     stage2:  "Battle 2",
     stage3:  "Battle 3",
-    stage4:  "Battle 4"
+    stage4:  "Battle 4",
+    stage5:  "Battle 5",
+    stage6:  "Battle 6",
+    stage7:  "Battle 7",
+    stage8:  "Battle 8"
   };
 
   var AREA_DESCRIPTIONS = {
@@ -574,7 +591,7 @@
       "battle-bg-mayoi",    "battle-bg-mayoi-boss",
       "battle-bg-shakunetsu", "battle-bg-shakunetsu-boss",
       "battle-bg-shinkai",  "battle-bg-shinkai-boss",
-      "battle-bg-shikkoku-low"
+      "battle-bg-shikkoku-low", "battle-bg-shikkoku-high"
     );
     var isBoss = (stage === "boss");
     if (areaId === "hajimari") {
@@ -594,8 +611,11 @@
     } else if (areaId === "shinkai") {
       el.classList.add(isBoss ? "battle-bg-shinkai-boss" : "battle-bg-shinkai");
     } else if (areaId === "shikkoku" && SHIKKOKU_LOW_STAGES[stage]) {
-      // 低層4戦は背景1種のみ（高層・最上階の背景素材は今回未使用）
+      // 低層4戦は背景1種のみ
       el.classList.add("battle-bg-shikkoku-low");
+    } else if (areaId === "shikkoku" && SHIKKOKU_HIGH_STAGES[stage]) {
+      // 高層4戦も背景1種のみ（最上階の背景素材は今回未使用）
+      el.classList.add("battle-bg-shikkoku-high");
     }
   }
 
@@ -632,7 +652,8 @@
     var section = document.getElementById("enemy-sprite-section");
     section.classList.remove(
       "enemy-stage-normal1", "enemy-stage-normal2", "enemy-stage-normal3", "enemy-stage-boss",
-      "enemy-stage-stage1", "enemy-stage-stage2", "enemy-stage-stage3", "enemy-stage-stage4"
+      "enemy-stage-stage1", "enemy-stage-stage2", "enemy-stage-stage3", "enemy-stage-stage4",
+      "enemy-stage-stage5", "enemy-stage-stage6", "enemy-stage-stage7", "enemy-stage-stage8"
     );
     section.classList.add("enemy-stage-" + stage);
     section.classList.remove("enemy-rank-lower", "enemy-rank-upper", "enemy-rank-last");
@@ -2351,10 +2372,14 @@
 
   function getNextStage(stage, areaDef) {
     if (areaDef && areaDef.id === "shikkoku") {
-      // 低層4戦のみ実装中。stage4の次(高層stage5)は未実装のためnullを返す。
+      // 低層4戦＋高層4戦を実装済み。stage8の次(最上階boss)は未実装のためnullを返す。
       if (stage === "stage1") return "stage2";
       if (stage === "stage2") return "stage3";
       if (stage === "stage3") return "stage4";
+      if (stage === "stage4") return "stage5";
+      if (stage === "stage5") return "stage6";
+      if (stage === "stage6") return "stage7";
+      if (stage === "stage7") return "stage8";
       return null;
     }
     if (stage === "normal1") return "normal2";
@@ -2627,10 +2652,14 @@
 
     var stageLabel, nextHint;
     if (areaId === "shikkoku") {
-      // 低層4戦のみ実装中。「通常戦N/3」形式ではなく要件定義書セクション70の「第N戦」表記に合わせる。
-      var shikkokuNum = { stage1: 1, stage2: 2, stage3: 3, stage4: 4 }[stage] || 1;
+      // 低層4戦＋高層4戦を実装済み。「通常戦N/3」形式ではなく要件定義書セクション70の「第N戦」表記に合わせる。
+      var shikkokuNumMap = { stage1: 1, stage2: 2, stage3: 3, stage4: 4, stage5: 5, stage6: 6, stage7: 7, stage8: 8 };
+      var shikkokuNum = shikkokuNumMap[stage] || 1;
+      var isShikkokuHigh = SHIKKOKU_HIGH_STAGES[stage];
+      var shikkokuTierNum = isShikkokuHigh ? shikkokuNum - 4 : shikkokuNum;
+      var shikkokuTierLabel = isShikkokuHigh ? "高層" : "低層";
       if (outcome === "win") {
-        stageLabel = "第" + shikkokuNum + "戦 クリア（低層 " + shikkokuNum + " / 4）";
+        stageLabel = "第" + shikkokuNum + "戦 クリア（" + shikkokuTierLabel + " " + shikkokuTierNum + " / 4）";
       } else {
         stageLabel = "第" + shikkokuNum + "戦 で撤退";
       }
