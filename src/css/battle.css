@@ -364,6 +364,8 @@ body {
   top: 50%;
   width: 145%;
   height: 145%;
+  max-width: 335px;
+  max-height: 335px;
   object-fit: contain;
   pointer-events: none;
   display: block;
@@ -406,6 +408,14 @@ body {
   animation: kf-abyss-wall-breaking 0.6s ease-in forwards;
 }
 
+/* 敵画像を拡大しても(漆黒の塔高層など)アビスウォールが連動して巨大化しすぎないよう上限を設ける */
+@media (max-width: 440px) {
+  .enemy-abyss-wall-effect {
+    max-width: 320px;
+    max-height: 320px;
+  }
+}
+
 .enemy-image {
   max-width: 190px;
   max-height: 190px;
@@ -443,6 +453,22 @@ body {
   max-height: 260px;
 }
 
+/* 漆黒の塔 高層(stage5〜8)は、内部ステージキーが"boss"ではないため通常のenemy-rank-lastサイズ(230px)しか
+   受け取らない。stage1〜4(低層)より一回り大きく見せるため、high層のみ個別に拡大する。
+   アビスウォール(.enemy-abyss-wall-effect)は#enemy-sprite-wrapの幅(fit-content)に対する%指定のため、
+   ここを拡大すると連動して巨大化してしまう点に注意（上のmax-width/max-heightクランプで抑制済み）。 */
+#enemy-sprite-section.enemy-rank-last.enemy-stage-stage5 .enemy-image,
+#enemy-sprite-section.enemy-rank-last.enemy-stage-stage6 .enemy-image,
+#enemy-sprite-section.enemy-rank-last.enemy-stage-stage7 .enemy-image {
+  max-width: 260px;
+  max-height: 260px;
+}
+
+#enemy-sprite-section.enemy-rank-last.enemy-stage-stage8 .enemy-image {
+  max-width: 300px;
+  max-height: 300px;
+}
+
 @media (max-width: 440px) {
   #enemy-sprite-section.enemy-rank-upper .enemy-image,
   #enemy-sprite-section.enemy-rank-last .enemy-image {
@@ -464,6 +490,18 @@ body {
   #enemy-sprite-section.enemy-rank-upper.enemy-stage-normal3 .enemy-image {
     max-width: 248px;
     max-height: 248px;
+  }
+
+  #enemy-sprite-section.enemy-rank-last.enemy-stage-stage5 .enemy-image,
+  #enemy-sprite-section.enemy-rank-last.enemy-stage-stage6 .enemy-image,
+  #enemy-sprite-section.enemy-rank-last.enemy-stage-stage7 .enemy-image {
+    max-width: 240px;
+    max-height: 240px;
+  }
+
+  #enemy-sprite-section.enemy-rank-last.enemy-stage-stage8 .enemy-image {
+    max-width: 270px;
+    max-height: 270px;
   }
 }
 
