@@ -708,6 +708,7 @@ body {
 .card.card-burning-out,
 .card.card-corrupting-out,
 .card.card-holy-transform-flash,
+.card.card-dark-weaken-flash,
 .card.card-new-dealt {
   opacity: 1 !important;
 }
@@ -1341,6 +1342,47 @@ body {
   border-radius: 6px;
   pointer-events: none;
   animation: kf-card-holy-transform-flash 0.85s ease-out forwards;
+}
+
+/* 闇侵食の弱化/消滅演出：ホーリー化とは別枠の黒紫フラッシュ（変化直後のカードに重ねる。中の数式は既に新しい値） */
+@keyframes kf-card-dark-weaken-flash {
+  0%   { opacity: 0.95; }
+  50%  { opacity: 0.65; }
+  100% { opacity: 0; }
+}
+
+.card.card-dark-weaken-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(ellipse at center, rgba(150, 30, 210, 0.85), rgba(8, 0, 18, 0.92) 70%);
+  border-radius: 6px;
+  pointer-events: none;
+  animation: kf-card-dark-weaken-flash 0.5s ease-out forwards;
+}
+
+/* ============================================================
+   特殊カード発光（ホーリー／メテオ）
+   背景画像は変更せず、外枠のbox-shadowのみ薄く常時パルスさせる。
+   ============================================================ */
+
+@keyframes kf-card-special-glow-holy {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(255, 235, 150, 0.45); }
+  50%      { box-shadow: 0 0 11px 3px rgba(255, 215, 100, 0.75); }
+}
+
+@keyframes kf-card-special-glow-meteor {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(255, 120, 40, 0.45); }
+  50%      { box-shadow: 0 0 11px 3px rgba(255, 80, 20, 0.75); }
+}
+
+.card.card-special-holy {
+  animation: kf-card-special-glow-holy 2.2s ease-in-out infinite;
+}
+
+.card.card-special-meteor {
+  animation: kf-card-special-glow-meteor 2.2s ease-in-out infinite;
 }
 
 /* ============================================================

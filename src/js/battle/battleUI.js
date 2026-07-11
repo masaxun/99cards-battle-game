@@ -25,6 +25,8 @@
   var darkCorruptAgeMap = {};
   var corruptFinalFlashUidMap = {};
   var newlyHolyUidMap = {};
+  var darkWeakenedUidMap = {};
+  var darkVanishedFlashUidMap = {};
   var newCardUidMap = {};
   var usedCardUidMap = {};
   var waveCounter = 0;
@@ -375,7 +377,7 @@
     fire:  "🔥 手札のカードが少しずつ燃えていく！\n燃え尽きる前にカードを使おう！",
     water: "🌊 数ターンごとに波が手札を流す！\n使いたいカードは早めに使おう！",
     light: "カードをえらんで、バトルスタート！",
-    dark:  "カードをえらんで、バトルスタート！"
+    dark:  "🌑 闇が手札の力を吸い取る！\n同じカードを残し続けると、ホーリー以外は弱くなったり消えたりする！"
   };
 
   var ELEMENT_FLASH_CLASS = {
@@ -784,6 +786,15 @@
         classes.push("card-bg-heal");
       }
 
+      // 特殊カード発光（背景画像は変えず、外枠の薄い発光のみ上乗せ）
+      if (card.kind === "mul") {
+        if (isHolyCard(card)) {
+          classes.push("card-special-holy");
+        } else if (isMeteorCard(card)) {
+          classes.push("card-special-meteor");
+        }
+      }
+
       if (card.uid === selectedCardUid) classes.push("card-selected");
       if (locked) classes.push("card-disabled");
       if (isIntimidateLocked) classes.push("card-intimidate-locked");
@@ -826,6 +837,11 @@
       // ホーリー化演出（闇侵食で1×1ホーリーに変化した直後、白く発光）
       if (card.uid in newlyHolyUidMap) {
         div.classList.add("card-holy-transform-flash");
+      }
+
+      // 闇侵食の弱化/消滅（補充）演出（黒紫フラッシュ。ホーリー化とは別枠のため重ならない）
+      if (card.uid in darkWeakenedUidMap || card.uid in darkVanishedFlashUidMap) {
+        div.classList.add("card-dark-weaken-flash");
       }
 
       // 補充カード演出（燃え尽き後の新規補充カード）
@@ -986,7 +1002,7 @@
 
   function cardBadgeText(card) {
     if (card.kind === "mul") {
-      if (isHolyCard(card)) return "✨ ホーリー";
+      if (isHolyCard(card)) return "🌟 ホーリー";
       if (isMeteorCard(card)) return "☄️ メテオ";
       var icon = ELEMENT_ICONS[card.element] || "✨";
       return icon + " 必殺";
@@ -1018,7 +1034,7 @@
 
   function buildCardDescription(card) {
     if (card.kind === "mul") {
-      if (isHolyCard(card)) return "✨ 1×1 ホーリー！ 会心判定が2回！";
+      if (isHolyCard(card)) return "🌟 1×1 ホーリー！ 会心判定が2回！";
       if (isMeteorCard(card)) return "☄️ 9×9 メテオ！ 敵のガードを貫通！";
       var ename = ELEMENT_NAMES[card.element] || "無属性";
       return ename + "の必殺技で攻撃";
@@ -1576,6 +1592,7 @@
           newlyHolyUidMap[card.uid] = true;
         } else {
           weakenedCount++;
+          darkWeakenedUidMap[card.uid] = true;
         }
       } else if (card.kind === "sub") {
         vanishedSlots.push({ uid: card.uid, index: index });
@@ -1595,6 +1612,7 @@
           session.hand[slot.index] = newCard;
           darkCorruptAgeMap[newCard.uid] = 0;
           newCardUidMap[newCard.uid] = dealOrder;
+          darkVanishedFlashUidMap[newCard.uid] = true; // 消滅→補充された枠に黒紫フラッシュを重ねる
           dealOrder++;
         } else {
           session.hand[slot.index] = null;
@@ -1607,6 +1625,9 @@
 
     if (holyCount > 0) {
       setTimeout(function () { newlyHolyUidMap = {}; }, 900);
+    }
+    if (weakenedCount > 0 || vanishedCount > 0) {
+      setTimeout(function () { darkWeakenedUidMap = {}; darkVanishedFlashUidMap = {}; }, 700);
     }
 
     if (!session.ended && session.deck.length === 0 && session.hand.length === 0) {
@@ -2097,6 +2118,8 @@
     } else if (isDarkArea()) {
       session.hand.forEach(function (c) { delete darkCorruptAgeMap[c.uid]; });
       corruptFinalFlashUidMap = {};
+      darkWeakenedUidMap = {};
+      darkVanishedFlashUidMap = {};
     }
 
     playSE("buttonDecide");
