@@ -804,6 +804,24 @@
 
       div.className = classes.join(" ");
 
+      // 特殊/上級カードoverlay（属性背景の上、闇侵食/炎上オーバーレイの下）。
+      // ホーリー/メテオは専用overlayを優先し、上級overlayとは重ねない。背景画像自体は変更しない。
+      if (card.kind === "mul") {
+        var rarityOverlayClass = null;
+        if (isHolyCard(card)) {
+          rarityOverlayClass = "card-overlay-holy";
+        } else if (isMeteorCard(card)) {
+          rarityOverlayClass = "card-overlay-meteor";
+        } else if (card.rank === "upper") {
+          rarityOverlayClass = "card-overlay-upper";
+        }
+        if (rarityOverlayClass) {
+          var rarityDiv = document.createElement("div");
+          rarityDiv.className = "card-rarity-overlay " + rarityOverlayClass;
+          div.appendChild(rarityDiv);
+        }
+      }
+
       // 炎上オーバーレイ（火属性エリアのみ、burnAge 1 以上）
       if (isFireArea()) {
         var rawAge = burnAgeMap[card.uid] || 0;

@@ -1116,11 +1116,36 @@ body {
 
 /*
  * レイヤー順（.card 内 stacking context）
- *   z-index: 3  .card-badge / .card-formula （数式・バッジ）
- *   z-index: 2  .card-burn-overlay / .card.card-burning-out::after （炎上画像・赤黒発光）
- *   z-index: 1  .card::before （可読性確保の黒オーバーレイ）
+ *   z-index: 4  .card-intimidate-lock （威嚇ロックの×表示）
+ *   z-index: 3  .card-badge / .card-formula / 各種フラッシュ演出::after （数式・バッジ・変化フラッシュ）
+ *   z-index: 2  .card-burn-overlay / .card-corrupt-overlay / それぞれの ::after 発光（炎上・闇侵食）
+ *   z-index: 1  .card-rarity-overlay （特殊/上級overlay。card::before と同z-indexだがDOM順で上に重なる）
+ *   z-index: 1  .card::before （可読性確保の黒オーバーレイ。generated contentのため実質最背面扱い）
  *   z-index: 0  カード背景画像
  */
+
+/* 特殊/上級カードoverlay（card_overlay_holy/meteor/upper）。属性背景は変更せず上に重ねるだけ。 */
+.card > .card-rarity-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  border-radius: 6px;
+  z-index: 1;
+}
+
+.card-overlay-holy {
+  background-image: url("../../assets/images/cards/overlays/card_overlay_holy_v01.png?v=20260711-cardoverlay1");
+}
+.card-overlay-meteor {
+  background-image: url("../../assets/images/cards/overlays/card_overlay_meteor_v01.png?v=20260711-cardoverlay1");
+}
+.card-overlay-upper {
+  background-image: url("../../assets/images/cards/overlays/card_overlay_upper_v01.png?v=20260711-cardoverlay1");
+  opacity: 0.9;
+}
 
 /* .card > * の z-index:1 を上書きして絶対配置・z-index:2 にする */
 .card > .card-burn-overlay {
