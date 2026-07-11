@@ -347,6 +347,60 @@ body {
   opacity: 0.75;
 }
 
+/* ============================================================
+   アビスウォール（漆黒の塔専用・防御ギミック）
+   通常ガード(#enemy-effect-front)・力ためとは別要素。敵の前面〜半前面に表示し、
+   ダメージポップ(z7)より下、隙あり/威嚇/攻撃エフェクト(z4)と同層に配置する。
+   ============================================================ */
+
+.enemy-abyss-wall-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 145%;
+  height: 145%;
+  object-fit: contain;
+  pointer-events: none;
+  display: block;
+  z-index: 4;
+}
+
+.enemy-abyss-wall-effect.abyss-wall-visible {
+  transform: translate(-50%, -50%);
+  opacity: 0.78; /* 敵が見えづらい場合は実機確認後に 0.62〜0.70 へ調整する想定 */
+}
+
+/* 登場演出：闇のエネルギーの渦から下側にせり出してくる印象（下から立ち上がる+一瞬のオーバーシュート） */
+@keyframes kf-abyss-wall-summon {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -35%) translateY(32px) scale(0.92);
+  }
+  60% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) translateY(-4px) scale(1.04);
+  }
+  100% {
+    opacity: 0.78;
+    transform: translate(-50%, -50%) translateY(0) scale(1);
+  }
+}
+
+.enemy-abyss-wall-effect.abyss-wall-summon {
+  animation: kf-abyss-wall-summon 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 破壊演出：05（限界間近）を短く見せてから消える想定（非表示化はJS側のsetTimeoutで制御） */
+@keyframes kf-abyss-wall-breaking {
+  0%   { opacity: 0.78; transform: translate(-50%, -50%) scale(1); }
+  30%  { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.14); }
+}
+
+.enemy-abyss-wall-effect.abyss-wall-breaking {
+  animation: kf-abyss-wall-breaking 0.6s ease-in forwards;
+}
+
 .enemy-image {
   max-width: 190px;
   max-height: 190px;

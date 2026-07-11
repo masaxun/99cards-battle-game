@@ -182,6 +182,16 @@
   // セッション生成
   // ============================================================
 
+  // アビスウォール破壊に必要な異なる段数。stage4=2種類版。将来stage8/bossで3種類版を想定（テーブルに追加するだけで拡張可）。
+  var ABYSS_WALL_REQUIRED_COUNT = {
+    shikkoku: { stage4: 2 }
+  };
+
+  function getAbyssWallRequiredCount(areaDef, stage) {
+    var areaTable = ABYSS_WALL_REQUIRED_COUNT[areaDef.id];
+    return (areaTable && areaTable[stage]) || 0;
+  }
+
   function createBattleSession(areaDef, stage, gameState) {
     var stageType = stage === "boss" ? "boss" : "normal";
     var deck = Cards.buildDeck(areaDef, stageType);
@@ -190,6 +200,8 @@
       hand.push(deck.shift());
     }
     var enemyHp = areaDef.enemyHp[stage];
+
+    var abyssWallRequired = getAbyssWallRequiredCount(areaDef, stage);
 
     return {
       areaDef: areaDef,
@@ -210,7 +222,14 @@
         powerUp: false,    // ボス専用: 次のボス攻撃を強化
         opening: false,    // 次のプレイヤー行動1回だけ有効
         lastActionWasCounter: false,  // ザコ反撃連続防止
-        intimidateLocked: []  // 威嚇でロック中の手札uid（上級敵専用）
+        intimidateLocked: [],  // 威嚇でロック中の手札uid（上級敵専用）
+        // アビスウォール（漆黒の塔専用）。active な間のみ機能する。requiredCount=0のエリア/ステージではnull。
+        abyssWall: abyssWallRequired > 0 ? {
+          active: true,
+          requiredCount: abyssWallRequired,
+          usedDans: [],    // 正解済みの異なる段（重複追加しない）
+          broken: false    // requiredCount分そろったら true（以後復活しない）
+        } : null
       },
       pendingAttack: null, // { question, kind:"boss"|"counter", powered:bool }
       battleLog: [],
@@ -237,6 +256,35 @@
   // ガードは「次のプレイヤー行動1回」で消費される一時防御。メテオ貫通時も消費する。
   function clearGuardAfterPlayerAction(session) {
     session.enemyState.guard = false;
+  }
+
+  // アビスウォール軽減: 未破壊なら最終ダメージを70%軽減（最終ダメージの30%を通す、最低1）。
+  // 通常ガードとは別種の防御のため、メテオ・ホーリーであっても軽減を受ける（両者を貫通しない）。
+  // かけ算カードで初めて使う段はusedDansへ追加し、requiredCountに達したらbrokenにする（復活しない）。
+  // 引き算・足し算カードはカウントに寄与しない（このカードが呼ばれるのはmul/addの攻撃時のみ）。
+  function applyAbyssWallDefense(session, card, finalDamage) {
+    var wall = session.enemyState.abyssWall;
+    if (!wall || !wall.active || wall.broken) {
+      return { finalDamage: finalDamage, reduced: false, reductionAmount: 0, newDan: false, justBroken: false };
+    }
+    var reducedDamage = finalDamage > 0 ? Math.max(1, Math.ceil(finalDamage * 0.3)) : 0;
+    var newDan = false;
+    var justBroken = false;
+    if (card.kind === "mul" && wall.usedDans.indexOf(card.dan) === -1) {
+      wall.usedDans.push(card.dan);
+      newDan = true;
+      if (wall.usedDans.length >= wall.requiredCount) {
+        wall.broken = true;
+        justBroken = true;
+      }
+    }
+    return {
+      finalDamage: reducedDamage,
+      reduced: true,
+      reductionAmount: finalDamage - reducedDamage,
+      newDan: newDan,
+      justBroken: justBroken
+    };
   }
 
   function refillHand(session) {
@@ -366,16 +414,13 @@
       }
 
       // 制約チェック付き抽選（最大10回リトライ）
-      // 設計メモ（未実装・アビスウォール本体実装時に対応予定）：
-      // 漆黒の塔でアビスウォール（闇バリア）が未破壊の間は、通常ガードとの役割重複・演出の重なりを避けるため
-      // guard を候補から除外する想定。ここに
-      //   if (candidate === "guard" && session.enemyState.abyssWallActive) continue;
-      // のような1行を追加できる構造にしてある（テーブル自体からguardを削除せず、抽選時の制約として実装する）。
-      // 要件定義書セクション70参照。
+      // アビスウォール未破壊中は、通常ガードとの役割重複・演出の重なりを避けるため guard を候補から除外する
+      // （テーブル自体からguardを削除せず、抽選時の制約として実装。破壊後は通常どおりguardを選べる）。
+      var abyssWallBlocksGuard = !!(state.abyssWall && state.abyssWall.active && !state.abyssWall.broken);
       chosen = "none";
       for (var t = 0; t < 10; t++) {
         var candidate = weightedRandom(probs);
-        if (candidate === "guard"      && state.guard)   continue;
+        if (candidate === "guard"      && (state.guard || abyssWallBlocksGuard)) continue;
         if (candidate === "opening"    && state.opening) continue;
         if (candidate === "powerUp"    && state.powerUp) continue;
         if (candidate === "intimidate" && (state.intimidateLocked.length > 0 || session.hand.length < 2)) continue;
@@ -563,6 +608,10 @@
         if (finalDamage < 1) finalDamage = 1;
         var guardReductionAmount = guardActive && !isMeteor ? preGuardDamage - guardedDamage : 0;
 
+        // アビスウォール軽減（通常ガードとは別枠。メテオ・ホーリーも軽減対象、ダメージ計算の最後段で適用）
+        var abyssWallResult = applyAbyssWallDefense(session, card, finalDamage);
+        finalDamage = abyssWallResult.finalDamage;
+
         session.enemyHp = Math.max(0, session.enemyHp - finalDamage);
         logEntry = buildLogEntry(card, true, answerInput, {
           damage: finalDamage,
@@ -593,6 +642,11 @@
             guardActive: guardActive,
             guardMult: guardMult,
             guardReductionAmount: guardReductionAmount,
+            abyssWallReduced: abyssWallResult.reduced,
+            abyssWallReductionAmount: abyssWallResult.reductionAmount,
+            abyssWallNewDan: abyssWallResult.newDan,
+            abyssWallJustBroken: abyssWallResult.justBroken,
+            abyssWallDan: card.dan,
             finalDamage: finalDamage
           }
         });

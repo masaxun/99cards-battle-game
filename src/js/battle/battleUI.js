@@ -27,6 +27,8 @@
   var newlyHolyUidMap = {};
   var darkWeakenedUidMap = {};
   var darkVanishedFlashUidMap = {};
+  var abyssWallSummoned = false;
+  var abyssWallBrokenAnimated = false;
   var newCardUidMap = {};
   var usedCardUidMap = {};
   var waveCounter = 0;
@@ -61,7 +63,8 @@
     holyUltimate:   { src: "assets/audio/se/se_holy_ultimate_v01.mp3",        volume: 0.70 },
     meteorUltimate: { src: "assets/audio/se/se_meteor_ultimate_v01.mp3",     volume: 0.70 },
     enemyIntimidateNormal: { src: "assets/audio/se/se_enemy_intimidate_v01.mp3", volume: 0.60 },
-    enemyIntimidateBoss:   { src: "assets/audio/se/se_boss_intimidate_v01.mp3",  volume: 0.65 }
+    enemyIntimidateBoss:   { src: "assets/audio/se/se_boss_intimidate_v01.mp3",  volume: 0.65 },
+    abyssWall:             { src: "assets/audio/se/se_abyss_wall_v01.mp3",       volume: 0.65 }
   };
 
   function playSE(name) {
@@ -201,6 +204,13 @@
   // session作成後・バトル開始モーダル表示時に呼ぶ（ユーザー操作不要）
   function preloadBattleImages() {
     BATTLE_PRELOAD_IMAGES.forEach(preloadImage);
+    // アビスウォール画像は容量が大きいため、実際に使うステージ（アビスウォール有効時）のみ追加プリロードする
+    if (session.enemyState.abyssWall && session.enemyState.abyssWall.active) {
+      Object.keys(ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED).forEach(function (key) {
+        ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED[key].forEach(preloadImage);
+      });
+      preloadImage(ABYSS_WALL_BREAK_IMAGE);
+    }
   }
 
   function preloadAudio(src) {
@@ -673,10 +683,14 @@
     if (session.enemyState.powerUp) badges.push("🔥 力ため");
     if (session.enemyState.opening) badges.push("✨ 隙あり");
     if (session.enemyState.intimidateLocked && session.enemyState.intimidateLocked.length > 0) badges.push("😤 威嚇中");
+    if (session.enemyState.abyssWall && session.enemyState.abyssWall.active && !session.enemyState.abyssWall.broken) {
+      badges.push("🧱 アビスウォール");
+    }
     badgesEl.textContent = badges.join("  ");
     badgesEl.className = badges.length > 0 ? "badges-visible" : "";
 
     renderEnemyEffects();
+    renderAbyssWallEffect();
   }
 
   function renderEnemyEffects() {
@@ -720,6 +734,90 @@
         openingEl.removeAttribute("src");
       }
     }
+  }
+
+  // ============================================================
+  // アビスウォール（漆黒の塔専用・防御ギミック）
+  // ============================================================
+
+  // 破壊に必要な段数ごとの画像段階（0種正解〜requiredCount-1種正解まで）。
+  // 破壊直前・破壊演出（最終段）は共通で05を使う（triggerAbyssWallBreak参照）。
+  // 3種類版（将来のstage8/boss）は配列にもう1エントリ追加するだけで拡張できる。
+  var ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED = {
+    2: [
+      "assets/images/effects/effect_enemy_abyss_wall01_v01.png", // 0種正解（未破壊）
+      "assets/images/effects/effect_enemy_abyss_wall03_v01.png"  // 1種正解
+    ],
+    3: [
+      "assets/images/effects/effect_enemy_abyss_wall01_v01.png", // 0種正解（未破壊）
+      "assets/images/effects/effect_enemy_abyss_wall02_v01.png", // 1種正解
+      "assets/images/effects/effect_enemy_abyss_wall04_v01.png"  // 2種正解
+    ]
+  };
+  var ABYSS_WALL_BREAK_IMAGE = "assets/images/effects/effect_enemy_abyss_wall05_v01.png";
+
+  function getAbyssWallStageImage(wall) {
+    var stages = ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED[wall.requiredCount] || ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED[2];
+    var idx = Math.min(wall.usedDans.length, stages.length - 1);
+    return stages[idx];
+  }
+
+  // 通常描画（毎render時に呼ぶ）。summon演出・破壊演出はそれぞれ専用関数が一度だけ制御する。
+  function renderAbyssWallEffect() {
+    var el = document.getElementById("enemy-abyss-wall-effect");
+    if (!el) return;
+    var wall = session.enemyState.abyssWall;
+
+    if (!wall || !wall.active || !abyssWallSummoned) {
+      el.className = "enemy-abyss-wall-effect hidden";
+      el.removeAttribute("src");
+      return;
+    }
+
+    if (wall.broken) {
+      // 破壊演出は triggerAbyssWallBreak() が一度だけ制御する。未着手ならここで起動する。
+      if (!abyssWallBrokenAnimated) {
+        triggerAbyssWallBreak();
+      }
+      return; // 表示中のclassName/srcは triggerAbyssWallBreak 側のタイマーに委ねる
+    }
+
+    el.src = getAbyssWallStageImage(wall);
+    el.className = "enemy-abyss-wall-effect abyss-wall-visible";
+  }
+
+  // START直後に一度だけ呼ぶ：下からせり出す登場演出
+  function triggerAbyssWallSummon() {
+    var wall = session.enemyState.abyssWall;
+    if (!wall || !wall.active || abyssWallSummoned) return;
+    abyssWallSummoned = true;
+    var el = document.getElementById("enemy-abyss-wall-effect");
+    if (!el) return;
+    el.src = getAbyssWallStageImage(wall);
+    el.className = "enemy-abyss-wall-effect abyss-wall-visible abyss-wall-summon";
+    playSE("abyssWall");
+    setTimeout(function () {
+      var el2 = document.getElementById("enemy-abyss-wall-effect");
+      if (el2) el2.classList.remove("abyss-wall-summon");
+    }, 850);
+  }
+
+  // broken検知後に一度だけ呼ぶ：破壊直前画像(05)を短く見せてから非表示にする
+  function triggerAbyssWallBreak() {
+    if (abyssWallBrokenAnimated) return;
+    abyssWallBrokenAnimated = true;
+    var el = document.getElementById("enemy-abyss-wall-effect");
+    if (!el) return;
+    el.src = ABYSS_WALL_BREAK_IMAGE;
+    el.className = "enemy-abyss-wall-effect abyss-wall-visible abyss-wall-breaking";
+    playSE("abyssWall");
+    setTimeout(function () {
+      var el2 = document.getElementById("enemy-abyss-wall-effect");
+      if (el2) {
+        el2.className = "enemy-abyss-wall-effect hidden";
+        el2.removeAttribute("src");
+      }
+    }, 600);
   }
 
   function renderEnemyAttackPanel() {
@@ -1823,6 +1921,8 @@
       desc = "🔥 ボス戦ではカードが早く燃え尽きる！\n手札をよく見て、早めに使おう！";
     } else if (session.areaDef.enemyType === "water" && session.stage === "boss") {
       desc = "🌊 ボス戦では波が早く押し寄せる！\n手札が流される前にカードを使おう！";
+    } else if (session.areaDef.enemyType === "dark" && session.enemyState.abyssWall && session.enemyState.abyssWall.active) {
+      desc = "🌑 闇がカードの力を吸い取る！\n🧱 異なる段のかけ算で、アビスウォールを壊そう！";
     } else {
       desc = AREA_DESCRIPTIONS[session.areaDef.enemyType] || AREA_DESCRIPTIONS.none;
     }
@@ -1839,6 +1939,7 @@
     document.getElementById("battle-start-overlay").classList.add("hidden");
     renderHand();
     renderPlayerSection();
+    triggerAbyssWallSummon();
   }
 
   function onSelectCard(uid) {
@@ -2482,6 +2583,16 @@
     }
     if (bd.meteor && bd.ignoreGuard) {
       parts.push("メテオ：ガード貫通");
+    }
+    if (bd.abyssWallReduced && bd.abyssWallReductionAmount > 0) {
+      parts.push("アビスウォール-" + bd.abyssWallReductionAmount);
+    }
+    if (bd.abyssWallJustBroken) {
+      parts.push("🧱アビスウォールが崩れた！");
+    } else if (bd.abyssWallNewDan) {
+      parts.push("🧱" + bd.abyssWallDan + "の段が壁にヒビを入れた！");
+    } else if (bd.abyssWallReduced) {
+      parts.push("🧱同じ段では壁の破壊は進まない！");
     }
     if (parts.length === 0) return base;
     return base + "（" + parts.join(" / ") + "）";
