@@ -669,7 +669,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 2px;
+  gap: 0;
   user-select: none;
   position: relative;
   overflow: hidden;
@@ -747,8 +747,8 @@ body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.90);
   z-index: 3; /* burn-overlay(z2) / ::after(z2) より必ず前面 */
   /* rarity-overlay（ホーリー/メテオ/上級）と文字が干渉しないよう少し下げる。
-     .card の gap を 6px→2px に詰めて式(.card-formula)の位置を実質維持している（4px + 2px = 元の6px）。*/
-  margin-top: 4px;
+     .card の gap を 6px→0px に詰めて式(.card-formula)の位置を実質維持している（6px + 0px = 元の6px）。*/
+  margin-top: 6px;
 }
 
 .card-formula {
