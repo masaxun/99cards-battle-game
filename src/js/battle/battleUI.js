@@ -1281,6 +1281,25 @@
     }, 550);
   }
 
+  // CSSのkf-enemy-defeated(0.8s)と一致させる
+  var ENEMY_DEFEAT_EFFECT_MS = 800;
+
+  // 敵HP0（勝利）時のみ呼ぶ撃退演出。白フラッシュ→震え→沈み込み縮小→フェードアウトを#enemy-sprite自体のCSSアニメーションで行う。
+  // 敗北/撤退時は呼ばない。ホーリー/メテオとどめの場合は、それらの演出完了後に呼ぶ想定（呼び出し側で制御）。
+  function playEnemyDefeatEffect(callback) {
+    var el = document.getElementById("enemy-sprite");
+    if (!el) { if (callback) callback(); return; }
+    pauseIdleAnimation();
+    el.classList.remove("enemy-defeated");
+    void el.offsetWidth;
+    el.classList.add("enemy-defeated");
+    setTimeout(function () {
+      el.classList.remove("enemy-defeated");
+      resumeIdleAnimation();
+      if (callback) callback();
+    }, ENEMY_DEFEAT_EFFECT_MS);
+  }
+
   function shakeScreen() {
     var el = document.getElementById("battle-screen");
     el.classList.remove("screen-shake");
@@ -2050,6 +2069,7 @@
 
     var isHolyHit   = result.correct && card && isHolyCard(card)   && result.logEntry.damage !== undefined;
     var isMeteorHit = result.correct && card && isMeteorCard(card) && result.logEntry.damage !== undefined;
+    var isWin       = result.outcome === "win";
     showCardFeedback(result);
 
     if (result.correct && card) {
@@ -2081,7 +2101,11 @@
         playSE("correct");
         flashScreen(card.kind, card.element);
         if (result.logEntry.damage !== undefined) {
-          setTimeout(shakeEnemySprite, 130);
+          // 撃退演出(playEnemyDefeatEffect)自体に震えを含むため、とどめの一撃では二重に#enemy-spriteを
+          // アニメーションさせないよう通常シェイクを省略する
+          if (!isWin) {
+            setTimeout(shakeEnemySprite, 130);
+          }
           if (result.logEntry.damageBreakdown) {
             var normalBd = result.logEntry.damageBreakdown;
             if (isMobile()) {
@@ -2128,24 +2152,38 @@
     }
 
     if (session.ended || result.ended || session.enemyHp <= 0 || session.hp <= 0) {
+      // 敗北/撤退：従来通りscheduleEnd()（暗転演出などのタイミング制御はscheduleEnd側に委ねる）
+      var finishEnd = function () {
+        interactionLocked = false;
+        scheduleEnd();
+      };
+      // 勝利かつ撃退演出を挟む場合：撃退演出でenemy-defeatedクラスが外れて敵が一瞬通常表示に戻る前に
+      // 結果画面へ進めるよう、scheduleEnd()の追加待機(1200ms)を挟まずdoEndBattle()へ直行する
+      var finishEndDirect = function () {
+        interactionLocked = false;
+        doEndBattle();
+      };
+      // 敵撃退演出は勝利（敵HP0）時のみ。敗北/撤退では出さない
+      var finishWithDefeatEffect = isWin
+        ? function () { playEnemyDefeatEffect(finishEndDirect); }
+        : finishEnd;
       if (isHolyHit) {
-        // ホーリーとどめ：演出を最後まで表示してから勝利処理へ
-        playHolyUltimateEffect(function () {
-          interactionLocked = false;
-          scheduleEnd();
-        });
+        // ホーリーとどめ：演出を最後まで表示 → (勝利なら)撃退演出 → 勝利処理へ
+        playHolyUltimateEffect(finishWithDefeatEffect);
         return;
       }
       if (isMeteorHit) {
-        // メテオとどめ：演出を最後まで表示してから勝利処理へ
-        playMeteorUltimateEffect(function () {
-          interactionLocked = false;
-          scheduleEnd();
-        });
+        // メテオとどめ：演出を最後まで表示 → (勝利なら)撃退演出 → 勝利処理へ
+        playMeteorUltimateEffect(finishWithDefeatEffect);
         return;
       }
-      interactionLocked = false;
-      scheduleEnd();
+      if (isWin) {
+        // 通常攻撃のとどめ：ダメージポップが見えてから撃退演出を始める
+        // （モバイルはポップ自体がスクロール復帰待ちで550ms遅れて出るため、その分だけ多く待つ）
+        setTimeout(function () { playEnemyDefeatEffect(finishEndDirect); }, isMobile() ? 700 : 300);
+        return;
+      }
+      finishEnd();
       return;
     }
 

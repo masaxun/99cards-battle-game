@@ -67,12 +67,26 @@ body {
   pointer-events: none;
 }
 
-/* スマホ時：背景を全画面に戻す */
+/* スマホ時：背景を全画面に戻す。
+   さらに、スマホでは#battle-screenの内容が縦に長くページがスクロールすることがあり、
+   背景がposition:fixed（ビューポート基準）のままだと敵(通常フロー)だけがスクロールで動いてしまい、
+   敵が背景の足元/台座からズレて浮いて見える。
+   スマホ時のみ背景を#battle-screen基準のposition:absoluteに切り替え、敵を含む本文と一緒にスクロールさせて位置ズレを防ぐ
+   （PC幅は視認上ズレの報告がないため既存のfixedのまま変更しない）。 */
 @media (max-width: 640px) {
+  #battle-screen {
+    min-height: 100vh;
+  }
+
   #battle-screen::before,
   #battle-screen::after {
+    position: absolute;
     left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
     width: 100%;
+    height: auto;
     transform: none;
   }
 }
@@ -1813,6 +1827,22 @@ body {
 
 #enemy-sprite.enemy-preaction {
   animation: kf-enemy-preaction 0.5s ease;
+}
+
+/* 敵撃退演出：白フラッシュ→小さな震え→沈み込みながら縮小→フェードアウト（合計0.8秒）。
+   filterで明滅させるため既存のenemy-shake/enemy-preactionと違い#enemy-sprite自体のDOM/srcには触れない。
+   JS側(playEnemyDefeatEffect)はこの0.8sとタイマーを一致させ、実行中は待機モーション(#enemy-sprite-wrap)を一時停止する。 */
+@keyframes kf-enemy-defeated {
+  0%   { transform: translate(0, 0) scale(1);       opacity: 1; filter: brightness(1)   saturate(1); }
+  10%  { transform: translate(0, 0) scale(1.03);     opacity: 1; filter: brightness(2.4) saturate(0.2); }
+  25%  { transform: translate(-5px, 0) scale(1);     opacity: 1; filter: brightness(1.6) saturate(0.5); }
+  40%  { transform: translate(5px, 0) scale(1);      opacity: 1; filter: brightness(1.25) saturate(0.75); }
+  55%  { transform: translate(-2px, 2px) scale(0.99); opacity: 1; filter: brightness(1.05) saturate(0.9); }
+  100% { transform: translate(0, 26px) scale(0.8);   opacity: 0; filter: brightness(1)   saturate(1); }
+}
+
+#enemy-sprite.enemy-defeated {
+  animation: kf-enemy-defeated 0.8s ease-in forwards;
 }
 
 /* ============================================================
