@@ -118,8 +118,110 @@
       playerElement: "light",
       // 低層4戦（2026-07-09実装）＋高層4戦（2026-07-12実装）。最上階(boss)は未実装のため意図的に未登録。
       enemyHp: { stage1: 260, stage2: 340, stage3: 430, stage4: 540, stage5: 600, stage6: 700, stage7: 820, stage8: 980 },
-      // 9の段中心・足し算カードなし・1×1ホーリー保証枠あり（要件定義書セクション70参照）。エリア単位の設定のため低層・高層(stage1〜8)双方に適用される。最上階(boss)はbossDeckCompositionが未定義のため通常のBOSS_COMPOSITIONにフォールバックする。
+      // 9の段中心・足し算カードなし・1×1ホーリー保証枠あり（要件定義書セクション70参照）。エリア単位の設定のため低層・高層(stage1〜8)双方に適用される。
       normalDeckComposition: { target: 18, holy: 1, other: 7, add: 0, sub: 4 },
+      // ラスボス専用デッキ構成（第9戦のみ。stage1〜8のnormalDeckCompositionとは別枠。要件定義書セクション70参照）
+      bossDeckComposition: { target: 23, holy: 1, other: 7, add: 0, sub: 4 },
+      // ラスボス4フェーズ連戦データ（第9戦専用。実装フェーズ0：データのみ追加、参照コードは未実装。要件定義書セクション70参照）
+      finalBossPhases: [
+        {
+          key: "grass",
+          name: "零積神 ククノミコト（草の姿）",
+          enemyType: "grass",
+          weaknessType: "light",
+          hp: 1000,
+          atkDans: [2, 6],
+          hasAbyssWall: { requiredCount: 2 },
+          grassRegen: { rate: 0.03, interval: 4 },
+          actionProbs: {
+            normal: [
+              { type: "bossAttack", weight: 40 },
+              { type: "intimidate", weight: 15 },
+              { type: "powerUp", weight: 20 },
+              { type: "opening", weight: 5 },
+              { type: "zeroVoid", weight: 20 }
+            ],
+            wallActive: [
+              { type: "bossAttack", weight: 50 },
+              { type: "intimidate", weight: 20 },
+              { type: "powerUp", weight: 25 },
+              { type: "opening", weight: 5 },
+              { type: "zeroVoid", weight: 0 }
+            ]
+          }
+        },
+        {
+          key: "fire",
+          name: "零積神 ククノミコト（火の姿）",
+          enemyType: "fire",
+          weaknessType: "light",
+          hp: 1100,
+          atkDans: [3, 7],
+          hasAbyssWall: { requiredCount: 2 },
+          actionProbs: {
+            normal: [
+              { type: "bossAttack", weight: 40 },
+              { type: "intimidate", weight: 15 },
+              { type: "powerUp", weight: 20 },
+              { type: "opening", weight: 5 },
+              { type: "zeroVoid", weight: 20 }
+            ],
+            wallActive: [
+              { type: "bossAttack", weight: 50 },
+              { type: "intimidate", weight: 20 },
+              { type: "powerUp", weight: 25 },
+              { type: "opening", weight: 5 },
+              { type: "zeroVoid", weight: 0 }
+            ]
+          }
+        },
+        {
+          key: "water",
+          name: "零積神 ククノミコト（水の姿）",
+          enemyType: "water",
+          weaknessType: "light",
+          hp: 1100,
+          atkDans: [4, 8],
+          hasAbyssWall: { requiredCount: 3 },
+          actionProbs: {
+            normal: [
+              { type: "bossAttack", weight: 40 },
+              { type: "intimidate", weight: 15 },
+              { type: "powerUp", weight: 20 },
+              { type: "opening", weight: 5 },
+              { type: "zeroVoid", weight: 20 }
+            ],
+            wallActive: [
+              { type: "bossAttack", weight: 50 },
+              { type: "intimidate", weight: 20 },
+              { type: "powerUp", weight: 25 },
+              { type: "opening", weight: 5 },
+              { type: "zeroVoid", weight: 0 }
+            ]
+          }
+        },
+        {
+          key: "dark",
+          name: "堕天 ククノモクズ",
+          enemyType: "dark",
+          weaknessType: "light",
+          hp: 1400,
+          atkDans: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+          zeroPrefixedQuestions: true, // 0付き問題の出題（未実装、フラグのみ）
+          hasAbyssWall: null,
+          phaseTransitionBgm: "assets/audio/bgm/bgm_battle_final_boss_phase2_v01.mp3", // 変身演出開始時に切り替える設定項目のみ。再生処理は未実装
+          actionProbs: {
+            normal: [
+              { type: "bossAttack", weight: 40 },
+              { type: "intimidate", weight: 10 },
+              { type: "powerUp", weight: 15 },
+              { type: "opening", weight: 5 },
+              { type: "zeroVoid", weight: 15 },
+              { type: "zeroCrisis", weight: 15 }
+            ]
+          }
+        }
+      ],
       requiredBossAreaIds: ["kodai", "mayoi", "shakunetsu", "shinkai"],
       implemented: true,
       mapPosition: { row: 0, col: 1.5 }
