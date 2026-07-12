@@ -763,7 +763,8 @@
 
   // 破壊に必要な段数ごとの画像段階（0種正解〜requiredCount-1種正解まで）。
   // 破壊直前・破壊演出（最終段）は共通で05を使う（triggerAbyssWallBreak参照）。
-  // 3種類版（将来のstage8/boss）は配列にもう1エントリ追加するだけで拡張できる。
+  // 3種類版のエントリは、2026-07-12にstage8が3→2種類版へ変更されたため現在は未使用（将来
+  // 別ステージで3種類版が必要になった場合に備えて残置。テーブルに追加するだけで拡張できる）。
   var ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED = {
     2: [
       "assets/images/effects/effect_enemy_abyss_wall01_v01.png", // 0種正解（未破壊）

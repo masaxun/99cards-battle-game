@@ -211,9 +211,11 @@
   // セッション生成
   // ============================================================
 
-  // アビスウォール破壊に必要な異なる段数。stage4〜stage7=2種類版、stage8=3種類版。将来bossで3種類版を想定（テーブルに追加するだけで拡張可）。
+  // アビスウォール破壊に必要な異なる段数。stage4〜stage8はすべて2種類版（2026-07-12、stage8を3→2に変更。
+  // アビスベヒーモス戦の重さ・ラスボス草/火形態との統一を理由に見直し。ラスボスfinalBossPhasesは
+  // areas.js側で別管理のため、この変更・このテーブルはラスボス側の値には影響しない）。
   var ABYSS_WALL_REQUIRED_COUNT = {
-    shikkoku: { stage4: 2, stage5: 2, stage6: 2, stage7: 2, stage8: 3 }
+    shikkoku: { stage4: 2, stage5: 2, stage6: 2, stage7: 2, stage8: 2 }
   };
 
   function getAbyssWallRequiredCount(areaDef, stage) {
