@@ -776,6 +776,10 @@
     ]
   };
   var ABYSS_WALL_BREAK_IMAGE = "assets/images/effects/effect_enemy_abyss_wall05_v01.png";
+  // 登場演出のタイミング定数。「敵の下から闇のエネルギーがせり上がってくる」ことを認識させるため、
+  // START直後に即展開するのではなく、一拍(ABYSS_WALL_SUMMON_DELAY_MS)置いてから登場アニメーションを開始する。
+  var ABYSS_WALL_SUMMON_DELAY_MS = 400;
+  var ABYSS_WALL_SUMMON_ANIM_MS = 1080;
 
   function getAbyssWallStageImage(wall) {
     var stages = ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED[wall.requiredCount] || ABYSS_WALL_STAGE_IMAGES_BY_REQUIRED[2];
@@ -820,7 +824,7 @@
     setTimeout(function () {
       var el2 = document.getElementById("enemy-abyss-wall-effect");
       if (el2) el2.classList.remove("abyss-wall-summon");
-    }, 850);
+    }, ABYSS_WALL_SUMMON_ANIM_MS);
   }
 
   // broken検知後に一度だけ呼ぶ：破壊直前画像(05)を短く見せてから非表示にする
@@ -1958,9 +1962,25 @@
     preloadBattleAudio();
     battleStarted = true;
     document.getElementById("battle-start-overlay").classList.add("hidden");
-    renderHand();
-    renderPlayerSection();
-    triggerAbyssWallSummon();
+
+    var wall = session.enemyState.abyssWall;
+    if (wall && wall.active) {
+      // 敵が見えた直後に即バリアが存在しているように見えないよう、一拍置いてからせり上がらせる。
+      // その間だけ操作をロックする（合計ロック時間＝遅延＋登場アニメーション）。
+      interactionLocked = true;
+      renderHand();
+      renderPlayerSection();
+      setTimeout(function () {
+        triggerAbyssWallSummon();
+        setTimeout(function () {
+          interactionLocked = false;
+          renderHand();
+        }, ABYSS_WALL_SUMMON_ANIM_MS);
+      }, ABYSS_WALL_SUMMON_DELAY_MS);
+    } else {
+      renderHand();
+      renderPlayerSection();
+    }
   }
 
   function onSelectCard(uid) {

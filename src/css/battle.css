@@ -377,15 +377,17 @@ body {
   opacity: 0.78; /* 敵が見えづらい場合は実機確認後に 0.62〜0.70 へ調整する想定 */
 }
 
-/* 登場演出：闇のエネルギーの渦から下側にせり出してくる印象（下から立ち上がる+一瞬のオーバーシュート） */
+/* 登場演出：闇のエネルギーの渦から下側にせり出してくる印象（下から立ち上がる+一瞬のオーバーシュート）
+   JS側(triggerAbyssWallSummon)はSTART後ABYSS_WALL_SUMMON_DELAY_MS(400ms)待ってから本アニメーションを開始する。
+   アニメーション時間はJS側のABYSS_WALL_SUMMON_ANIM_MS(1080ms)と一致させること。 */
 @keyframes kf-abyss-wall-summon {
   0% {
     opacity: 0;
-    transform: translate(-50%, -35%) translateY(32px) scale(0.92);
+    transform: translate(-50%, -30%) translateY(48px) scale(0.90);
   }
-  60% {
+  65% {
     opacity: 0.9;
-    transform: translate(-50%, -50%) translateY(-4px) scale(1.04);
+    transform: translate(-50%, -50%) translateY(-3px) scale(1.03);
   }
   100% {
     opacity: 0.78;
@@ -394,7 +396,7 @@ body {
 }
 
 .enemy-abyss-wall-effect.abyss-wall-summon {
-  animation: kf-abyss-wall-summon 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: kf-abyss-wall-summon 1.08s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* 破壊演出：05（限界間近）を短く見せてから消える想定（非表示化はJS側のsetTimeoutで制御） */
