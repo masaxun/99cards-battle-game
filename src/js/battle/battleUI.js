@@ -1146,7 +1146,7 @@
       if (isHolyCard(card)) return "🌟 ホーリー";
       if (isMeteorCard(card)) return "☄️ メテオ";
       var icon = ELEMENT_ICONS[card.element] || "✨";
-      return icon + " 必殺";
+      return icon + " " + (card.rank === "upper" ? "強必殺" : "必殺");
     }
     if (card.kind === "add") return "⚔️ 攻撃";
     return "❤️ 回復";
