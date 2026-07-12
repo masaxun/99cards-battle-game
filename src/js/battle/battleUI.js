@@ -364,6 +364,11 @@
   };
 
   function getEnemyName(areaDef, stage) {
+    // ラスボス（漆黒の塔第9戦）：現在フェーズの名称を返す（草/火/水/堕天）。専用画像はStep C以降。
+    if (stage === "boss" && session && Battle.isFinalBossBattle(session)) {
+      var finalPhase = Battle.getCurrentFinalBossPhase(session);
+      if (finalPhase) return finalPhase.name;
+    }
     var areaNames = ENEMY_NAMES[areaDef.id];
     if (stage === "boss") {
       return (areaNames && areaNames.boss) || (areaDef.name + "のぬし");
@@ -1574,7 +1579,7 @@
   // ============================================================
 
   function isFireArea() {
-    return session && session.areaDef.enemyType === "fire";
+    return session && Battle.getCurrentEnemyType(session) === "fire";
   }
 
   function getBurnoutThreshold() {
@@ -1675,7 +1680,7 @@
   // ============================================================
 
   function isDarkArea() {
-    return session && session.areaDef.enemyType === "dark";
+    return session && Battle.getCurrentEnemyType(session) === "dark";
   }
 
   // 低層(stage1〜stage4)は共通で4（＝4ターンかけて吸収される）。高層・ボスでの短縮は未実装（将来検討、要件定義書セクション70参照）。
@@ -1861,7 +1866,7 @@
   // ============================================================
 
   function isWaterArea() {
-    return session && session.areaDef.enemyType === "water";
+    return session && Battle.getCurrentEnemyType(session) === "water";
   }
 
   function getWaveRefreshThreshold() {
@@ -2030,6 +2035,95 @@
     resetToPlaceholder();
   }
 
+  // ============================================================
+  // ラスボス4フェーズ連戦：中間形態撃破時のUI切替（Step B・最小実装）
+  // ============================================================
+  // 専用画像・専用BGM・豪華な形態変化演出は未実装（Step C以降）。
+  // ここでは「結果画面へ進まず、次形態のHP・敵名・手札・アビスウォールへ切り替える」
+  // 最小限の処理のみを行う。
+
+  var FINAL_BOSS_PHASE_EMOJI = { grass: "🌿", fire: "🔥", water: "🌊", dark: "🌑" };
+  var FINAL_BOSS_PHASE_MESSAGE_MS = 1600;
+
+  // フェーズ切替時にリセットすべきUIローカル状態一式。battle.js側のsessionは既に
+  // 新フェーズ用に再構築済み（山札・手札・enemyState等）のため、ここではbattleUI.js固有の
+  // 演出タイミング管理用ローカル変数のみをリセットする。idlePauseCountは演出関数側の
+  // pause/resumeが自己完結しているため、ここでは直接操作しない。
+  function resetUiStateForFinalBossPhaseTransition() {
+    selectedCardUid = null;
+    burnAgeMap = {};
+    darkCorruptAgeMap = {};
+    corruptFinalFlashUidMap = {};
+    newlyHolyUidMap = {};
+    darkWeakenedUidMap = {};
+    darkVanishedFlashUidMap = {};
+    newCardUidMap = {};
+    usedCardUidMap = {};
+    waveCounter = 0;
+    waveNewCardUidMap = {};
+    abyssWallSummoned = false;
+    abyssWallBrokenAnimated = false;
+    enemyStateEffectsVisible = false;
+    clearPersistentFeedback();
+    clearTimeout(enemyMsgTimer);
+    var msgEl = document.getElementById("enemy-action-msg");
+    if (msgEl) msgEl.classList.add("fb-hidden");
+  }
+
+  // 簡易フェーズ切替表示（既存のフィードバック欄を流用。専用DOMは追加しない）
+  function showFinalBossPhaseMessage(phase) {
+    var emoji = FINAL_BOSS_PHASE_EMOJI[phase.enemyType] || "✨";
+    showInfoFeedback(emoji + " " + phase.name + " が姿を現した！　✨ 山札と手札がよみがえった！");
+  }
+
+  // 敵撃破の演出（通常/ホーリー/メテオいずれか）が完了した後に呼ぶ。
+  // UIローカル状態リセット → 再描画（新フェーズのHP/敵名/手札/バッジ/アビスウォール非表示）
+  // → 簡易切替メッセージ → （壁がある形態なら）アビスウォール登場演出 → 操作再開、の順で進める。
+  function runFinalBossPhaseTransition(phaseTransition) {
+    resetUiStateForFinalBossPhaseTransition();
+    render();
+    showFinalBossPhaseMessage(phaseTransition.currentPhase);
+
+    var nextPhase = phaseTransition.currentPhase;
+    var hasWall = !!(nextPhase.hasAbyssWall && nextPhase.hasAbyssWall.requiredCount);
+
+    setTimeout(function () {
+      if (hasWall) {
+        triggerAbyssWallSummon();
+        setTimeout(function () {
+          interactionLocked = false;
+          // renderHand()呼び出し前(interactionLocked=true時点)のrender()でカードがロック状態のまま
+          // 描画されているため、解除後にもう一度描画してクリック可能な状態へ戻す
+          // （continueEnemyAction()のdoEnemyAction()と同じパターン）。
+          renderHand();
+          renderPlayerSection();
+        }, ABYSS_WALL_SUMMON_ANIM_MS + 200);
+      } else {
+        interactionLocked = false;
+        renderHand();
+        renderPlayerSection();
+      }
+    }, FINAL_BOSS_PHASE_MESSAGE_MS);
+  }
+
+  // 通常攻撃/ホーリー/メテオのいずれで中間形態を倒しても、この関数経由で
+  // runFinalBossPhaseTransition() へ合流させる。特殊演出の途中で敵画像や手札は切り替えない。
+  function handleFinalBossPhaseTransition(phaseTransition, isHolyHit, isMeteorHit) {
+    if (isHolyHit) {
+      playHolyUltimateEffect(function () { runFinalBossPhaseTransition(phaseTransition); });
+    } else if (isMeteorHit) {
+      playMeteorUltimateEffect(function () { runFinalBossPhaseTransition(phaseTransition); });
+    } else {
+      // 通常攻撃：ダメージポップ等（showCardFeedback／ヒット演出）が見えてから
+      // 既存の撃退演出（playEnemyDefeatEffect）を流用し、直後に次形態へ切り替える。
+      // 専用の中間形態フェードアウトは新設しない（B案。画像自体は今回まだ切り替えないため、
+      // 撃退演出終了時に「敵画像が一瞬通常状態へ戻る」問題が実質発生しないと判断した）。
+      setTimeout(function () {
+        playEnemyDefeatEffect(function () { runFinalBossPhaseTransition(phaseTransition); });
+      }, isMobile() ? 700 : 300);
+    }
+  }
+
   function onSubmitAnswer() {
     if (!battleStarted || interactionLocked || !selectedCardUid || session.ended || session.pendingAttack) return;
     var val = document.getElementById("answer-input").value.trim();
@@ -2102,9 +2196,12 @@
         playSE("correct");
         flashScreen(card.kind, card.element);
         if (result.logEntry.damage !== undefined) {
-          // 撃退演出(playEnemyDefeatEffect)自体に震えを含むため、とどめの一撃では二重に#enemy-spriteを
-          // アニメーションさせないよう通常シェイクを省略する
-          if (!isWin) {
+          // 撃退演出(playEnemyDefeatEffect)自体に震えを含むため、#enemy-spriteに二重にアニメーションを
+          // 掛けないよう通常シェイクを省略する。最終勝利時（isWin）はこの後の撃退演出と、
+          // 中間形態撃破時（result.phaseTransition）はhandleFinalBossPhaseTransition()内の
+          // 撃退演出（形態切替の合図として流用）と競合するため、いずれも省略する。
+          // 通常の非撃破ヒット（isWinでもphaseTransitionでもない）のときだけ実行する。
+          if (!isWin && !result.phaseTransition) {
             setTimeout(shakeEnemySprite, 130);
           }
           if (result.logEntry.damageBreakdown) {
@@ -2136,6 +2233,14 @@
     } else if (!result.correct) {
       playSE("wrong");
       playPlayerDamageFeedback();
+    }
+
+    // ラスボス4フェーズ連戦：中間形態撃破（次フェーズへ切替）はここで分岐し、以降の
+    // 炎上/闇侵食エイジング（旧フェーズの手札を前提にしたprePlayUidsが新フェーズには
+    // 対応しないため）・render()・勝敗判定・敵行動をすべてスキップする。
+    if (result.phaseTransition) {
+      handleFinalBossPhaseTransition(result.phaseTransition, isHolyHit, isMeteorHit);
+      return;
     }
 
     // 炎上/闇侵食エイジング（火属性/闇属性エリアのみ）

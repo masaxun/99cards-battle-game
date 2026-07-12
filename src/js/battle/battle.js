@@ -225,16 +225,31 @@
 
   function createBattleSession(areaDef, stage, gameState) {
     var stageType = stage === "boss" ? "boss" : "normal";
+    // ラスボス（漆黒の塔第9戦）判定: finalBossPhasesを持つエリアのbossステージのみ対象。
+    // 既存の8エリア・漆黒の塔stage1〜8はfinalBossPhasesを持たないため常にfalseになる。
+    var isFinalBoss = stage === "boss" && !!(areaDef.finalBossPhases && areaDef.finalBossPhases.length);
+
     var deck = Cards.buildDeck(areaDef, stageType);
     var hand = [];
     for (var i = 0; i < 5; i++) {
       hand.push(deck.shift());
     }
-    var enemyHp = areaDef.enemyHp[stage];
 
-    var abyssWallRequired = getAbyssWallRequiredCount(areaDef, stage);
+    var enemyHp, abyssWallRequired, initialDeckSize;
+    if (isFinalBoss) {
+      var phase0 = areaDef.finalBossPhases[0];
+      enemyHp = phase0.hp;
+      abyssWallRequired = (phase0.hasAbyssWall && phase0.hasAbyssWall.requiredCount) || 0;
+      // ラスボス専用35枚デッキは手札配布後の残数(30)を表示分母にする（要件定義書セクション70）。
+      // 既存エリアの「総デッキ数を分母にする」挙動とは意図的に異なる。
+      initialDeckSize = deck.length;
+    } else {
+      enemyHp = areaDef.enemyHp[stage];
+      abyssWallRequired = getAbyssWallRequiredCount(areaDef, stage);
+      initialDeckSize = 30;
+    }
 
-    return {
+    var session = {
       areaDef: areaDef,
       stage: stage,
       gameState: gameState,
@@ -246,7 +261,7 @@
       hand: hand,
       trash: [],
       combo: 0,
-      initialDeckSize: 30,
+      initialDeckSize: initialDeckSize,
       regenCounter: 0,
       enemyState: {
         guard: false,
@@ -267,6 +282,98 @@
       ended: false,
       outcome: null
     };
+
+    if (isFinalBoss) {
+      session.finalBossPhaseIndex = 0;             // 現在のフェーズ番号（0=草, 1=火, 2=水, 3=堕天）
+      session.finalBossPhases = areaDef.finalBossPhases; // areaDef.finalBossPhasesへの参照（areaDef自体は書き換えない）
+    }
+
+    return session;
+  }
+
+  // ============================================================
+  // ラスボス4フェーズ連戦（漆黒の塔第9戦専用）
+  // ============================================================
+  // session.finalBossPhaseIndexの有無でラスボス戦かどうかを判定する。既存areaDef（8エリア＋
+  // 漆黒の塔stage1〜8）はこのプロパティを持たないため、以下のヘルパーは常に「ラスボス戦ではない」
+  // 側の分岐（従来通りareaDef.enemyType/areaDef.weaknessを返す）を通り、既存挙動に影響しない。
+
+  function isFinalBossBattle(session) {
+    return session.finalBossPhaseIndex !== undefined;
+  }
+
+  function getCurrentFinalBossPhase(session) {
+    if (!isFinalBossBattle(session)) return null;
+    return session.finalBossPhases[session.finalBossPhaseIndex];
+  }
+
+  // ホーリー属性ボーナス等、敵タイプに応じた計算で使う。ラスボス戦以外は従来通りareaDef.enemyTypeを返す。
+  function getCurrentEnemyType(session) {
+    var phase = getCurrentFinalBossPhase(session);
+    return phase ? phase.enemyType : session.areaDef.enemyType;
+  }
+
+  // 弱点ボーナス計算で使う。ラスボス戦以外は従来通りareaDef.weaknessを返す。
+  // 全形態光属性弱点のため現状はareaDef.weaknessと同値だが、将来フェーズ別に弱点が変わっても
+  // 壊れないよう、ラスボス関連のダメージ計算はこのヘルパー経由に統一する。
+  function getCurrentWeaknessType(session) {
+    var phase = getCurrentFinalBossPhase(session);
+    return phase ? phase.weaknessType : session.areaDef.weakness;
+  }
+
+  // 中間フェーズ（草・火・水）のHPが0になった際に次フェーズへ切り替える。
+  // 山札・手札・捨て札を破棄し、bossDeckComposition比率で新規35枚デッキ（手札5+山札30）を
+  // 作り直す。敵の一時状態（guard/powerUp/opening/intimidateLocked/pendingAttack/abyssWall）と
+  // regenCounter・comboもリセットする。ハート(session.hp)は一切変更しない（持ち越し、+1回復は未実装）。
+  function advanceFinalBossPhase(session) {
+    var previousIndex = session.finalBossPhaseIndex;
+    var previousPhase = session.finalBossPhases[previousIndex];
+    session.finalBossPhaseIndex += 1;
+    var nextPhase = session.finalBossPhases[session.finalBossPhaseIndex];
+
+    session.enemyHp = nextPhase.hp;
+    session.enemyMaxHp = nextPhase.hp;
+    session.regenCounter = 0;
+
+    session.enemyState.guard = false;
+    session.enemyState.powerUp = false;
+    session.enemyState.opening = false;
+    session.enemyState.lastActionWasCounter = false;
+    session.enemyState.intimidateLocked = [];
+    var requiredCount = (nextPhase.hasAbyssWall && nextPhase.hasAbyssWall.requiredCount) || 0;
+    session.enemyState.abyssWall = requiredCount > 0
+      ? { active: true, requiredCount: requiredCount, usedDans: [], broken: false }
+      : null;
+    session.pendingAttack = null;
+
+    var freshDeck = Cards.buildDeck(session.areaDef, "boss");
+    var newHand = [];
+    for (var i = 0; i < 5; i++) { newHand.push(freshDeck.shift()); }
+    session.deck = freshDeck;
+    session.hand = newHand;
+    session.trash = [];
+    session.combo = 0;
+    session.initialDeckSize = freshDeck.length; // 新フェーズも30/30表示に戻す
+
+    return {
+      phaseAdvanced: true,
+      previousPhaseIndex: previousIndex,
+      currentPhaseIndex: session.finalBossPhaseIndex,
+      previousPhase: previousPhase,
+      currentPhase: nextPhase,
+      deckRefilled: true,
+      handRedealt: true
+    };
+  }
+
+  // 敵HPが0になった直後に呼ぶ。ラスボス戦かつ次フェーズが残っていればadvanceFinalBossPhase()を
+  // 実行してphaseTransition情報を返す。それ以外（通常エリア／ラスボス最終フェーズ）はnullを返し、
+  // 呼び出し側（playCard）が従来通りcheckBattleEnd()で勝敗判定する。
+  function tryAdvanceFinalBossPhase(session) {
+    if (!isFinalBossBattle(session)) return null;
+    if (session.enemyHp > 0) return null;
+    if (session.finalBossPhaseIndex >= session.finalBossPhases.length - 1) return null;
+    return advanceFinalBossPhase(session);
   }
 
   // ============================================================
@@ -597,7 +704,7 @@
         }
 
         // 弱点ボーナス: 基礎ダメージにだけ適用（足し算カードは弱点なし）
-        var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === session.areaDef.weakness;
+        var isWeakness = card.kind === "mul" && card.element !== "none" && card.element === getCurrentWeaknessType(session);
         var weaknessBonusAmount = isWeakness ? Math.round(baseRawDamage * 0.5) : 0;
 
         // コンボボーナス: 基礎ダメージ基準で加算
@@ -621,7 +728,7 @@
         var criticalBonusAmount = criticalCount * 10;
 
         // ホーリー専用属性ボーナス: 通常の弱点計算(weaknessBonusAmount)とは別枠。敵タイプ(enemyType)基準。
-        var holyBonusRate = isHoly ? getHolyBonusRate(session.areaDef.enemyType) : 0;
+        var holyBonusRate = isHoly ? getHolyBonusRate(getCurrentEnemyType(session)) : 0;
         var holyBonusAmount = isHoly ? Math.round(HOLY_BASE_DAMAGE * holyBonusRate) : 0;
 
         // ガード軽減: 会心より先に適用（メテオ9×9はガードを貫通するが、ガード状態は消費する）
@@ -700,16 +807,23 @@
     }
 
     session.battleLog.push(logEntry);
-    var newCards = refillHand(session);
-    checkBattleEnd(session);
+
+    // ラスボス戦：中間フェーズ（草/火/水）のHP0はrefillHand()より先に判定する。
+    // 判定後にadvanceFinalBossPhase()が山札・手札を丸ごと作り直すため、既存手札への補充は無駄になり、
+    // newCardsに次フェーズの手札には存在しないuidが混ざるのを避けるため、この順序にしている。
+    var phaseTransition = tryAdvanceFinalBossPhase(session);
+    var newCards = phaseTransition ? [] : refillHand(session);
+    if (!phaseTransition) {
+      checkBattleEnd(session);
+    }
 
     var enemyAction = null;
-    if (!session.ended) {
+    if (!session.ended && !phaseTransition) {
       enemyAction = triggerEnemyAction(session);
     }
 
     var regenResult = null;
-    if (!session.ended) {
+    if (!session.ended && !phaseTransition) {
       regenResult = maybeApplyEnemyRegen(session);
     }
 
@@ -720,7 +834,8 @@
       logEntry: logEntry,
       enemyAction: enemyAction,
       enemyRegen: regenResult,
-      newCards: newCards
+      newCards: newCards,
+      phaseTransition: phaseTransition
     };
   }
 
@@ -859,6 +974,10 @@
     resolveEnemyAttack: resolveEnemyAttack,
     resolveBossAttack: resolveBossAttack,
     changeHand: changeHand,
-    finalizeBattle: finalizeBattle
+    finalizeBattle: finalizeBattle,
+    isFinalBossBattle: isFinalBossBattle,
+    getCurrentFinalBossPhase: getCurrentFinalBossPhase,
+    getCurrentEnemyType: getCurrentEnemyType,
+    getCurrentWeaknessType: getCurrentWeaknessType
   };
 })();
