@@ -176,9 +176,16 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_low_v01.webp?v=20260709-shikkoku1");
 }
 
-/* 漆黒の塔 高層（第5〜8戦共通）。最上階背景は未実装のため未使用。 */
+/* 漆黒の塔 高層（第5〜8戦共通） */
 #battle-screen.battle-bg-shikkoku-high::before {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_high_v01.webp?v=20260712-shikkoku-high1");
+}
+
+/* 漆黒の塔 最上階（第9戦・ラスボス）。現時点では4形態（草/火/水/堕天）共通の背景を使う
+   （堕天専用背景・暗色オーバーレイは次工程）。低層・高層と同じ#battle-screen::before方式のため、
+   モバイルでのスクロール・ブラウザUI変動時の位置ズレ対策も既存と共通で適用される。 */
+#battle-screen.battle-bg-shikkoku-top::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_top_v01.webp");
 }
 
 .section-tag {
@@ -204,6 +211,18 @@ body {
   background: rgba(10, 12, 18, 0.85);
   padding: 8px 10px;
   border-radius: 8px;
+}
+
+/* ラスボス4フェーズ連戦専用の常設フェーズ表示（PHASE 1/4など）。ラスボス戦以外は常にhidden。 */
+#enemy-phase-indicator {
+  font-size: 10px;
+  font-weight: bold;
+  color: #f0c040;
+  background: rgba(240, 192, 64, 0.14);
+  border: 1px solid rgba(240, 192, 64, 0.4);
+  border-radius: 10px;
+  padding: 1px 8px;
+  white-space: nowrap;
 }
 
 /* スマホのみ: Enemy HP を画面上部に fixed 固定 */
@@ -1794,6 +1813,25 @@ body {
 #enemy-sprite-wrap.enemy-idle-titan    { animation: kf-idle-titan    3.6s ease-in-out infinite; }
 #enemy-sprite-wrap.enemy-idle-behemoth { animation: kf-idle-behemoth 4.0s ease-in-out infinite; }
 
+/* ラスボス専用待機モーション。零積神ククノミコト（草/火/水共通）：既存種族より長い周期で
+   ゆっくり上下に浮遊する、神秘的で揺らしすぎない動き。 */
+@keyframes kf-idle-kukunomikoto {
+  0%, 100% { transform: translateY(var(--enemy-sprite-offset-y)) scale(1); }
+  50%      { transform: translateY(calc(var(--enemy-sprite-offset-y) - 6px)) scale(1.008); }
+}
+#enemy-sprite-wrap.enemy-idle-kukunomikoto { animation: kf-idle-kukunomikoto 4.6s ease-in-out infinite; }
+
+/* 堕天ククノモクズ：崩壊・暴走を感じる不規則な細かい震え。常時激しすぎず視認性を損なわない範囲。 */
+@keyframes kf-idle-kukunomokuzu {
+  0%, 100% { transform: translate(0, var(--enemy-sprite-offset-y)); }
+  15%      { transform: translate(-1.5px, calc(var(--enemy-sprite-offset-y) - 1px)); }
+  30%      { transform: translate(1px, var(--enemy-sprite-offset-y)); }
+  48%      { transform: translate(-1px, calc(var(--enemy-sprite-offset-y) + 1px)); }
+  63%      { transform: translate(1.5px, calc(var(--enemy-sprite-offset-y) - 1px)); }
+  80%      { transform: translate(-1px, var(--enemy-sprite-offset-y)); }
+}
+#enemy-sprite-wrap.enemy-idle-kukunomokuzu { animation: kf-idle-kukunomokuzu 1.9s ease-in-out infinite; }
+
 /* 一時演出中は待機モーションを停止（種族ルールより後ろに置き、animation-play-stateを確実に上書きする） */
 #enemy-sprite-wrap.enemy-idle-paused {
   animation-play-state: paused;
@@ -1843,6 +1881,19 @@ body {
 
 #enemy-sprite.enemy-defeated {
   animation: kf-enemy-defeated 0.8s ease-in forwards;
+}
+
+/* ラスボス4フェーズ連戦：次形態出現時のフェードイン（旧形態の撃退演出とは別枠、通常の最終撃破には使わない）。
+   旧画像→新画像の切替自体はJS側で撃退演出のコールバック内（同期的、描画は挟まない）で行うため
+   旧画像が一瞬見える問題は起きないが、「次の姿が現れた」印象を明確にするための演出として追加する。 */
+@keyframes kf-enemy-phase-appearing {
+  0%   { opacity: 0;    transform: scale(0.86); filter: brightness(1.7) saturate(0.3); }
+  60%  { opacity: 1;    transform: scale(1.03);  filter: brightness(1.15) saturate(0.85); }
+  100% { opacity: 1;    transform: scale(1);     filter: brightness(1) saturate(1); }
+}
+
+#enemy-sprite.enemy-phase-appearing {
+  animation: kf-enemy-phase-appearing 0.6s ease-out;
 }
 
 /* ============================================================

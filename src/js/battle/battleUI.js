@@ -85,8 +85,10 @@
     advancedNormal: { src: "assets/audio/bgm/bgm_battle_advanced_normal_v01.mp3?v=20260703-kodai2",     volume: 0.24 },
     advancedBoss:   { src: "assets/audio/bgm/bgm_battle_advanced_boss_v01.mp3?v=20260703-kodai2",       volume: 0.24 },
     shikkokuLow:    { src: "assets/audio/bgm/bgm_battle_black_tower_lower_v01.mp3",                     volume: 0.24 },
-    shikkokuHigh:   { src: "assets/audio/bgm/bgm_battle_black_tower_upper_v01.mp3",                     volume: 0.24 }
-    // 最上階(shikkokuTop)用BGMは制作中のため未登録
+    shikkokuHigh:   { src: "assets/audio/bgm/bgm_battle_black_tower_upper_v01.mp3",                     volume: 0.24 },
+    // 最上階（第9戦・ラスボス）：草/火/水（零積神ククノミコト）共通曲と、堕天ククノモクズ専用曲
+    finalBoss:      { src: "assets/audio/bgm/bgm_battle_final_boss_v01.mp3",                            volume: 0.24 },
+    finalBossPhase2:{ src: "assets/audio/bgm/bgm_battle_final_boss_phase2_v01.mp3",                     volume: 0.24 }
   };
 
   var SHIKKOKU_LOW_STAGES = { stage1: true, stage2: true, stage3: true, stage4: true };
@@ -97,6 +99,15 @@
   }
 
   function getBgmKeyForStage(stage, areaDef) {
+    if (areaDef && areaDef.id === "shikkoku" && stage === "boss" && areaDef.finalBossPhases) {
+      // ラスボス戦：現在フェーズがphaseTransitionBgmを持つ（＝堕天）なら専用曲、
+      // それ以外（草/火/水共通）は通常のラスボス曲。session未生成時（呼び出し前）はfinalBossを返す。
+      if (session && Battle.isFinalBossBattle(session)) {
+        var phase = Battle.getCurrentFinalBossPhase(session);
+        if (phase && phase.phaseTransitionBgm) return "finalBossPhase2";
+      }
+      return "finalBoss";
+    }
     if (areaDef && areaDef.id === "shikkoku" && SHIKKOKU_LOW_STAGES[stage]) {
       return "shikkokuLow";
     }
@@ -106,6 +117,30 @@
     var advanced = isAdvancedArea(areaDef);
     if (stage === "boss") return advanced ? "advancedBoss" : "boss";
     return advanced ? "advancedNormal" : "normal";
+  }
+
+  // 堕天ククノモクズ移行時に一度だけ呼ぶ。現在再生中のBGMをフェードアウト→堕天専用曲へ差し替え
+  // →フェードイン。サウンドOFF中やBGM未開始（bgmStarted=false）の場合は何もしない
+  // （ON復帰時・次回起動時はgetBgmKeyForStage()が現在フェーズを見て堕天曲を正しく選ぶため、
+  // ここで特別なフラグを保持する必要はない）。
+  function switchToFinalBossPhase2Bgm() {
+    if (!soundEnabled) return;
+    if (!bgmStarted || !bgmAudio) return;
+    var def = BGM.finalBossPhase2;
+    if (!def) return;
+    fadeOutBGM(500, function () {
+      try {
+        bgmAudio = new Audio(def.src);
+        bgmAudio.volume = 0;
+        bgmAudio.loop = true;
+        var p = bgmAudio.play();
+        if (p && p.then) {
+          p.then(function () { fadeInBGM(def.volume, 900); }).catch(function () { bgmAudio = null; });
+        } else {
+          fadeInBGM(def.volume, 900);
+        }
+      } catch (e) {}
+    });
   }
 
   function fadeInBGM(targetVolume, duration) {
@@ -216,6 +251,13 @@
       });
       preloadImage(ABYSS_WALL_BREAK_IMAGE);
     }
+    // ラスボス専用画像（4形態）・最上階背景は容量が大きいため、ラスボス戦のときだけ追加プリロードする
+    if (Battle.isFinalBossBattle(session)) {
+      Object.keys(FINAL_BOSS_IMAGE_PATHS).forEach(function (key) {
+        preloadImage(FINAL_BOSS_IMAGE_PATHS[key]);
+      });
+      preloadImage(FINAL_BOSS_BG_IMAGE);
+    }
   }
 
   function preloadAudio(src) {
@@ -232,6 +274,12 @@
     Object.keys(SE).forEach(function (key) {
       preloadAudio(SE[key].src);
     });
+    // ラスボス戦：草〜水共通曲は既にstartBGMOnce()側で読み込まれるが、堕天専用曲は
+    // 切替タイミングでの再生遅延を防ぐため、開始時点で事前読み込みしておく
+    if (Battle.isFinalBossBattle(session)) {
+      preloadAudio(BGM.finalBoss.src);
+      preloadAudio(BGM.finalBossPhase2.src);
+    }
   }
 
   // ============================================================
@@ -341,6 +389,18 @@
       stage8: "assets/images/enemies/behemoth/enemy_boss_behemoth_dark_v01.png"
     }
   };
+
+  // ラスボス（漆黒の塔第9戦）専用の敵画像。areas.jsのfinalBossPhasesには画像パスの設定項目が
+  // 存在しないため（調査確認済み）、ここでphase.enemyTypeをキーにしたテーブルとして持つ。
+  // 通常ステージのENEMY_IMAGE_PATHSとは別枠のため、既存エリア・stage1〜8には影響しない。
+  var FINAL_BOSS_IMAGE_PATHS = {
+    grass: "assets/images/enemies/final_boss/enemy_final_boss_kukunomikoto_grass_v01.png",
+    fire:  "assets/images/enemies/final_boss/enemy_final_boss_kukunomikoto_fire_v01.png",
+    water: "assets/images/enemies/final_boss/enemy_final_boss_kukunomikoto_water_v01.png",
+    dark:  "assets/images/enemies/final_boss/enemy_final_boss_kukunomokuzu_dark_v01.png"
+  };
+  var FINAL_BOSS_BG_IMAGE = "assets/images/backgrounds/battle/bg_battle_shikkoku_top_v01.webp";
+
   var STAGE_FALLBACK_SPRITES = {
     normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉",
     stage1: "👻", stage2: "🦇", stage3: "🪨", stage4: "🐲",
@@ -364,7 +424,7 @@
   };
 
   function getEnemyName(areaDef, stage) {
-    // ラスボス（漆黒の塔第9戦）：現在フェーズの名称を返す（草/火/水/堕天）。専用画像はStep C以降。
+    // ラスボス（漆黒の塔第9戦）：現在フェーズの名称を返す（草/火/水/堕天）。専用画像はrenderEnemySprite()で切替済み。
     if (stage === "boss" && session && Battle.isFinalBossBattle(session)) {
       var finalPhase = Battle.getCurrentFinalBossPhase(session);
       if (finalPhase) return finalPhase.name;
@@ -596,7 +656,7 @@
       "battle-bg-mayoi",    "battle-bg-mayoi-boss",
       "battle-bg-shakunetsu", "battle-bg-shakunetsu-boss",
       "battle-bg-shinkai",  "battle-bg-shinkai-boss",
-      "battle-bg-shikkoku-low", "battle-bg-shikkoku-high"
+      "battle-bg-shikkoku-low", "battle-bg-shikkoku-high", "battle-bg-shikkoku-top"
     );
     var isBoss = (stage === "boss");
     if (areaId === "hajimari") {
@@ -619,8 +679,10 @@
       // 低層4戦は背景1種のみ
       el.classList.add("battle-bg-shikkoku-low");
     } else if (areaId === "shikkoku" && SHIKKOKU_HIGH_STAGES[stage]) {
-      // 高層4戦も背景1種のみ（最上階の背景素材は今回未使用）
       el.classList.add("battle-bg-shikkoku-high");
+    } else if (areaId === "shikkoku" && stage === "boss") {
+      // 最上階（第9戦・ラスボス）。4形態共通の背景1種のみ（堕天専用背景は次工程）
+      el.classList.add("battle-bg-shikkoku-top");
     }
   }
 
@@ -631,11 +693,30 @@
   function render() {
     renderEnemyHP();
     renderEnemySprite();
+    renderFinalBossPhaseIndicator();
     renderEnemyAttackPanel();
     renderHand();
     renderPlayerSection();
     renderCombo();
     renderAnswerPanel();
+  }
+
+  // ラスボス4フェーズ連戦専用の常設表示（PHASE 1/4など）。ラスボス戦以外は常にhidden。
+  function renderFinalBossPhaseIndicator() {
+    var el = document.getElementById("enemy-phase-indicator");
+    if (!el) return;
+    if (!Battle.isFinalBossBattle(session)) {
+      el.classList.add("hidden");
+      return;
+    }
+    var phase = Battle.getCurrentFinalBossPhase(session);
+    var total = session.finalBossPhases.length;
+    var isFinal = session.finalBossPhaseIndex === total - 1;
+    var shortName = FINAL_BOSS_PHASE_SHORT_NAME[phase.enemyType] || phase.name;
+    el.textContent = isFinal
+      ? ("FINAL PHASE　" + shortName)
+      : ("PHASE " + (session.finalBossPhaseIndex + 1) + " / " + total + "　" + shortName);
+    el.classList.remove("hidden");
   }
 
   function renderEnemyHP() {
@@ -665,15 +746,20 @@
     section.classList.add("enemy-rank-" + (session.areaDef.rank || "lower"));
     var spriteEl = document.getElementById("enemy-sprite");
     var areaId = session.areaDef.id;
+    var finalPhase = Battle.isFinalBossBattle(session) ? Battle.getCurrentFinalBossPhase(session) : null;
     var areaImgs = ENEMY_IMAGE_PATHS[areaId] || ENEMY_IMAGE_PATHS.hajimari;
-    var imgPath = (areaImgs && areaImgs[stage]) || (ENEMY_IMAGE_PATHS.hajimari[stage]);
+    var imgPath = finalPhase
+      ? FINAL_BOSS_IMAGE_PATHS[finalPhase.enemyType]
+      : ((areaImgs && areaImgs[stage]) || (ENEMY_IMAGE_PATHS.hajimari[stage]));
 
     var wrapEl = document.getElementById("enemy-sprite-wrap");
     if (wrapEl) {
-      var idleClasses = ENEMY_IDLE_SPECIES.map(function (s) { return "enemy-idle-" + s; });
+      var idleClasses = ENEMY_IDLE_SPECIES.concat(FINAL_BOSS_IDLE_SPECIES).map(function (s) { return "enemy-idle-" + s; });
       wrapEl.classList.remove.apply(wrapEl.classList, idleClasses);
       var species = null;
-      if (imgPath) {
+      if (finalPhase) {
+        species = finalPhase.enemyType === "dark" ? "kukunomokuzu" : "kukunomikoto";
+      } else if (imgPath) {
         for (var i = 0; i < ENEMY_IDLE_SPECIES.length; i++) {
           if (imgPath.indexOf("/enemies/" + ENEMY_IDLE_SPECIES[i] + "/") !== -1) {
             species = ENEMY_IDLE_SPECIES[i];
@@ -1258,6 +1344,10 @@
   }
 
   var ENEMY_IDLE_SPECIES = ["slime", "bat", "golem", "dragon", "wolf", "griffin", "titan", "behemoth"];
+  // ラスボス専用待機モーション種別。草/火/水（零積神ククノミコト）は共通の浮遊モーション、
+  // 堕天（ククノモクズ）は専用の不規則な震えモーション。画像パスがfinal_boss/配下のため
+  // ENEMY_IDLE_SPECIESのディレクトリ名判定では拾えず、phase.enemyTypeで直接判定する。
+  var FINAL_BOSS_IDLE_SPECIES = ["kukunomikoto", "kukunomokuzu"];
 
   function pauseIdleAnimation() {
     var wrapEl = document.getElementById("enemy-sprite-wrap");
@@ -1967,7 +2057,11 @@
     var descEl  = document.getElementById("battle-start-description");
     titleEl.textContent = BATTLE_STAGE_TITLES[session.stage] || "Battle";
     var desc;
-    if (session.areaDef.enemyType === "fire" && session.stage === "boss") {
+    if (Battle.isFinalBossBattle(session)) {
+      // ラスボス戦：session.areaDef.enemyTypeは常に"dark"固定のため使わず専用の説明文にする。
+      // 草リジェネ等、まだ実動作しないギミックの説明は含めない（実装後に追記する）。
+      desc = "零積神 ククノミコトとの最終決戦！\n\n🧱 異なる2つの段でアビスウォールを壊そう！";
+    } else if (session.areaDef.enemyType === "fire" && session.stage === "boss") {
       desc = "🔥 ボス戦ではカードが早く燃え尽きる！\n手札をよく見て、早めに使おう！";
     } else if (session.areaDef.enemyType === "water" && session.stage === "boss") {
       desc = "🌊 ボス戦では波が早く押し寄せる！\n手札が流される前にカードを使おう！";
@@ -2036,14 +2130,24 @@
   }
 
   // ============================================================
-  // ラスボス4フェーズ連戦：中間形態撃破時のUI切替（Step B・最小実装）
+  // ラスボス4フェーズ連戦：中間形態撃破時のUI切替（Step B基盤 + Step C専用素材接続）
   // ============================================================
-  // 専用画像・専用BGM・豪華な形態変化演出は未実装（Step C以降）。
-  // ここでは「結果画面へ進まず、次形態のHP・敵名・手札・アビスウォールへ切り替える」
-  // 最小限の処理のみを行う。
+  // ラスボス専用画像・最上階背景・専用BGM開始/切替・常設フェーズ表示を接続する。
+  // 属性ギミックの実動作・敵行動テーブル・ゼロヴォイド等はStep C対象外のまま。
 
-  var FINAL_BOSS_PHASE_EMOJI = { grass: "🌿", fire: "🔥", water: "🌊", dark: "🌑" };
   var FINAL_BOSS_PHASE_MESSAGE_MS = 1600;
+  var FINAL_BOSS_PHASE_APPEAR_MS = 600;
+
+  // フェーズ切替時の簡易メッセージ（currentPhase.enemyTypeで一意に決まる。
+  // grassは初期形態のため「切替」メッセージを持たない）。
+  var FINAL_BOSS_PHASE_MESSAGES = {
+    fire:  "🔥 ククノミコトが火の姿へ変化した！　✨ 山札と手札がよみがえった！",
+    water: "🌊 ククノミコトが水の姿へ変化した！　✨ 山札と手札がよみがえった！",
+    dark:  "🌑 0の力が暴走する――　堕天 ククノモクズが現れた！"
+  };
+
+  // 常設フェーズ表示（PHASE n/4）用の短縮名
+  var FINAL_BOSS_PHASE_SHORT_NAME = { grass: "草の姿", fire: "火の姿", water: "水の姿", dark: "堕天" };
 
   // フェーズ切替時にリセットすべきUIローカル状態一式。battle.js側のsessionは既に
   // 新フェーズ用に再構築済み（山札・手札・enemyState等）のため、ここではbattleUI.js固有の
@@ -2072,19 +2176,40 @@
 
   // 簡易フェーズ切替表示（既存のフィードバック欄を流用。専用DOMは追加しない）
   function showFinalBossPhaseMessage(phase) {
-    var emoji = FINAL_BOSS_PHASE_EMOJI[phase.enemyType] || "✨";
-    showInfoFeedback(emoji + " " + phase.name + " が姿を現した！　✨ 山札と手札がよみがえった！");
+    var text = FINAL_BOSS_PHASE_MESSAGES[phase.enemyType] || (phase.name + " が姿を現した！");
+    showInfoFeedback(text);
+  }
+
+  // 次形態出現の簡易フェードイン。#enemy-sprite自体はrender()内で既に新画像へ差し替わっているため、
+  // ここでは見た目の強調（フェードイン+明滅）を加えるだけ。通常の最終撃破(enemy-defeated)とは別クラス。
+  function playPhaseAppearEffect() {
+    var el = document.getElementById("enemy-sprite");
+    if (!el) return;
+    el.classList.remove("enemy-phase-appearing");
+    void el.offsetWidth;
+    el.classList.add("enemy-phase-appearing");
+    setTimeout(function () {
+      el.classList.remove("enemy-phase-appearing");
+    }, FINAL_BOSS_PHASE_APPEAR_MS);
   }
 
   // 敵撃破の演出（通常/ホーリー/メテオいずれか）が完了した後に呼ぶ。
-  // UIローカル状態リセット → 再描画（新フェーズのHP/敵名/手札/バッジ/アビスウォール非表示）
-  // → 簡易切替メッセージ → （壁がある形態なら）アビスウォール登場演出 → 操作再開、の順で進める。
+  // UIローカル状態リセット → 再描画（新フェーズの画像/HP/敵名/手札/バッジ/アビスウォール非表示/
+  // フェーズ表示を反映。旧画像→新画像の切替はrender()内で同期的に行われ、描画を挟まないため
+  // 旧画像が一瞬見える問題は起きない） → 次形態フェードイン → 簡易切替メッセージ →
+  // （堕天移行なら）BGM切替 → （壁がある形態なら）アビスウォール登場演出 → 操作再開、の順で進める。
   function runFinalBossPhaseTransition(phaseTransition) {
     resetUiStateForFinalBossPhaseTransition();
     render();
+    playPhaseAppearEffect();
     showFinalBossPhaseMessage(phaseTransition.currentPhase);
 
     var nextPhase = phaseTransition.currentPhase;
+    if (nextPhase.phaseTransitionBgm) {
+      // 堕天移行時のみ一度だけ切替。草→火・火→水では発火しない
+      // （phaseTransitionBgmを持つのはareas.js上で堕天フェーズのみのため）。
+      switchToFinalBossPhase2Bgm();
+    }
     var hasWall = !!(nextPhase.hasAbyssWall && nextPhase.hasAbyssWall.requiredCount);
 
     setTimeout(function () {
@@ -2116,8 +2241,11 @@
     } else {
       // 通常攻撃：ダメージポップ等（showCardFeedback／ヒット演出）が見えてから
       // 既存の撃退演出（playEnemyDefeatEffect）を流用し、直後に次形態へ切り替える。
-      // 専用の中間形態フェードアウトは新設しない（B案。画像自体は今回まだ切り替えないため、
-      // 撃退演出終了時に「敵画像が一瞬通常状態へ戻る」問題が実質発生しないと判断した）。
+      // 専用の中間形態フェードアウトは新設しない（B案）。playEnemyDefeatEffect()は
+      // enemy-defeatedクラスを外した直後・同一JS実行ターン内で同期的にコールバック
+      // （runFinalBossPhaseTransition、render()内で次形態の専用画像へ差し替え済み）を呼ぶため、
+      // ブラウザが再描画を挟む余地がなく「旧画像が一瞬通常状態で見える」問題は起きない。
+      // 新画像出現時の見た目の強調は playPhaseAppearEffect()（enemy-phase-appearing）が別途担う。
       setTimeout(function () {
         playEnemyDefeatEffect(function () { runFinalBossPhaseTransition(phaseTransition); });
       }, isMobile() ? 700 : 300);
