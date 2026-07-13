@@ -491,7 +491,12 @@
   // 草属性リジェネ
   // ============================================================
 
+  // ラスボス戦は現在フェーズが草のときだけリジェネ対象（getCurrentEnemyType経由）。
+  // 通常エリアは従来通りareaDef.enemyType固定判定のまま（既存挙動に影響しない）。
   function isGrassRegenArea(session) {
+    if (isFinalBossBattle(session)) {
+      return getCurrentEnemyType(session) === "grass";
+    }
     var area = session.areaDef;
     return area && area.enemyType === "grass";
   }
@@ -502,11 +507,23 @@
 
     session.regenCounter = (session.regenCounter || 0) + 1;
 
-    if (session.regenCounter % 3 !== 0) return null;
+    // ラスボス草形態はareas.js finalBossPhases[0].grassRegen（rate/interval）専用値を使う。
+    // 既存の上級草属性エリア（7%/3行動）とは別枠。areaDef.rank等の既存分岐には触れない。
+    var interval, regenRate;
+    if (isFinalBossBattle(session)) {
+      var phase = getCurrentFinalBossPhase(session);
+      var cfg = phase && phase.grassRegen;
+      interval = (cfg && cfg.interval) || 4;
+      regenRate = (cfg && cfg.rate) || 0.03;
+    } else {
+      interval = 3;
+      var area = session.areaDef;
+      regenRate = (area.rank === "upper" || area.rank === "last") ? 0.07 : 0.05;
+    }
+
+    if (session.regenCounter % interval !== 0) return null;
     if (session.enemyHp >= session.enemyMaxHp) return null;
 
-    var area = session.areaDef;
-    var regenRate = (area.rank === "upper" || area.rank === "last") ? 0.07 : 0.05;
     var before = session.enemyHp;
     var heal = Math.max(1, Math.ceil(session.enemyMaxHp * regenRate));
     session.enemyHp = Math.min(session.enemyMaxHp, session.enemyHp + heal);

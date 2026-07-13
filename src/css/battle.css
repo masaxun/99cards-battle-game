@@ -213,18 +213,6 @@ body {
   border-radius: 8px;
 }
 
-/* ラスボス4フェーズ連戦専用の常設フェーズ表示（PHASE 1/4など）。ラスボス戦以外は常にhidden。 */
-#enemy-phase-indicator {
-  font-size: 10px;
-  font-weight: bold;
-  color: #f0c040;
-  background: rgba(240, 192, 64, 0.14);
-  border: 1px solid rgba(240, 192, 64, 0.4);
-  border-radius: 10px;
-  padding: 1px 8px;
-  white-space: nowrap;
-}
-
 /* スマホのみ: Enemy HP を画面上部に fixed 固定 */
 @media (max-width: 640px) {
   #enemy-hp-section {

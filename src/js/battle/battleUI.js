@@ -693,30 +693,11 @@
   function render() {
     renderEnemyHP();
     renderEnemySprite();
-    renderFinalBossPhaseIndicator();
     renderEnemyAttackPanel();
     renderHand();
     renderPlayerSection();
     renderCombo();
     renderAnswerPanel();
-  }
-
-  // ラスボス4フェーズ連戦専用の常設表示（PHASE 1/4など）。ラスボス戦以外は常にhidden。
-  function renderFinalBossPhaseIndicator() {
-    var el = document.getElementById("enemy-phase-indicator");
-    if (!el) return;
-    if (!Battle.isFinalBossBattle(session)) {
-      el.classList.add("hidden");
-      return;
-    }
-    var phase = Battle.getCurrentFinalBossPhase(session);
-    var total = session.finalBossPhases.length;
-    var isFinal = session.finalBossPhaseIndex === total - 1;
-    var shortName = FINAL_BOSS_PHASE_SHORT_NAME[phase.enemyType] || phase.name;
-    el.textContent = isFinal
-      ? ("FINAL PHASE　" + shortName)
-      : ("PHASE " + (session.finalBossPhaseIndex + 1) + " / " + total + "　" + shortName);
-    el.classList.remove("hidden");
   }
 
   function renderEnemyHP() {
@@ -1964,6 +1945,15 @@
   }
 
   function refreshHandByWave() {
+    // 威嚇と波リフレッシュが同ターンに重なった場合、triggerEnemyAction()（battle.js）が
+    // 選んだintimidateLockedは旧手札のUIDのままのため、ここで単純に空へリセットすると
+    // 「威嚇メッセージ・演出は出るのに実際は何もロックされていない」状態になり、威嚇が
+    // 実質無効に見えてしまう（実機確認で発見）。旧ロック枚数（battle.js側の通常2枚/ボス3枚の
+    // 判定結果）だけを維持し、波後の新手札から同じ考え方（最低1枚は使用可能を残す）で
+    // 再抽選する。battle.js側のtriggerEnemyAction()自体は変更しない（B案：影響範囲を
+    // 波+威嚇が同時発生した場合だけに限定する）。
+    var oldLockedCount = (session.enemyState.intimidateLocked && session.enemyState.intimidateLocked.length) || 0;
+
     var combined = session.deck.concat(session.hand);
     session.deck = Cards.shuffleArray(combined);
     session.hand = [];
@@ -1973,7 +1963,19 @@
       session.hand.push(card);
       waveNewCardUidMap[card.uid] = session.hand.length - 1;
     }
-    if (session.enemyState.intimidateLocked && session.enemyState.intimidateLocked.length > 0) {
+
+    if (oldLockedCount > 0 && session.hand.length > 0) {
+      var lockableCount = Math.max(0, session.hand.length - 1);
+      var newLockCount = Math.min(oldLockedCount, lockableCount);
+      var candidates = session.hand.map(function (c) { return c.uid; });
+      for (var si = candidates.length - 1; si > 0; si--) {
+        var sj = Math.floor(Math.random() * (si + 1));
+        var tmp = candidates[si];
+        candidates[si] = candidates[sj];
+        candidates[sj] = tmp;
+      }
+      session.enemyState.intimidateLocked = candidates.slice(0, newLockCount);
+    } else {
       session.enemyState.intimidateLocked = [];
     }
   }
@@ -2059,8 +2061,10 @@
     var desc;
     if (Battle.isFinalBossBattle(session)) {
       // ラスボス戦：session.areaDef.enemyTypeは常に"dark"固定のため使わず専用の説明文にする。
-      // 草リジェネ等、まだ実動作しないギミックの説明は含めない（実装後に追記する）。
-      desc = "零積神 ククノミコトとの最終決戦！\n\n🧱 異なる2つの段でアビスウォールを壊そう！";
+      // 開始時点は常に草形態のため、草形態のギミック（アビスウォール2種・専用リジェネ）だけを
+      // 説明する。火・水・堕天形態の存在や「4形態連戦であること」はここでは明かさない
+      // （形態切替時の驚きを保つため）。具体的な数値（3%・30回復等）も出さない。
+      desc = "零積神 ククノミコトとの最終決戦！\n\n🧱 異なる2つの段でアビスウォールを壊そう！\n🌿 4回行動するごとに、敵が自然の力で回復する！";
     } else if (session.areaDef.enemyType === "fire" && session.stage === "boss") {
       desc = "🔥 ボス戦ではカードが早く燃え尽きる！\n手札をよく見て、早めに使おう！";
     } else if (session.areaDef.enemyType === "water" && session.stage === "boss") {
@@ -2145,9 +2149,6 @@
     water: "🌊 ククノミコトが水の姿へ変化した！　✨ 山札と手札がよみがえった！",
     dark:  "🌑 0の力が暴走する――　堕天 ククノモクズが現れた！"
   };
-
-  // 常設フェーズ表示（PHASE n/4）用の短縮名
-  var FINAL_BOSS_PHASE_SHORT_NAME = { grass: "草の姿", fire: "火の姿", water: "水の姿", dark: "堕天" };
 
   // フェーズ切替時にリセットすべきUIローカル状態一式。battle.js側のsessionは既に
   // 新フェーズ用に再構築済み（山札・手札・enemyState等）のため、ここではbattleUI.js固有の
