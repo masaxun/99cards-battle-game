@@ -269,6 +269,7 @@
         opening: false,    // 次のプレイヤー行動1回だけ有効
         lastActionWasCounter: false,  // ザコ反撃連続防止
         intimidateLocked: [],  // 威嚇でロック中の手札uid（上級敵専用）
+        zeroVoidActive: false,  // ゼロ・ヴォイド発動中（ラスボス専用）。次のプレイヤー行動で消費される
         // アビスウォール（漆黒の塔専用）。active な間のみ機能する。requiredCount=0のエリア/ステージではnull。
         abyssWall: abyssWallRequired > 0 ? {
           active: true,
@@ -340,6 +341,7 @@
     session.enemyState.opening = false;
     session.enemyState.lastActionWasCounter = false;
     session.enemyState.intimidateLocked = [];
+    session.enemyState.zeroVoidActive = false;
     var requiredCount = (nextPhase.hasAbyssWall && nextPhase.hasAbyssWall.requiredCount) || 0;
     session.enemyState.abyssWall = requiredCount > 0
       ? { active: true, requiredCount: requiredCount, usedDans: [], broken: false }
@@ -394,6 +396,13 @@
   // ガードは「次のプレイヤー行動1回」で消費される一時防御。メテオ貫通時も消費する。
   function clearGuardAfterPlayerAction(session) {
     session.enemyState.guard = false;
+  }
+
+  // ゼロ・ヴォイドの「回復・手札交換・不正解」時の単純消滅専用（攻撃無効化/ホーリー貫通の判定を
+  // 経ない）。かけ算・足し算の正解時はplayCard()内でホーリー貫通判定を挟んでから個別に処理するため、
+  // ここでは呼ばない。
+  function clearZeroVoidAfterPlayerAction(session) {
+    session.enemyState.zeroVoidActive = false;
   }
 
   // アビスウォール軽減: 未破壊なら最終ダメージを70%軽減（最終ダメージの30%を通す、最低1）。
@@ -543,6 +552,30 @@
   // 敵行動
   // ============================================================
 
+  // ラスボス専用行動抽選。areas.js finalBossPhases[i].actionProbsを参照する
+  // （アビスウォール未破壊中はwallActiveテーブル、それ以外はnormalテーブル。grass/fire/water の
+  // wallActiveテーブルはzeroVoidの重みが0のため、壁が残っている間はゼロ・ヴォイドは選ばれない）。
+  // ゼロ・クライシス（堕天専用）は今回未実装のため、抽選候補から除外し再抽選する。
+  function pickFinalBossActionType(session) {
+    var state = session.enemyState;
+    var phase = getCurrentFinalBossPhase(session);
+    var wallActive = !!(state.abyssWall && state.abyssWall.active && !state.abyssWall.broken);
+    var probs = (wallActive && phase.actionProbs.wallActive) || phase.actionProbs.normal;
+
+    var chosen = "bossAttack";
+    for (var t = 0; t < 10; t++) {
+      var candidate = weightedRandom(probs);
+      if (candidate === "zeroCrisis") continue; // 今回未実装
+      if (candidate === "opening"    && state.opening) continue;
+      if (candidate === "powerUp"    && state.powerUp) continue;
+      if (candidate === "intimidate" && (state.intimidateLocked.length > 0 || session.hand.length < 2)) continue;
+      if (candidate === "zeroVoid"   && state.zeroVoidActive) continue;
+      chosen = candidate;
+      break;
+    }
+    return chosen;
+  }
+
   // プレイヤー行動後に毎回呼ぶ。sessionを更新しつつ行動結果オブジェクトを返す。
   function triggerEnemyAction(session) {
     if (session.ended) return { type: "none", label: null };
@@ -550,12 +583,15 @@
     var state = session.enemyState;
     var stage = session.stage;
     var advanced = isAdvancedArea(session.areaDef);
+    var isFinalBoss = isFinalBossBattle(session);
 
     var chosen;
 
     // 力ため後は攻撃を強制（抽選しない）
     if (state.powerUp) {
       chosen = stage === "boss" ? "bossAttack" : "counter";
+    } else if (isFinalBoss) {
+      chosen = pickFinalBossActionType(session);
     } else {
       var probs;
       if (advanced) {
@@ -592,7 +628,13 @@
     var result = { type: chosen, label: null, question: null, powered: false };
     var dan = session.areaDef.dan;
 
-    if (chosen === "guard") {
+    if (chosen === "zeroVoid") {
+      state.zeroVoidActive = true;
+      state.lastActionWasCounter = false;
+      // 固有名部分のみ持たせる。敵名を冠したメッセージへの組み立てはbattleUI.js側（showEnemyAction）で行う。
+      result.label = "ゼロ・ヴォイド！ 次のこうげきが0に戻される！";
+
+    } else if (chosen === "guard") {
       state.guard = true;
       state.lastActionWasCounter = false;
       result.label = stage === "boss"
@@ -691,6 +733,11 @@
     var hadOpening = session.enemyState.opening;
     session.enemyState.opening = false;
 
+    // ゼロ・ヴォイド：このプレイヤー行動の開始時点で発動中だったかをmul/add/sub/不正解の
+    // どの分岐からも参照できるよう、ここで確定させる（UI側が「回復・不正解・手札交換でも
+    // 解除された事実」を検知できるようにするため）。消費（false化）自体は各分岐内で行う。
+    var zeroVoidActiveBeforeAction = session.enemyState.zeroVoidActive;
+
     var logEntry;
 
     if (correct) {
@@ -767,6 +814,22 @@
         var abyssWallResult = applyAbyssWallDefense(session, card, finalDamage);
         finalDamage = abyssWallResult.finalDamage;
 
+        // ゼロ・ヴォイド：ここまでの計算結果（会心・ホーリー属性ボーナス・アビスウォール軽減後）を
+        // 上書きする最終段。ホーリーのみ貫通して計算結果どおりのダメージを通し、それ以外
+        // （メテオ含む）は0ダメージにする。発動状態はここで消費する。
+        var damageBeforeZeroVoid = finalDamage;
+        var zeroVoidNullified = false;
+        var zeroVoidPierced = false;
+        if (zeroVoidActiveBeforeAction) {
+          session.enemyState.zeroVoidActive = false;
+          if (isHoly) {
+            zeroVoidPierced = true;
+          } else {
+            zeroVoidNullified = true;
+            finalDamage = 0;
+          }
+        }
+
         session.enemyHp = Math.max(0, session.enemyHp - finalDamage);
         logEntry = buildLogEntry(card, true, answerInput, {
           damage: finalDamage,
@@ -797,6 +860,10 @@
             guardActive: guardActive,
             guardMult: guardMult,
             guardReductionAmount: guardReductionAmount,
+            zeroVoidActive: zeroVoidActiveBeforeAction,
+            damageBeforeZeroVoid: damageBeforeZeroVoid,
+            zeroVoidNullified: zeroVoidNullified,
+            zeroVoidPierced: zeroVoidPierced,
             abyssWallReduced: abyssWallResult.reduced,
             abyssWallReductionAmount: abyssWallResult.reductionAmount,
             abyssWallNewDan: abyssWallResult.newDan,
@@ -807,9 +874,15 @@
         });
       } else {
         // sub: 回復。攻撃ではないが、プレイヤー行動1回としてガードは解除する
+        // （ゼロ・ヴォイドも同様に、攻撃無効化を経ず単純消滅する。UI側が解除を検知できるよう
+        // zeroVoidConsumedをlogEntryへ残す）
         session.hp = Math.min(session.maxHp, session.hp + card.healAmount);
-        logEntry = buildLogEntry(card, true, answerInput, { heal: card.healAmount });
+        logEntry = buildLogEntry(card, true, answerInput, {
+          heal: card.healAmount,
+          zeroVoidConsumed: zeroVoidActiveBeforeAction
+        });
         clearGuardAfterPlayerAction(session);
+        clearZeroVoidAfterPlayerAction(session);
       }
       session.trash.push(card);
 
@@ -817,10 +890,15 @@
       session.hp -= 1;
       session.combo = 0;
       // 不正解でダメージを与えなくても、プレイヤー行動1回としてガードは解除する
+      // （ゼロ・ヴォイドも同様に単純消滅する。UI側が解除を検知できるようzeroVoidConsumedを残す）
       var hint = card.kind === "mul" ? Yomi.getHint(card.dan) : null;
-      logEntry = buildLogEntry(card, false, answerInput, { hint: hint });
+      logEntry = buildLogEntry(card, false, answerInput, {
+        hint: hint,
+        zeroVoidConsumed: zeroVoidActiveBeforeAction
+      });
       returnCardToDeck(session, card);
       clearGuardAfterPlayerAction(session);
+      clearZeroVoidAfterPlayerAction(session);
     }
 
     session.battleLog.push(logEntry);
@@ -909,12 +987,16 @@
     if (session.pendingAttack) return { error: "enemy-attack-pending" };
     if (session.hp < 2) return { error: "not-enough-hp" };
 
+    // UI側が解除を検知できるよう、手札チェンジ開始時点の発動有無を記録しておく
+    var zeroVoidConsumed = session.enemyState.zeroVoidActive;
+
     session.hp -= 1;
     session.deck = Cards.shuffleArray(session.deck.concat(session.hand));
     session.hand = [];
     session.enemyState.opening = false;  // 手札チェンジで隙あり解除
     session.enemyState.intimidateLocked = [];  // 手札チェンジで威嚇ロック解除
     clearGuardAfterPlayerAction(session);  // 手札チェンジもプレイヤー行動1回としてガード解除
+    clearZeroVoidAfterPlayerAction(session);  // ゼロ・ヴォイドも手札チェンジで単純消滅
     refillHand(session);
     checkBattleEnd(session);
 
@@ -928,7 +1010,13 @@
       regenResult = maybeApplyEnemyRegen(session);
     }
 
-    return { ended: session.ended, outcome: session.outcome, enemyAction: enemyAction, enemyRegen: regenResult };
+    return {
+      ended: session.ended,
+      outcome: session.outcome,
+      enemyAction: enemyAction,
+      enemyRegen: regenResult,
+      zeroVoidConsumed: zeroVoidConsumed
+    };
   }
 
   // バトル終了時に1回だけ呼ぶ

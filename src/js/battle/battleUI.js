@@ -64,7 +64,9 @@
     meteorUltimate: { src: "assets/audio/se/se_meteor_ultimate_v01.mp3",     volume: 0.70 },
     enemyIntimidateNormal: { src: "assets/audio/se/se_enemy_intimidate_v01.mp3", volume: 0.60 },
     enemyIntimidateBoss:   { src: "assets/audio/se/se_boss_intimidate_v01.mp3",  volume: 0.65 },
-    abyssWall:             { src: "assets/audio/se/se_abyss_wall_v01.mp3",       volume: 0.65 }
+    abyssWall:             { src: "assets/audio/se/se_abyss_wall_v01.mp3",       volume: 0.65 },
+    zeroVoidWarning:       { src: "assets/audio/se/se_zero_void_warning_v01.mp3", volume: 0.60 },
+    zeroVoidNullify:       { src: "assets/audio/se/se_zero_void_nullify_v01.mp3", volume: 0.65 }
   };
 
   function playSE(name) {
@@ -251,12 +253,16 @@
       });
       preloadImage(ABYSS_WALL_BREAK_IMAGE);
     }
-    // ラスボス専用画像（4形態）・最上階背景は容量が大きいため、ラスボス戦のときだけ追加プリロードする
+    // ラスボス専用画像（4形態）・最上階背景・ゼロ・ヴォイドは容量が大きい/使用頻度が低いため、
+    // ラスボス戦のときだけ追加プリロードする
     if (Battle.isFinalBossBattle(session)) {
       Object.keys(FINAL_BOSS_IMAGE_PATHS).forEach(function (key) {
         preloadImage(FINAL_BOSS_IMAGE_PATHS[key]);
       });
       preloadImage(FINAL_BOSS_BG_IMAGE);
+      preloadImage(ZERO_VOID_IMAGE_WARNING);
+      preloadImage(ZERO_VOID_IMAGE_ACTIVE);
+      preloadImage(ZERO_VOID_IMAGE_BREAK);
     }
   }
 
@@ -400,6 +406,11 @@
     dark:  "assets/images/enemies/final_boss/enemy_final_boss_kukunomokuzu_dark_v01.png"
   };
   var FINAL_BOSS_BG_IMAGE = "assets/images/backgrounds/battle/bg_battle_shikkoku_top_v01.webp";
+
+  // ゼロ・ヴォイド専用画像（ラスボス専用行動）。予告・発動中・破裂の3種。
+  var ZERO_VOID_IMAGE_WARNING = "assets/images/effects/effect_enemy_zero_void_warning_v01.png";
+  var ZERO_VOID_IMAGE_ACTIVE  = "assets/images/effects/effect_enemy_zero_void_active_v01.png";
+  var ZERO_VOID_IMAGE_BREAK   = "assets/images/effects/effect_enemy_zero_void_break_v01.png";
 
   var STAGE_FALLBACK_SPRITES = {
     normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉",
@@ -779,6 +790,9 @@
     if (session.enemyState.abyssWall && session.enemyState.abyssWall.active && !session.enemyState.abyssWall.broken) {
       badges.push("🧱 アビスウォール");
     }
+    // 予告演出が終わるまではバッジも常設アウラ(renderEnemyEffects)と同じくenemyStateEffectsVisible
+    // でゲートし、先出しにならないようにする（他の既存バッジは意図的に変更しない）。
+    if (session.enemyState.zeroVoidActive && enemyStateEffectsVisible) badges.push("🌀 ゼロ・ヴォイド");
     badgesEl.textContent = badges.join("  ");
     badgesEl.className = badges.length > 0 ? "badges-visible" : "";
 
@@ -825,6 +839,19 @@
       } else {
         openingEl.classList.add("hidden");
         openingEl.removeAttribute("src");
+      }
+    }
+
+    var zeroVoidActiveEl = document.getElementById("enemy-zero-void-active-effect");
+    if (zeroVoidActiveEl) {
+      if (enemyStateEffectsVisible && session.enemyState.zeroVoidActive) {
+        zeroVoidActiveEl.src = ZERO_VOID_IMAGE_ACTIVE;
+        zeroVoidActiveEl.classList.remove("hidden");
+        zeroVoidActiveEl.classList.add("zero-void-active-visible");
+      } else {
+        zeroVoidActiveEl.classList.remove("zero-void-active-visible");
+        zeroVoidActiveEl.classList.add("hidden");
+        zeroVoidActiveEl.removeAttribute("src");
       }
     }
   }
@@ -1450,6 +1477,61 @@
       el.classList.add("hidden");
       resumeIdleAnimation();
     }, 900);
+  }
+
+  // ゼロ・ヴォイド発動予告（敵行動として選ばれた瞬間、showEnemyAction()と同じタイミングで一度だけ再生）
+  // 予告演出が完了してからcallbackを呼ぶ（発動中の常設表示・操作再開はcallback側の責務）。
+  // 予告完了前にactive画像・操作再開を先出ししないよう、呼び出し側は必ずcallback待ちで繋ぐこと。
+  function showEnemyZeroVoidWarningEffect(callback) {
+    playSE("zeroVoidWarning");
+
+    var el = document.getElementById("enemy-zero-void-warning-effect");
+    if (!el) {
+      if (callback) callback();
+      return;
+    }
+
+    pauseIdleAnimation();
+    el.src = ZERO_VOID_IMAGE_WARNING;
+    el.classList.remove("hidden", "zero-void-warning-animate");
+    void el.offsetWidth;
+    el.classList.add("zero-void-warning-animate");
+
+    setTimeout(function () {
+      el.classList.remove("zero-void-warning-animate");
+      el.classList.add("hidden");
+      el.removeAttribute("src");
+      resumeIdleAnimation();
+
+      if (callback) callback();
+    }, 900);
+  }
+
+  // ゼロ・ヴォイドの解決演出（無効化/貫通いずれの場合も、発動状態が終わったことを示す共通の破裂演出）。
+  // 無効化時のみse_zero_void_nullifyを鳴らす。貫通時はホーリー本体の演出音が既に鳴っているため鳴らさない。
+  function showEnemyZeroVoidBreakEffect(nullified) {
+    if (nullified) playSE("zeroVoidNullify");
+
+    // 攻撃で解決した通常ヒットの場合、この関数はrender()より前（同一同期処理内）に呼ばれるため、
+    // 常設active表示が消えるより先にbreak演出が始まってしまう。ここで明示的に閉じ、
+    // warning/active/breakが同時表示にならないようにする（バッジ自体は次のrender()で消える）。
+    var activeEl = document.getElementById("enemy-zero-void-active-effect");
+    if (activeEl) {
+      activeEl.classList.remove("zero-void-active-visible");
+      activeEl.classList.add("hidden");
+      activeEl.removeAttribute("src");
+    }
+
+    var el = document.getElementById("enemy-zero-void-break-effect");
+    if (!el) return;
+    el.src = ZERO_VOID_IMAGE_BREAK;
+    el.classList.remove("hidden", "zero-void-break-animate");
+    void el.offsetWidth;
+    el.classList.add("zero-void-break-animate");
+    setTimeout(function () {
+      el.classList.remove("zero-void-break-animate");
+      el.classList.add("hidden");
+    }, 700);
   }
 
   function animateRegenLayer(el, src) {
@@ -2137,7 +2219,8 @@
   // ラスボス4フェーズ連戦：中間形態撃破時のUI切替（Step B基盤 + Step C専用素材接続）
   // ============================================================
   // ラスボス専用画像・最上階背景・専用BGM開始/切替・常設フェーズ表示を接続する。
-  // 属性ギミックの実動作・敵行動テーブル・ゼロヴォイド等はStep C対象外のまま。
+  // ゼロ・ヴォイドは実装済み（本関数はフェーズ切替時のUIローカル状態リセットのみを扱う）。
+  // ゼロ・クライシス（堕天専用）は今回未実装のまま。
 
   var FINAL_BOSS_PHASE_MESSAGE_MS = 1600;
   var FINAL_BOSS_PHASE_APPEAR_MS = 600;
@@ -2308,17 +2391,28 @@
           if (holyBd && holyBd.critical) {
             flashCritical();
           }
+          if (holyBd && holyBd.zeroVoidPierced) {
+            showEnemyZeroVoidBreakEffect(false);
+          }
         }, 850);
       } else if (isMeteorHit) {
         flashScreen(card.kind, card.element);
         var meteorBd = result.logEntry.damageBreakdown;
+        var meteorZeroVoidNullified = !!(meteorBd && meteorBd.zeroVoidNullified);
         setTimeout(function () {
           shakeEnemySprite();
-          if (meteorBd) {
+          // ゼロ・ヴォイド無効化時は、メテオ本体の発動演出（既に再生済み）はそのままに、
+          // 着弾結果だけ「0ダメージ」で統一する（会心表示・会心フラッシュは出さない）。
+          if (meteorZeroVoidNullified) {
+            showDamagePop(0, false, false);
+          } else if (meteorBd) {
             showDamagePop(meteorBd.finalDamage, meteorBd.critical, meteorBd.weakness);
           }
-          if (meteorBd && meteorBd.critical) {
+          if (meteorBd && meteorBd.critical && !meteorZeroVoidNullified) {
             flashCritical();
+          }
+          if (meteorZeroVoidNullified) {
+            showEnemyZeroVoidBreakEffect(true);
           }
         }, 1400);
       } else {
@@ -2333,35 +2427,59 @@
           if (!isWin && !result.phaseTransition) {
             setTimeout(shakeEnemySprite, 130);
           }
+          var normalZeroVoidNullified = !!(result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.zeroVoidNullified);
           if (result.logEntry.damageBreakdown) {
             var normalBd = result.logEntry.damageBreakdown;
             if (isMobile()) {
               // モバイルはスクロール復帰（最大500ms）より先にポップが出て
               // ENEMY HPバーの下に隠れないよう、復帰後まで表示を遅らせる。
               setTimeout(function () {
-                showDamagePop(normalBd.finalDamage, normalBd.critical, normalBd.weakness);
+                // ゼロ・ヴォイド無効化時は「攻撃が0へ戻された」結果を優先し、会心/弱点表示を出さない
+                // （内部のcritical/weaknessフラグ自体はdamageBreakdown/ログ上そのまま残す）。
+                if (normalZeroVoidNullified) {
+                  showDamagePop(0, false, false);
+                  showEnemyZeroVoidBreakEffect(true);
+                } else {
+                  showDamagePop(normalBd.finalDamage, normalBd.critical, normalBd.weakness);
+                }
               }, 550);
             } else {
-              showDamagePop(normalBd.finalDamage, normalBd.critical, normalBd.weakness);
+              if (normalZeroVoidNullified) {
+                showDamagePop(0, false, false);
+                showEnemyZeroVoidBreakEffect(true);
+              } else {
+                showDamagePop(normalBd.finalDamage, normalBd.critical, normalBd.weakness);
+              }
             }
           }
-          var isCritical = result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.critical;
-          var hitSe;
-          if (isCritical) {
-            hitSe = "criticalHit";
-            flashCritical();
+          if (normalZeroVoidNullified) {
+            // ゼロ・ヴォイドで無効化された通常攻撃は、通常ヒットSE・会心SE・会心フラッシュを
+            // 出さない。結果音はshowEnemyZeroVoidBreakEffect()内のnullify SEのみとする。
           } else {
-            hitSe = card.kind === "mul" ? "special" : "hit";
+            var isCritical = result.logEntry.damageBreakdown && result.logEntry.damageBreakdown.critical;
+            var hitSe;
+            if (isCritical) {
+              hitSe = "criticalHit";
+              flashCritical();
+            } else {
+              hitSe = card.kind === "mul" ? "special" : "hit";
+            }
+            setTimeout(function () { playSE(hitSe); }, 40);
           }
-          setTimeout(function () { playSE(hitSe); }, 40);
         } else if (result.logEntry.heal) {
           setTimeout(function () { playSE("heal"); }, 40);
           showPlayerHealEffect();
+          if (result.logEntry.zeroVoidConsumed) {
+            showEnemyZeroVoidBreakEffect(false);
+          }
         }
       }
     } else if (!result.correct) {
       playSE("wrong");
       playPlayerDamageFeedback();
+      if (result.logEntry.zeroVoidConsumed) {
+        showEnemyZeroVoidBreakEffect(false);
+      }
     }
 
     // ラスボス4フェーズ連戦：中間形態撃破（次フェーズへ切替）はここで分岐し、以降の
@@ -2450,6 +2568,19 @@
               return;
             }
             animateEnemyPreAction(function () {
+              // ゼロ・ヴォイド：予告演出が終わるまでactive常設表示・操作再開を出さない特別扱い。
+              // 通常の威嚇・力ため・隙あり・ボス攻撃の処理順（下側）には触れない。
+              if (result.enemyAction.type === "zeroVoid") {
+                showEnemyAction(result.enemyAction);
+                showEnemyZeroVoidWarningEffect(function () {
+                  enemyStateEffectsVisible = true;
+                  renderEnemySprite();
+                  interactionLocked = false;
+                  renderHand();
+                  renderPlayerSection();
+                });
+                return;
+              }
               enemyStateEffectsVisible = true;
               showEnemyAction(result.enemyAction);
               playEnemyActionSE(result.enemyAction);
@@ -2567,7 +2698,12 @@
       session.hand.forEach(function (c) { if (!isHolyCard(c)) darkCorruptAgeMap[c.uid] = 0; });
     }
 
-    showInfoFeedback("手札を入れ替えた（ハート-1）");
+    var changeHandFeedback = "手札を入れ替えた（ハート-1）";
+    if (result.zeroVoidConsumed) {
+      changeHandFeedback += "\n🌀 ゼロ・ヴォイドの力が消えた";
+      showEnemyZeroVoidBreakEffect(false);
+    }
+    showInfoFeedback(changeHandFeedback);
     flashScreen("add", null);
 
     enemyStateEffectsVisible = false;
@@ -2589,6 +2725,11 @@
       updateAnsweringClass();
     }
 
+    // 手札チェンジで旧ゼロ・ヴォイドを解除した直後、敵が新たにゼロ・ヴォイドを選び直した場合は、
+    // 旧break演出（700ms）と新warning演出が重ならないよう、敵行動開始までの待機を追加する。
+    var zeroVoidReTriggered = !!(result.zeroVoidConsumed && result.enemyAction && result.enemyAction.type === "zeroVoid");
+    var zeroVoidBreakGuardMs = zeroVoidReTriggered ? 700 : 0;
+
     var regenPresent = !!result.enemyRegen;
     setTimeout(function () {
       if (regenPresent) {
@@ -2608,6 +2749,19 @@
             return;
           }
           animateEnemyPreAction(function () {
+            // ゼロ・ヴォイド：予告演出が終わるまでactive常設表示・操作再開を出さない特別扱い。
+            // 通常の威嚇・力ため・隙あり・ボス攻撃の処理順（下側）には触れない。
+            if (result.enemyAction.type === "zeroVoid") {
+              showEnemyAction(result.enemyAction);
+              showEnemyZeroVoidWarningEffect(function () {
+                enemyStateEffectsVisible = true;
+                renderEnemySprite();
+                interactionLocked = false;
+                renderHand();
+                renderPlayerSection();
+              });
+              return;
+            }
             enemyStateEffectsVisible = true;
             showEnemyAction(result.enemyAction);
             playEnemyActionSE(result.enemyAction);
@@ -2632,7 +2786,7 @@
         };
         doEnemyAction();
       }, regenPresent ? 600 : 0);
-    }, regenPresent ? 800 : 1100);
+    }, (regenPresent ? 800 : 1100) + zeroVoidBreakGuardMs);
   }
 
   function buildBattleUrl(areaId, stage) {
@@ -2725,6 +2879,9 @@
         correctionEl.textContent = buildDamageCorrections(logEntry);
       } else if (logEntry.heal) {
         correctionEl.textContent = "ハート+" + logEntry.heal + "！";
+        if (logEntry.zeroVoidConsumed) {
+          correctionEl.textContent += "\n🌀 ゼロ・ヴォイドの力が消えた";
+        }
       }
 
       showFeedbackArea(false);
@@ -2737,7 +2894,7 @@
       correctLine += "）";
       readEl.textContent    = correctLine;
       readEl.className      = "feedback-correct-answer";
-      correctionEl.textContent = "";
+      correctionEl.textContent = logEntry.zeroVoidConsumed ? "🌀 ゼロ・ヴォイドの力が消えた" : "";
       hintEl.textContent    = "残念、ハートが減った！";
       showFeedbackArea(true);
     }
@@ -2846,6 +3003,9 @@
     } else if (action.type === "intimidate") {
       var enemyName = getEnemyName(session.areaDef, session.stage);
       label = enemyName + "が威嚇してきた！ 手札" + action.lockedCount + "枚が使えなくなった！";
+    } else if (action.type === "zeroVoid") {
+      var zeroVoidEnemyName = getEnemyName(session.areaDef, session.stage);
+      label = zeroVoidEnemyName + "が「ゼロ・ヴォイド」を放った！\n次のこうげきが0に戻される！";
     }
 
     if (!label) {
@@ -2901,6 +3061,11 @@
     }
     if (bd.meteor && bd.ignoreGuard) {
       parts.push("メテオ：ガード貫通");
+    }
+    if (bd.zeroVoidNullified) {
+      parts.push("🌀ゼロ・ヴォイドに吸い込まれた！");
+    } else if (bd.zeroVoidPierced) {
+      parts.push("🌀ゼロ・ヴォイドを貫通した！");
     }
     if (bd.abyssWallReduced && bd.abyssWallReductionAmount > 0) {
       parts.push("アビスウォール-" + bd.abyssWallReductionAmount);

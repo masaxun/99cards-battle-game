@@ -2054,6 +2054,83 @@ body {
 }
 
 /* ============================================================
+   ゼロ・ヴォイド（ラスボス専用行動）
+   予告（一瞬のフラッシュ）・発動中（常設パルス）・破裂（無効化/貫通の解決演出）の3層。
+   壁が残っている間は選ばれない（areas.js側のwallActiveテーブルでweight:0）ため、
+   アビスウォールの表示(z-index:4)と同時に出ることは想定しない。
+   ============================================================ */
+
+.enemy-zero-void-warning-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 150%;
+  height: 150%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+}
+
+.enemy-zero-void-warning-effect.zero-void-warning-animate {
+  animation: kf-enemy-zero-void-warning 0.9s ease-out forwards;
+}
+
+@keyframes kf-enemy-zero-void-warning {
+  0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.6); }
+  30%  { opacity: 0.95; transform: translate(-50%, -50%) scale(1.05); }
+  75%  { opacity: 0.7;  transform: translate(-50%, -50%) scale(1.0); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.95); }
+}
+
+.enemy-zero-void-active-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 140%;
+  height: 140%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+}
+
+.enemy-zero-void-active-effect.zero-void-active-visible {
+  opacity: 0.75;
+  animation: kf-enemy-zero-void-active-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes kf-enemy-zero-void-active-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.65; }
+  50%      { transform: translate(-50%, -50%) scale(1.08); opacity: 0.85; }
+}
+
+.enemy-zero-void-break-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 150%;
+  height: 150%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+}
+
+.enemy-zero-void-break-effect.zero-void-break-animate {
+  animation: kf-enemy-zero-void-break 0.7s ease-out forwards;
+}
+
+@keyframes kf-enemy-zero-void-break {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.7); }
+  20%  { opacity: 1;   transform: translate(-50%, -50%) scale(1.1); }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.6); }
+}
+
+/* ============================================================
    敗北/撤退 暗転演出
    ============================================================ */
 
