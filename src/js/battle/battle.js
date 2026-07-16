@@ -549,13 +549,55 @@
   }
 
   // ============================================================
+  // ゼロ・クライシス（堕天ククノモクズ専用行動）
+  // ============================================================
+  // 手札の九九カード1枚の右側の数(b)を1下げて弱体化させる。0を作らない（b>1のカードのみ対象、
+  // 最低値は1）。ホーリー(1×1)を新たに生み出す1×2も対象外にする（弱体化技のため）。
+
+  function isZeroCrisisTargetCard(card) {
+    return !!card && card.kind === "mul" && !isHolyCard(card) && card.b > 1 &&
+      !(card.a === 1 && card.b === 2);
+  }
+
+  function findZeroCrisisTargets(session) {
+    return session.hand.filter(isZeroCrisisTargetCard);
+  }
+
+  function hasZeroCrisisTarget(session) {
+    return findZeroCrisisTargets(session).length > 0;
+  }
+
+  // 対象候補からランダムに1枚選び、Cards.createMulCard()で新b値のカードを再生成する
+  // （element/rank/dan/factKey/answerはゲーム既存の生成規則に従う。例：9×9→9×8はメテオではなくなる）。
+  // UIDは元カードの値を引き継ぎ、手札の同じスロットへ差し替える（威嚇ロック・闇侵食age等の
+  // UIDベース追跡を切らないため）。before/afterは値のコピー（カード参照そのものではない）。
+  function applyZeroCrisis(session) {
+    var candidates = findZeroCrisisTargets(session);
+    if (candidates.length === 0) return null;
+    var target = candidates[Math.floor(Math.random() * candidates.length)];
+    var index = session.hand.indexOf(target);
+
+    var beforeCard = { kind: target.kind, a: target.a, b: target.b, answer: target.answer, dan: target.dan, factKey: target.factKey };
+
+    var newCard = Cards.createMulCard(target.a, target.b - 1);
+    newCard.uid = target.uid;
+    session.hand[index] = newCard;
+
+    var afterCard = { kind: newCard.kind, a: newCard.a, b: newCard.b, answer: newCard.answer, dan: newCard.dan, factKey: newCard.factKey };
+
+    return { targetUid: target.uid, beforeCard: beforeCard, afterCard: afterCard };
+  }
+
+  // ============================================================
   // 敵行動
   // ============================================================
 
   // ラスボス専用行動抽選。areas.js finalBossPhases[i].actionProbsを参照する
   // （アビスウォール未破壊中はwallActiveテーブル、それ以外はnormalテーブル。grass/fire/water の
   // wallActiveテーブルはzeroVoidの重みが0のため、壁が残っている間はゼロ・ヴォイドは選ばれない）。
-  // ゼロ・クライシス（堕天専用）は今回未実装のため、抽選候補から除外し再抽選する。
+  // ゼロ・クライシス（堕天専用行動。actionProbsには堕天フェーズにしか登録がないため草/火/水では
+  // そもそも候補に含まれない）は、手札に弱体化対象カードが1枚も無い場合だけ再抽選する
+  // （「選んでから空振り」を避けるため、選択前に対象有無を確認する）。
   function pickFinalBossActionType(session) {
     var state = session.enemyState;
     var phase = getCurrentFinalBossPhase(session);
@@ -565,7 +607,7 @@
     var chosen = "bossAttack";
     for (var t = 0; t < 10; t++) {
       var candidate = weightedRandom(probs);
-      if (candidate === "zeroCrisis") continue; // 今回未実装
+      if (candidate === "zeroCrisis"  && !hasZeroCrisisTarget(session)) continue;
       if (candidate === "opening"    && state.opening) continue;
       if (candidate === "powerUp"    && state.powerUp) continue;
       if (candidate === "intimidate" && (state.intimidateLocked.length > 0 || session.hand.length < 2)) continue;
@@ -633,6 +675,21 @@
       state.lastActionWasCounter = false;
       // 固有名部分のみ持たせる。敵名を冠したメッセージへの組み立てはbattleUI.js側（showEnemyAction）で行う。
       result.label = "ゼロ・ヴォイド！ 次のこうげきが0に戻される！";
+
+    } else if (chosen === "zeroCrisis") {
+      state.lastActionWasCounter = false;
+      // pickFinalBossActionType()がhasZeroCrisisTarget()で対象存在を確認済みのため、
+      // ここでのnull（対象なし）は理論上発生しない。念のためnullなら"none"相当（何もしない）にする。
+      var zc = applyZeroCrisis(session);
+      if (zc) {
+        result.targetUid = zc.targetUid;
+        result.beforeCard = zc.beforeCard;
+        result.afterCard = zc.afterCard;
+        // 固有名部分のみ持たせる。敵名を冠したメッセージへの組み立てはbattleUI.js側で行う。
+        result.label = "ゼロ・クライシス！ 九九カードの力が崩される！";
+      } else {
+        result.type = "none";
+      }
 
     } else if (chosen === "guard") {
       state.guard = true;

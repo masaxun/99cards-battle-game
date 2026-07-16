@@ -33,6 +33,7 @@
   var usedCardUidMap = {};
   var waveCounter = 0;
   var waveNewCardUidMap = {};
+  var zeroCrisisChangedUidMap = {};
   var idlePauseCount = 0;
   var soundEnabled = (function () {
     try { return localStorage.getItem("kuku99_sound_enabled") !== "0"; } catch (e) { return true; }
@@ -66,7 +67,8 @@
     enemyIntimidateBoss:   { src: "assets/audio/se/se_boss_intimidate_v01.mp3",  volume: 0.65 },
     abyssWall:             { src: "assets/audio/se/se_abyss_wall_v01.mp3",       volume: 0.65 },
     zeroVoidWarning:       { src: "assets/audio/se/se_zero_void_warning_v01.mp3", volume: 0.60 },
-    zeroVoidNullify:       { src: "assets/audio/se/se_zero_void_nullify_v01.mp3", volume: 0.65 }
+    zeroVoidNullify:       { src: "assets/audio/se/se_zero_void_nullify_v01.mp3", volume: 0.65 },
+    zeroCrisis:            { src: "assets/audio/se/se_zero_crisis_v01.mp3",       volume: 0.65 }
   };
 
   function playSE(name) {
@@ -253,16 +255,19 @@
       });
       preloadImage(ABYSS_WALL_BREAK_IMAGE);
     }
-    // ラスボス専用画像（4形態）・最上階背景・ゼロ・ヴォイドは容量が大きい/使用頻度が低いため、
-    // ラスボス戦のときだけ追加プリロードする
+    // ラスボス専用画像（4形態）・最上階背景（草火水共通＋堕天専用）・ゼロ・ヴォイド・ゼロ・クライシスは
+    // 容量が大きい/使用頻度が低いため、ラスボス戦のときだけ追加プリロードする
+    // （堕天移行はバトル開始時点では未確定だが、移行直後の読み込み待ちを防ぐため開始時点で先読みする）。
     if (Battle.isFinalBossBattle(session)) {
       Object.keys(FINAL_BOSS_IMAGE_PATHS).forEach(function (key) {
         preloadImage(FINAL_BOSS_IMAGE_PATHS[key]);
       });
       preloadImage(FINAL_BOSS_BG_IMAGE);
+      preloadImage(FINAL_BOSS_BG_IMAGE_DARK);
       preloadImage(ZERO_VOID_IMAGE_WARNING);
       preloadImage(ZERO_VOID_IMAGE_ACTIVE);
       preloadImage(ZERO_VOID_IMAGE_BREAK);
+      preloadImage(ZERO_CRISIS_IMAGE);
     }
   }
 
@@ -406,11 +411,16 @@
     dark:  "assets/images/enemies/final_boss/enemy_final_boss_kukunomokuzu_dark_v01.png"
   };
   var FINAL_BOSS_BG_IMAGE = "assets/images/backgrounds/battle/bg_battle_shikkoku_top_v01.webp";
+  // 堕天ククノモクズ専用背景（崩壊した最上階）。草/火/水はFINAL_BOSS_BG_IMAGE（共通）のまま。
+  var FINAL_BOSS_BG_IMAGE_DARK = "assets/images/backgrounds/battle/bg_battle_shikkoku_final_v01.webp";
 
   // ゼロ・ヴォイド専用画像（ラスボス専用行動）。予告・発動中・破裂の3種。
   var ZERO_VOID_IMAGE_WARNING = "assets/images/effects/effect_enemy_zero_void_warning_v01.png";
   var ZERO_VOID_IMAGE_ACTIVE  = "assets/images/effects/effect_enemy_zero_void_active_v01.png";
   var ZERO_VOID_IMAGE_BREAK   = "assets/images/effects/effect_enemy_zero_void_break_v01.png";
+
+  // ゼロ・クライシス専用画像（堕天ククノモクズ専用行動）。
+  var ZERO_CRISIS_IMAGE = "assets/images/effects/effect_enemy_zero_crisis_v01.png";
 
   var STAGE_FALLBACK_SPRITES = {
     normal1: "👾", normal2: "🦇", normal3: "🪨", boss: "🐉",
@@ -667,7 +677,8 @@
       "battle-bg-mayoi",    "battle-bg-mayoi-boss",
       "battle-bg-shakunetsu", "battle-bg-shakunetsu-boss",
       "battle-bg-shinkai",  "battle-bg-shinkai-boss",
-      "battle-bg-shikkoku-low", "battle-bg-shikkoku-high", "battle-bg-shikkoku-top"
+      "battle-bg-shikkoku-low", "battle-bg-shikkoku-high",
+      "battle-bg-shikkoku-top", "battle-bg-shikkoku-final"
     );
     var isBoss = (stage === "boss");
     if (areaId === "hajimari") {
@@ -692,9 +703,17 @@
     } else if (areaId === "shikkoku" && SHIKKOKU_HIGH_STAGES[stage]) {
       el.classList.add("battle-bg-shikkoku-high");
     } else if (areaId === "shikkoku" && stage === "boss") {
-      // 最上階（第9戦・ラスボス）。4形態共通の背景1種のみ（堕天専用背景は次工程）
-      el.classList.add("battle-bg-shikkoku-top");
+      // 最上階（第9戦・ラスボス）。堕天ククノモクズ形態だけ専用背景へ切り替える
+      // （フェーズ番号のハードコードではなく、enemyTypeで判定する）。
+      el.classList.add(isDarkFinalBossPhase() ? "battle-bg-shikkoku-final" : "battle-bg-shikkoku-top");
     }
+  }
+
+  // ラスボス戦かつ現在フェーズが堕天（enemyType==="dark"）かどうか。session未生成時はfalse。
+  function isDarkFinalBossPhase() {
+    if (!session || !Battle.isFinalBossBattle(session)) return false;
+    var phase = Battle.getCurrentFinalBossPhase(session);
+    return !!(phase && phase.enemyType === "dark");
   }
 
   // ============================================================
@@ -702,6 +721,9 @@
   // ============================================================
 
   function render() {
+    // 背景はUIローカル変数へキャッシュせず、毎回session（現在フェーズ）から再判定する
+    // （堕天専用背景切替・サウンド設定変更後の再描画などでも常に正しい状態になるようにするため）。
+    applyBattleBg(session.areaDef.id, session.stage);
     renderEnemyHP();
     renderEnemySprite();
     renderEnemyAttackPanel();
@@ -1103,6 +1125,12 @@
         div.classList.add("card-wave-dealt");
         var waveDelay = waveNewCardUidMap[card.uid] * 70;
         if (waveDelay > 0) div.style.animationDelay = waveDelay + "ms";
+      }
+
+      // ゼロ・クライシスで弱体化された直後のカード（赤紫フラッシュ。UIDを維持しているため
+      // 威嚇ロック・闇侵食ageなど他のUID基準状態とは独立して重ねられる）
+      if (card.uid in zeroCrisisChangedUidMap) {
+        div.classList.add("card-zero-crisis-changed");
       }
 
       var badgeDiv = document.createElement("div");
@@ -1532,6 +1560,58 @@
       el.classList.remove("zero-void-break-animate");
       el.classList.add("hidden");
     }, 700);
+  }
+
+  // ゼロ・クライシス演出時間（CSSのkf-zero-crisis-approachと一致させる）。
+  var ZERO_CRISIS_APPROACH_MS = 1300;
+
+  // 敵付近に小さく出現→プレイヤー側へ迫るように拡大→フェードアウト、の一連。
+  // カードデータ自体はbattle.js側で既に変化済み（このタイミングでは何も書き換えない）。
+  // 演出完了後にcallbackを呼ぶ（手札再描画・変化フラッシュ・操作再開はcallback側の責務）。
+  function showEnemyZeroCrisisEffect(callback) {
+    playSE("zeroCrisis");
+
+    var el = document.getElementById("enemy-zero-crisis-effect");
+    if (!el) {
+      if (callback) callback();
+      return;
+    }
+
+    pauseIdleAnimation();
+    el.src = ZERO_CRISIS_IMAGE;
+    el.classList.remove("hidden", "zero-crisis-approach");
+    void el.offsetWidth;
+    el.classList.add("zero-crisis-approach");
+
+    setTimeout(function () {
+      el.classList.remove("zero-crisis-approach");
+      el.classList.add("hidden");
+      el.removeAttribute("src");
+      resumeIdleAnimation();
+
+      if (callback) callback();
+    }, ZERO_CRISIS_APPROACH_MS);
+  }
+
+  // 対象カードの変化メッセージ＋短いフラッシュ表示。beforeCard/afterCardはbattle.js側の
+  // triggerEnemyAction()が値コピーで返したもの（カード参照そのものではない）。
+  function showZeroCrisisCardChangeEffect(action) {
+    var before = action.beforeCard, after = action.afterCard;
+    if (before && after) {
+      var opBefore = before.kind === "add" ? " + " : before.kind === "sub" ? " - " : " × ";
+      var opAfter  = after.kind  === "add" ? " + " : after.kind  === "sub" ? " - " : " × ";
+      showInfoFeedback(
+        before.a + opBefore + before.b + " が " + after.a + opAfter + after.b + " に変えられた！"
+      );
+    }
+    if (action.targetUid) {
+      zeroCrisisChangedUidMap[action.targetUid] = true;
+      renderHand();
+      setTimeout(function () {
+        delete zeroCrisisChangedUidMap[action.targetUid];
+        renderHand();
+      }, 700);
+    }
   }
 
   function animateRegenLayer(el, src) {
@@ -2252,10 +2332,14 @@
     abyssWallSummoned = false;
     abyssWallBrokenAnimated = false;
     enemyStateEffectsVisible = false;
+    zeroCrisisChangedUidMap = {};
     clearPersistentFeedback();
     clearTimeout(enemyMsgTimer);
     var msgEl = document.getElementById("enemy-action-msg");
     if (msgEl) msgEl.classList.add("fb-hidden");
+    // 直前のフェーズ切替で万一残っていた場合の保険（通常は自身のsetTimeoutで解除済み）。
+    var screenEl0 = document.getElementById("battle-screen");
+    if (screenEl0) screenEl0.classList.remove("bg-transition-dark");
   }
 
   // 簡易フェーズ切替表示（既存のフィードバック欄を流用。専用DOMは追加しない）
@@ -2277,42 +2361,68 @@
     }, FINAL_BOSS_PHASE_APPEAR_MS);
   }
 
+  // 堕天移行時、背景・敵画像の差し替え瞬間を短い暗転で隠すための時間（クロスフェード代替の最小案）。
+  var BG_TRANSITION_DARK_FADE_MS = 220;
+  var BG_TRANSITION_DARK_HOLD_MS = 90;
+
   // 敵撃破の演出（通常/ホーリー/メテオいずれか）が完了した後に呼ぶ。
-  // UIローカル状態リセット → 再描画（新フェーズの画像/HP/敵名/手札/バッジ/アビスウォール非表示/
-  // フェーズ表示を反映。旧画像→新画像の切替はrender()内で同期的に行われ、描画を挟まないため
-  // 旧画像が一瞬見える問題は起きない） → 次形態フェードイン → 簡易切替メッセージ →
-  // （堕天移行なら）BGM切替 → （壁がある形態なら）アビスウォール登場演出 → 操作再開、の順で進める。
+  // UIローカル状態リセット → （堕天移行のみ）短い暗転 → 再描画（新フェーズの画像/背景/HP/敵名/手札/
+  // バッジ/アビスウォール非表示を反映。旧画像→新画像の切替はrender()内で同期的に行われ、描画を
+  // 挟まないため旧画像が一瞬見える問題は起きない） → 次形態フェードイン → （堕天移行なら）BGM切替
+  // → 簡易切替メッセージ → （堕天移行なら）暗転解除 → （壁がある形態なら）アビスウォール登場演出
+  // → 操作再開、の順で進める。
   function runFinalBossPhaseTransition(phaseTransition) {
     resetUiStateForFinalBossPhaseTransition();
-    render();
-    playPhaseAppearEffect();
-    showFinalBossPhaseMessage(phaseTransition.currentPhase);
 
     var nextPhase = phaseTransition.currentPhase;
-    if (nextPhase.phaseTransitionBgm) {
-      // 堕天移行時のみ一度だけ切替。草→火・火→水では発火しない
-      // （phaseTransitionBgmを持つのはareas.js上で堕天フェーズのみのため）。
-      switchToFinalBossPhase2Bgm();
-    }
+    var isDarkPhase = nextPhase.enemyType === "dark";
     var hasWall = !!(nextPhase.hasAbyssWall && nextPhase.hasAbyssWall.requiredCount);
+    var screenEl = document.getElementById("battle-screen");
 
-    setTimeout(function () {
-      if (hasWall) {
-        triggerAbyssWallSummon();
+    function proceedAfterSwap() {
+      render(); // 敵画像・背景を同時に新フェーズへ切り替える
+      playPhaseAppearEffect();
+      if (nextPhase.phaseTransitionBgm) {
+        // 堕天移行時のみ一度だけ切替。草→火・火→水では発火しない
+        // （phaseTransitionBgmを持つのはareas.js上で堕天フェーズのみのため）。
+        switchToFinalBossPhase2Bgm();
+      }
+      showFinalBossPhaseMessage(nextPhase);
+
+      if (isDarkPhase) {
         setTimeout(function () {
+          screenEl.classList.remove("bg-transition-dark");
+        }, BG_TRANSITION_DARK_HOLD_MS);
+      }
+
+      setTimeout(function () {
+        if (hasWall) {
+          triggerAbyssWallSummon();
+          setTimeout(function () {
+            interactionLocked = false;
+            // renderHand()呼び出し前(interactionLocked=true時点)のrender()でカードがロック状態のまま
+            // 描画されているため、解除後にもう一度描画してクリック可能な状態へ戻す
+            // （continueEnemyAction()のdoEnemyAction()と同じパターン）。
+            renderHand();
+            renderPlayerSection();
+          }, ABYSS_WALL_SUMMON_ANIM_MS + 200);
+        } else {
           interactionLocked = false;
-          // renderHand()呼び出し前(interactionLocked=true時点)のrender()でカードがロック状態のまま
-          // 描画されているため、解除後にもう一度描画してクリック可能な状態へ戻す
-          // （continueEnemyAction()のdoEnemyAction()と同じパターン）。
           renderHand();
           renderPlayerSection();
-        }, ABYSS_WALL_SUMMON_ANIM_MS + 200);
-      } else {
-        interactionLocked = false;
-        renderHand();
-        renderPlayerSection();
-      }
-    }, FINAL_BOSS_PHASE_MESSAGE_MS);
+        }
+      }, FINAL_BOSS_PHASE_MESSAGE_MS);
+    }
+
+    if (isDarkPhase) {
+      // 堕天移行のみ：背景・敵画像の差し替え瞬間を短い暗転で隠す（旧水形態の撃退演出は
+      // 呼び出し元のhandleFinalBossPhaseTransition()側で既に完了済みのため、ここでの暗転は
+      // 撃退演出を先取りするものではなく、その直後の画像/背景切替だけを覆う）。
+      screenEl.classList.add("bg-transition-dark");
+      setTimeout(proceedAfterSwap, BG_TRANSITION_DARK_FADE_MS);
+    } else {
+      proceedAfterSwap();
+    }
   }
 
   // 通常攻撃/ホーリー/メテオのいずれで中間形態を倒しても、この関数経由で
@@ -2581,6 +2691,23 @@
                 });
                 return;
               }
+              // ゼロ・クライシス：予告演出（迫るアニメーション）が終わるまで操作不能にする特別扱い。
+              // カードデータ自体はbattle.js側で既に変化済み。回答パネルに古い式が残らないよう
+              // selectedCardUidをここでも念のためクリアする。
+              if (result.enemyAction.type === "zeroCrisis") {
+                selectedCardUid = null;
+                document.getElementById("answer-panel").classList.add("hidden");
+                showEnemyAction(result.enemyAction);
+                showEnemyZeroCrisisEffect(function () {
+                  enemyStateEffectsVisible = true;
+                  renderEnemySprite();
+                  showZeroCrisisCardChangeEffect(result.enemyAction); // ロック中に1回目の描画（変化フラッシュ付き）
+                  interactionLocked = false;
+                  renderHand(); // ロック解除後、クリック可能な状態で再描画
+                  renderPlayerSection();
+                });
+                return;
+              }
               enemyStateEffectsVisible = true;
               showEnemyAction(result.enemyAction);
               playEnemyActionSE(result.enemyAction);
@@ -2756,6 +2883,20 @@
               showEnemyZeroVoidWarningEffect(function () {
                 enemyStateEffectsVisible = true;
                 renderEnemySprite();
+                interactionLocked = false;
+                renderHand();
+                renderPlayerSection();
+              });
+              return;
+            }
+            if (result.enemyAction.type === "zeroCrisis") {
+              selectedCardUid = null;
+              document.getElementById("answer-panel").classList.add("hidden");
+              showEnemyAction(result.enemyAction);
+              showEnemyZeroCrisisEffect(function () {
+                enemyStateEffectsVisible = true;
+                renderEnemySprite();
+                showZeroCrisisCardChangeEffect(result.enemyAction);
                 interactionLocked = false;
                 renderHand();
                 renderPlayerSection();
@@ -3006,6 +3147,9 @@
     } else if (action.type === "zeroVoid") {
       var zeroVoidEnemyName = getEnemyName(session.areaDef, session.stage);
       label = zeroVoidEnemyName + "が「ゼロ・ヴォイド」を放った！\n次のこうげきが0に戻される！";
+    } else if (action.type === "zeroCrisis") {
+      var zeroCrisisEnemyName = getEnemyName(session.areaDef, session.stage);
+      label = zeroCrisisEnemyName + "が「ゼロ・クライシス」を放った！\n九九カードの力が崩される！";
     }
 
     if (!label) {

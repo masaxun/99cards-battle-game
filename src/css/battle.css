@@ -181,11 +181,26 @@ body {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_high_v01.webp?v=20260712-shikkoku-high1");
 }
 
-/* 漆黒の塔 最上階（第9戦・ラスボス）。現時点では4形態（草/火/水/堕天）共通の背景を使う
-   （堕天専用背景・暗色オーバーレイは次工程）。低層・高層と同じ#battle-screen::before方式のため、
-   モバイルでのスクロール・ブラウザUI変動時の位置ズレ対策も既存と共通で適用される。 */
+/* 漆黒の塔 最上階（第9戦・ラスボス）草/火/水共通背景。堕天ククノモクズのみ専用背景（下記）へ切り替える。
+   低層・高層と同じ#battle-screen::before方式のため、モバイルでのスクロール・ブラウザUI変動時の
+   位置ズレ対策も既存と共通で適用される。 */
 #battle-screen.battle-bg-shikkoku-top::before {
   background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_top_v01.webp");
+}
+
+/* 漆黒の塔 最上階・堕天 ククノモクズ専用（崩壊した最上階）。 */
+#battle-screen.battle-bg-shikkoku-final::before {
+  background-image: url("../../assets/images/backgrounds/battle/bg_battle_shikkoku_final_v01.webp");
+}
+
+/* 堕天移行時の背景/敵画像差し替えを短く隠すための暗転（クロスフェード代替の最小案）。
+   既存の#battle-screen::after（常設の暗めオーバーレイ）を一時的に強めるだけで、
+   新たな重ねレイヤーは追加しない。 */
+#battle-screen::after {
+  transition: background-color 0.22s ease;
+}
+#battle-screen.bg-transition-dark::after {
+  background-color: rgba(3, 3, 8, 0.97);
 }
 
 .section-tag {
@@ -2128,6 +2143,80 @@ body {
   0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.7); }
   20%  { opacity: 1;   transform: translate(-50%, -50%) scale(1.1); }
   100% { opacity: 0;   transform: translate(-50%, -50%) scale(1.6); }
+}
+
+/* ============================================================
+   ゼロ・クライシス（堕天ククノモクズ専用行動）
+   #enemy-sprite-wrap配下だとサイズ/overflowの制約を受けるため、body直下に固定配置し、
+   敵付近から小さく出現→プレイヤー側へ迫るように拡大→画面を覆う直前にフェードアウトさせる。
+   ============================================================ */
+
+.enemy-zero-crisis-effect {
+  position: fixed;
+  left: 50%;
+  top: 34%;
+  width: 260px;
+  height: 260px;
+  max-width: 60vw;
+  max-height: 60vw;
+  object-fit: contain;
+  transform: translate(-50%, -50%) scale(0.15);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.enemy-zero-crisis-effect.zero-crisis-approach {
+  animation: kf-zero-crisis-approach 1.3s ease-in forwards;
+}
+
+@keyframes kf-zero-crisis-approach {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.15);
+  }
+  18% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.25);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-50%, -40%) scale(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 10%) scale(2.4);
+  }
+}
+
+/* 対象カードの変化演出：赤紫のフラッシュ + 一瞬縮む + 外周の短い発光。
+   炎上/闇侵食/ホーリー化/威嚇/補充の各専用クラスとは別枠（同時に付与されても競合しない）。 */
+@keyframes kf-card-zero-crisis-shrink {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(0.90); }
+  65%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+.card.card-zero-crisis-changed {
+  animation: kf-card-zero-crisis-shrink 0.65s ease-out;
+  box-shadow: 0 0 0 2px rgba(210, 40, 140, 0.9), 0 0 16px 4px rgba(210, 40, 140, 0.75);
+}
+
+@keyframes kf-card-zero-crisis-flash {
+  0%   { opacity: 0.92; }
+  100% { opacity: 0; }
+}
+
+.card.card-zero-crisis-changed::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(ellipse at center, rgba(210, 40, 140, 0.70), rgba(20, 0, 15, 0.85) 70%);
+  border-radius: 6px;
+  pointer-events: none;
+  animation: kf-card-zero-crisis-flash 0.65s ease-out forwards;
 }
 
 /* ============================================================
