@@ -581,16 +581,22 @@ body {
   border: 1px solid #5fcc44;
 }
 
-/* 敵行動メッセージ（敵エリア下部にpill型で表示） */
+/* 敵行動メッセージ（敵エリア下部にpill型で表示）。
+   white-space: nowrap + max-width の組み合わせだと長文が改行されず画面外へはみ出すため、
+   width: max-content（短文は内容幅のまま）+ max-width（画面幅を超えない）+
+   overflow-wrap: anywhere（自然に折り返す）へ変更。\n を使ったメッセージは
+   white-space: pre-line で意図した位置の改行を活かす。 */
 #enemy-action-msg {
   position: absolute;
   bottom: 6px;
   left: 50%;
   right: auto;
   transform: translateX(-50%);
-  width: auto;
-  max-width: 90%;
-  white-space: nowrap;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
   padding: 4px 14px;
   border-radius: 20px;
   font-size: 13px;
@@ -2088,15 +2094,17 @@ body {
   opacity: 0;
 }
 
+/* 1.1s（旧0.9s）へ延長し、15%〜70%を高不透明度で保持することで「予告」として明確に
+   認識できる時間を確保する（実機でwarning→activeの境目が分かりにくいという報告を受けての調整）。 */
 .enemy-zero-void-warning-effect.zero-void-warning-animate {
-  animation: kf-enemy-zero-void-warning 0.9s ease-out forwards;
+  animation: kf-enemy-zero-void-warning 1.1s ease-out forwards;
 }
 
 @keyframes kf-enemy-zero-void-warning {
   0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.6); }
-  30%  { opacity: 0.95; transform: translate(-50%, -50%) scale(1.05); }
-  75%  { opacity: 0.7;  transform: translate(-50%, -50%) scale(1.0); }
-  100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.95); }
+  15%  { opacity: 1;     transform: translate(-50%, -50%) scale(1.08); }
+  70%  { opacity: 0.92;  transform: translate(-50%, -50%) scale(1.0); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.92); }
 }
 
 .enemy-zero-void-active-effect {

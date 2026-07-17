@@ -1507,6 +1507,15 @@
     }, 900);
   }
 
+  // 予告表示時間（旧900ms→1100msへ延長）と、予告が完全に消えてからactive表示までの空白時間。
+  // 実機（iOS Safari）で「予告なしでいきなりactiveが出たように見える」との報告を受け、
+  // JS側のcallback待ちタイミング自体はテストハーネス（仮想時計）で900ms正確であることを確認済み
+  // （タイマー処理・DOM上書きバグは見つからなかった）。それでも予告とactiveの境目を体感的に
+  // 明確にするため、CSS側のアニメーション（高不透明度の保持時間延長）とあわせて、時間経由でも
+  // 明確な区切りを作る対策を行う。
+  var ZERO_VOID_WARNING_MS = 1100;
+  var ZERO_VOID_WARNING_GAP_MS = 200;
+
   // ゼロ・ヴォイド発動予告（敵行動として選ばれた瞬間、showEnemyAction()と同じタイミングで一度だけ再生）
   // 予告演出が完了してからcallbackを呼ぶ（発動中の常設表示・操作再開はcallback側の責務）。
   // 予告完了前にactive画像・操作再開を先出ししないよう、呼び出し側は必ずcallback待ちで繋ぐこと。
@@ -1531,8 +1540,12 @@
       el.removeAttribute("src");
       resumeIdleAnimation();
 
-      if (callback) callback();
-    }, 900);
+      // 予告が完全に消えた状態を一拍おいてからactiveへ進む（予告とactiveの同時性を避け、
+      // 「予告→（間）→発動中」と体感的にも明確に区別できるようにする）。
+      setTimeout(function () {
+        if (callback) callback();
+      }, ZERO_VOID_WARNING_GAP_MS);
+    }, ZERO_VOID_WARNING_MS);
   }
 
   // ゼロ・ヴォイドの解決演出（無効化/貫通いずれの場合も、発動状態が終わったことを示す共通の破裂演出）。
@@ -1594,9 +1607,16 @@
   }
 
   // 対象カードの変化メッセージ＋短いフラッシュ表示。beforeCard/afterCardはbattle.js側の
-  // triggerEnemyAction()が値コピーで返したもの（カード参照そのものではない）。
-  function showZeroCrisisCardChangeEffect(action) {
-    var before = action.beforeCard, after = action.afterCard;
+  // triggerEnemyAction()（applyZeroCrisis()）がその技の実行時点で値コピーしたものだけを使う
+  // （カード参照そのものではない）。堕天フェーズは闇侵食も並行進行しており、この表示の後に
+  // 同じカードがさらに闇侵食で弱化することがあるが、それは闇侵食自身の別メッセージ・別演出の
+  // 責務であり、ゼロ・クライシスの表示をsession.handの最終状態へ合わせて書き換えてはいけない。
+  // 呼び出し側（continueEnemyAction()のzeroCrisis分岐）が、このフラッシュ完了を待ってから
+  // 闇侵食処理（processPendingCardTransformAndContinue()）を開始することで、PLAYER RESULT表示と
+  // 実際の手札表示が食い違う時間を作らないようにしている（callbackはその合図として使う）。
+  function showZeroCrisisCardChangeEffect(action, callback) {
+    var before = action.beforeCard;
+    var after = action.afterCard;
     if (before && after) {
       var opBefore = before.kind === "add" ? " + " : before.kind === "sub" ? " - " : " × ";
       var opAfter  = after.kind  === "add" ? " + " : after.kind  === "sub" ? " - " : " × ";
@@ -1604,14 +1624,17 @@
         before.a + opBefore + before.b + " が " + after.a + opAfter + after.b + " に変えられた！"
       );
     }
-    if (action.targetUid) {
-      zeroCrisisChangedUidMap[action.targetUid] = true;
-      renderHand();
-      setTimeout(function () {
-        delete zeroCrisisChangedUidMap[action.targetUid];
-        renderHand();
-      }, 700);
+    if (!action.targetUid) {
+      if (callback) callback();
+      return;
     }
+    zeroCrisisChangedUidMap[action.targetUid] = true;
+    renderHand();
+    setTimeout(function () {
+      delete zeroCrisisChangedUidMap[action.targetUid];
+      renderHand();
+      if (callback) callback();
+    }, 700);
   }
 
   function animateRegenLayer(el, src) {
@@ -2299,8 +2322,8 @@
   // ラスボス4フェーズ連戦：中間形態撃破時のUI切替（Step B基盤 + Step C専用素材接続）
   // ============================================================
   // ラスボス専用画像・最上階背景・専用BGM開始/切替・常設フェーズ表示を接続する。
-  // ゼロ・ヴォイドは実装済み（本関数はフェーズ切替時のUIローカル状態リセットのみを扱う）。
-  // ゼロ・クライシス（堕天専用）は今回未実装のまま。
+  // ゼロ・ヴォイドはラスボス全形態、ゼロ・クライシスは堕天形態専用として実装済み
+  // （本関数はフェーズ切替時のUIローカル状態リセットのみを扱う）。
 
   var FINAL_BOSS_PHASE_MESSAGE_MS = 1600;
   var FINAL_BOSS_PHASE_APPEAR_MS = 600;
@@ -2694,6 +2717,10 @@
               // ゼロ・クライシス：予告演出（迫るアニメーション）が終わるまで操作不能にする特別扱い。
               // カードデータ自体はbattle.js側で既に変化済み。回答パネルに古い式が残らないよう
               // selectedCardUidをここでも念のためクリアする。
+              // 【表示順の特別扱い】ゼロ・クライシス自身の変化表示（PLAYER RESULT・カードフラッシュ）が
+              // 完了してから、闇侵食（発生していれば）の処理をここで初めて実行する。呼び出し元
+              // （このturn末尾のprocessPendingCardTransformAndContinue()分岐）は、ゼロ・クライシスが
+              // 選ばれたターンだけ闇侵食処理をここまで遅延させ、通常ターンの処理順には触れない。
               if (result.enemyAction.type === "zeroCrisis") {
                 selectedCardUid = null;
                 document.getElementById("answer-panel").classList.add("hidden");
@@ -2701,10 +2728,13 @@
                 showEnemyZeroCrisisEffect(function () {
                   enemyStateEffectsVisible = true;
                   renderEnemySprite();
-                  showZeroCrisisCardChangeEffect(result.enemyAction); // ロック中に1回目の描画（変化フラッシュ付き）
-                  interactionLocked = false;
-                  renderHand(); // ロック解除後、クリック可能な状態で再描画
-                  renderPlayerSection();
+                  showZeroCrisisCardChangeEffect(result.enemyAction, function () {
+                    processPendingCardTransformAndContinue(function () {
+                      interactionLocked = false;
+                      renderHand();
+                      renderPlayerSection();
+                    });
+                  });
                 });
                 return;
               }
@@ -2736,17 +2766,26 @@
     }
 
     // 燃え尽き/闇侵食処理（burn05/dark05 を 1100ms 表示後に除外・補充・弱化）
-    // ホーリー/メテオ発動時は演出完了後に続行
+    // ホーリー/メテオ発動時は演出完了後に続行。
+    // ただし敵の次行動がゼロ・クライシスの場合だけは、闇侵食処理をここで先に走らせない
+    // （continueEnemyAction()のzeroCrisis分岐が、自身の変化表示完了後に
+    // processPendingCardTransformAndContinue()を呼ぶまで遅延させる）。
+    var deferCardTransformForZeroCrisis = !!(result.enemyAction && result.enemyAction.type === "zeroCrisis");
+
+    function proceedWithEnemyAction() {
+      if (deferCardTransformForZeroCrisis) {
+        continueEnemyAction();
+      } else {
+        processPendingCardTransformAndContinue(continueEnemyAction);
+      }
+    }
+
     if (isHolyHit) {
-      playHolyUltimateEffect(function () {
-        processPendingCardTransformAndContinue(continueEnemyAction);
-      });
+      playHolyUltimateEffect(proceedWithEnemyAction);
     } else if (isMeteorHit) {
-      playMeteorUltimateEffect(function () {
-        processPendingCardTransformAndContinue(continueEnemyAction);
-      });
+      playMeteorUltimateEffect(proceedWithEnemyAction);
     } else {
-      processPendingCardTransformAndContinue(continueEnemyAction);
+      proceedWithEnemyAction();
     }
   }
 
@@ -3143,7 +3182,7 @@
       label = pool[Math.floor(Math.random() * pool.length)];
     } else if (action.type === "intimidate") {
       var enemyName = getEnemyName(session.areaDef, session.stage);
-      label = enemyName + "が威嚇してきた！ 手札" + action.lockedCount + "枚が使えなくなった！";
+      label = enemyName + "が威嚇してきた！\n手札" + action.lockedCount + "枚が使えなくなった！";
     } else if (action.type === "zeroVoid") {
       var zeroVoidEnemyName = getEnemyName(session.areaDef, session.stage);
       label = zeroVoidEnemyName + "が「ゼロ・ヴォイド」を放った！\n次のこうげきが0に戻される！";
