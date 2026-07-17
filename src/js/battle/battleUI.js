@@ -592,6 +592,17 @@
       return;
     }
 
+    // 漆黒の塔ラスボス戦の未解放直接URLガード（stage8クリアで解放）。
+    // debugCardsパラメータ指定時は開発確認用として迂回を許可する。
+    if (areaId === "shikkoku" && stage === "boss" && !params.debugCards) {
+      var shikkokuProgress = GameState.getAreaProgress(gameState, areaId);
+      var stage8Cleared = !!(shikkokuProgress.normalCleared && shikkokuProgress.normalCleared.stage8);
+      if (!stage8Cleared) {
+        window.location.replace(buildStageUrl(areaId));
+        return;
+      }
+    }
+
     session = Battle.createBattleSession(areaDef, stage, gameState);
 
     if (params.debugCards) {
@@ -2242,7 +2253,10 @@
   function showBattleStartModal() {
     var titleEl = document.getElementById("battle-start-title");
     var descEl  = document.getElementById("battle-start-description");
-    titleEl.textContent = BATTLE_STAGE_TITLES[session.stage] || "Battle";
+    // 漆黒の塔ラスボス戦だけ専用タイトル。通常エリアのbossは従来どおりBATTLE_STAGE_TITLES.boss("Boss Battle")。
+    titleEl.textContent = Battle.isFinalBossBattle(session)
+      ? "最終決戦"
+      : (BATTLE_STAGE_TITLES[session.stage] || "Battle");
     var desc;
     if (Battle.isFinalBossBattle(session)) {
       // ラスボス戦：session.areaDef.enemyTypeは常に"dark"固定のため使わず専用の説明文にする。
@@ -2999,7 +3013,7 @@
 
   function getNextStage(stage, areaDef) {
     if (areaDef && areaDef.id === "shikkoku") {
-      // 低層4戦＋高層4戦を実装済み。stage8の次(最上階boss)は未実装のためnullを返す。
+      // 低層4戦＋高層4戦＋最上階(boss=最終決戦)を実装済み。
       if (stage === "stage1") return "stage2";
       if (stage === "stage2") return "stage3";
       if (stage === "stage3") return "stage4";
@@ -3007,6 +3021,7 @@
       if (stage === "stage5") return "stage6";
       if (stage === "stage6") return "stage7";
       if (stage === "stage7") return "stage8";
+      if (stage === "stage8") return "boss";
       return null;
     }
     if (stage === "normal1") return "normal2";
@@ -3292,7 +3307,9 @@
     var areaName = session.areaDef.name;
 
     var stageLabel, nextHint;
-    if (areaId === "shikkoku") {
+    if (areaId === "shikkoku" && stage === "boss") {
+      stageLabel = outcome === "win" ? "最終決戦 クリア！" : "最終決戦で敗北";
+    } else if (areaId === "shikkoku") {
       // 低層4戦＋高層4戦を実装済み。「通常戦N/3」形式ではなく要件定義書セクション70の「第N戦」表記に合わせる。
       var shikkokuNumMap = { stage1: 1, stage2: 2, stage3: 3, stage4: 4, stage5: 5, stage6: 6, stage7: 7, stage8: 8 };
       var shikkokuNum = shikkokuNumMap[stage] || 1;
@@ -3373,13 +3390,19 @@
     stageBtn.classList.remove("hidden");
 
     if (stage === "boss") {
+      // ラスボス（shikkoku）勝利時はED未実装のため、既存の「もう一回」+「ステージ選択へ」のみを表示する。
+      // TODO: ラスボス勝利後のED導線
       primaryBtn.textContent = "もう一回";
       resultPrimaryUrl = currentUrl;
       retryBtn.classList.add("hidden");
     } else if (outcome === "win") {
       var nextStage = getNextStage(stage, session.areaDef);
       if (nextStage) {
-        primaryBtn.textContent = (stage === "normal3") ? "ぬし戦へ" : "つぎへ";
+        if (areaId === "shikkoku" && nextStage === "boss") {
+          primaryBtn.textContent = "最終決戦へ";
+        } else {
+          primaryBtn.textContent = (stage === "normal3") ? "ぬし戦へ" : "つぎへ";
+        }
         resultPrimaryUrl   = buildBattleUrl(areaId, nextStage);
         retryBtn.textContent = "もう一回";
         resultSecondaryUrl = currentUrl;

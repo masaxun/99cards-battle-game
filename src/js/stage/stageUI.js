@@ -34,9 +34,9 @@
 
   var STAGE_ORDER = ["normal1", "normal2", "normal3", "boss"];
 
-  // 漆黒の塔は9ステージ構成のため専用の並び順を持つ。低層4戦＋高層4戦を実装済み。最上階(boss)は未実装。
+  // 漆黒の塔は9ステージ構成のため専用の並び順を持つ。低層4戦＋高層4戦＋最上階(boss=最終決戦)を実装済み。
   var STAGE_ORDER_BY_AREA = {
-    shikkoku: ["stage1", "stage2", "stage3", "stage4", "stage5", "stage6", "stage7", "stage8"]
+    shikkoku: ["stage1", "stage2", "stage3", "stage4", "stage5", "stage6", "stage7", "stage8", "boss"]
   };
 
   function getStageOrderForArea(areaDef) {
@@ -69,9 +69,16 @@
     shinkai:  { normal1: "アクアウルフ",     normal2: "シーグリフォン", normal3: "コーラルタイタン" },
     shikkoku: {
       stage1: "シャドウスライム",  stage2: "シャドウバット", stage3: "ダークゴーレム", stage4: "ダークドラゴン",
-      stage5: "ナイトウルフ",      stage6: "ナイトグリフォン", stage7: "アビスタイタン", stage8: "アビスベヒーモス"
+      stage5: "ナイトウルフ",      stage6: "ナイトグリフォン", stage7: "アビスタイタン", stage8: "アビスベヒーモス",
+      boss: "零積神 ククノミコト"
     }
   };
+
+  // 漆黒の塔のbossだけ「最終決戦」と表示する。通常エリアのbossは従来どおりSTAGE_LABEL.boss("ぬし戦")を使う。
+  function getStageLabel(areaDef, stage) {
+    if (areaDef.id === "shikkoku" && stage === "boss") return "最終決戦";
+    return STAGE_LABEL[stage];
+  }
 
   function getStageEnemyName(areaDef, stage) {
     var areaNames = STAGE_ENEMY_NAMES[areaDef.id];
@@ -126,7 +133,7 @@
 
       var labelEl = document.createElement("div");
       labelEl.className = "stage-card-label";
-      labelEl.textContent = STAGE_LABEL[stage];
+      labelEl.textContent = getStageLabel(areaDef, stage);
 
       var enemyEl = document.createElement("div");
       enemyEl.className = "stage-card-enemy";
@@ -139,7 +146,9 @@
       btnEl.className = "stage-card-btn";
 
       if (!unlocked) {
-        statusEl.textContent = "🔒 未解放";
+        statusEl.textContent = (areaDef.id === "shikkoku" && stage === "boss")
+          ? "🔒 第8戦をクリアすると解放"
+          : "🔒 未解放";
         statusEl.className += " status-locked";
         btnEl.style.display = "none";
       } else if (cleared) {
