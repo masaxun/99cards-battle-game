@@ -53,10 +53,23 @@
     return "elem-" + (element || "none");
   }
 
-  function renderAreaCard(areaDef, progress) {
+  // requiredBossAreaIdsから解放条件の表示文言を組み立てる
+  function getUnlockConditionText(areaDef) {
+    var ids = areaDef.requiredBossAreaIds || [];
+    if (ids.length === 0) return "未解放";
+    var names = ids.map(function (id) {
+      var a = Areas.getAreaById(id);
+      return a ? a.name : id;
+    });
+    return names.join("・") + "のぬしを撃破すると解放";
+  }
+
+  function renderAreaCard(areaDef, progress, gameState) {
     var card = document.createElement("div");
-    var isImpl = !!areaDef.implemented;
-    card.className = "area-card " + (isImpl ? "area-available" : "area-locked");
+    // implemented: エリアが実装済みか。isUnlocked: 進行状況上プレイヤーが入れるか。両者は別条件。
+    var isImplemented = areaDef.implemented === true;
+    var isUnlocked = isImplemented && Areas.isAreaUnlocked(gameState, areaDef);
+    card.className = "area-card " + (isUnlocked ? "area-available" : "area-locked");
 
     // 上段: エリア名 + 段バッジ
     var headerRow = document.createElement("div");
@@ -89,11 +102,16 @@
     var footRow = document.createElement("div");
     footRow.className = "area-card-foot";
 
-    if (!isImpl) {
+    if (!isImplemented) {
       var lockEl = document.createElement("span");
       lockEl.className = "prog-locked";
       lockEl.textContent = "準備中";
       footRow.appendChild(lockEl);
+    } else if (!isUnlocked) {
+      var unlockEl = document.createElement("span");
+      unlockEl.className = "prog-locked";
+      unlockEl.textContent = "🔒 " + getUnlockConditionText(areaDef);
+      footRow.appendChild(unlockEl);
     } else {
       var prog = getProgressLabel(progress);
       var progEl = document.createElement("span");
@@ -139,7 +157,7 @@
 
       grouped.forEach(function (areaDef) {
         var progress = GameState.getAreaProgress(gameState, areaDef.id);
-        grid.appendChild(renderAreaCard(areaDef, progress));
+        grid.appendChild(renderAreaCard(areaDef, progress, gameState));
       });
 
       section.appendChild(grid);

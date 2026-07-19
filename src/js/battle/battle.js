@@ -322,6 +322,18 @@
     return phase ? phase.weaknessType : session.areaDef.weakness;
   }
 
+  // 敵攻撃（通常攻撃・反撃・力ため後の強制攻撃）の出題段を決める。
+  // ラスボス戦は現在フェーズのatkDansからランダム抽選し、それ以外
+  // （既存8エリア＋漆黒の塔stage1〜8）は従来通りareaDef.danを使う。
+  function pickEnemyAttackDan(session) {
+    var phase = getCurrentFinalBossPhase(session);
+    var atkDans = phase && Array.isArray(phase.atkDans) ? phase.atkDans : [];
+    if (atkDans.length > 0) {
+      return atkDans[Math.floor(Math.random() * atkDans.length)];
+    }
+    return session.areaDef.dan;
+  }
+
   // 中間フェーズ（草・火・水）のHPが0になった際に次フェーズへ切り替える。
   // 山札・手札・捨て札を破棄し、bossDeckComposition比率で新規35枚デッキ（手札5+山札30）を
   // 作り直す。敵の一時状態（guard/powerUp/opening/intimidateLocked/pendingAttack/abyssWall）と
@@ -736,7 +748,8 @@
     } else if (chosen === "counter" || chosen === "bossAttack") {
       var isPowered = state.powerUp;  // 力ため後の攻撃は常にpowered
       var bVal = isPowered ? pickHardB() : Cards.randomInt(1, 9);
-      var q = Cards.createMulCard(dan, bVal);
+      var attackDan = pickEnemyAttackDan(session);
+      var q = Cards.createMulCard(attackDan, bVal);
       session.pendingAttack = {
         question: q,
         kind: chosen === "counter" ? "counter" : "boss",

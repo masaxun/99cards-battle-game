@@ -32,17 +32,6 @@
     }, 120);
   }
 
-  var STAGE_ORDER = ["normal1", "normal2", "normal3", "boss"];
-
-  // 漆黒の塔は9ステージ構成のため専用の並び順を持つ。低層4戦＋高層4戦＋最上階(boss=最終決戦)を実装済み。
-  var STAGE_ORDER_BY_AREA = {
-    shikkoku: ["stage1", "stage2", "stage3", "stage4", "stage5", "stage6", "stage7", "stage8", "boss"]
-  };
-
-  function getStageOrderForArea(areaDef) {
-    return (areaDef && STAGE_ORDER_BY_AREA[areaDef.id]) || STAGE_ORDER;
-  }
-
   var STAGE_LABEL = {
     normal1: "通常戦 1",
     normal2: "通常戦 2",
@@ -103,30 +92,14 @@
     return "battle.html?areaId=" + encodeURIComponent(areaId) + "&stage=" + encodeURIComponent(stage);
   }
 
-  // ステージが「解放済み」かを判定する
-  // bossCleared 済みなら全ステージ解放。それ以外は stageOrder 上の直前ステージのクリア状況を見る。
-  function isUnlocked(stage, progress, stageOrder) {
-    if (progress.bossCleared) return true;
-    var idx = stageOrder.indexOf(stage);
-    if (idx <= 0) return true;
-    var prevStage = stageOrder[idx - 1];
-    if (prevStage === "boss") return !!progress.bossCleared;
-    return !!(progress.normalCleared && progress.normalCleared[prevStage]);
-  }
-
-  function isCleared(stage, progress) {
-    if (stage === "boss") return !!progress.bossCleared;
-    return !!(progress.normalCleared && progress.normalCleared[stage]);
-  }
-
   function renderStageList(areaDef, progress) {
     var listEl = document.getElementById("stage-list");
     listEl.innerHTML = "";
-    var stageOrder = getStageOrderForArea(areaDef);
+    var stageOrder = Areas.getStageOrderForArea(areaDef);
 
     stageOrder.forEach(function (stage) {
-      var unlocked = isUnlocked(stage, progress, stageOrder);
-      var cleared  = isCleared(stage, progress);
+      var unlocked = Areas.isStageUnlocked(stage, progress, areaDef);
+      var cleared  = Areas.isStageCleared(stage, progress);
 
       var card = document.createElement("div");
       card.className = "stage-card" + (unlocked ? "" : " stage-locked");
@@ -200,13 +173,14 @@
     var params = parseParams();
     var areaId = params.areaId || "hajimari";
     var areaDef = Areas.getAreaById(areaId);
+    var gameState = GameState.load();
 
-    if (!areaDef) {
-      document.body.textContent = "エリアが見つかりません: " + areaId;
+    // 不正なareaId・未実装・未解放エリアへの直接URLアクセスはすべてエリア選択へ戻す。
+    if (!areaDef || areaDef.implemented !== true || !Areas.isAreaUnlocked(gameState, areaDef)) {
+      window.location.replace("area.html");
       return;
     }
 
-    var gameState = GameState.load();
     var progress  = GameState.getAreaProgress(gameState, areaId);
 
     document.getElementById("area-name").textContent = areaDef.name;

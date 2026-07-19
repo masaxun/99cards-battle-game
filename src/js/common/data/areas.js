@@ -116,13 +116,13 @@
       enemyType: "dark",
       weakness: "light",
       playerElement: "light",
-      // 低層4戦（2026-07-09実装）＋高層4戦（2026-07-12実装）。最上階(boss)は未実装のため意図的に未登録。
+      // 低層4戦（2026-07-09実装）＋高層4戦（2026-07-12実装）。最上階bossはfinalBossPhasesを使うため、enemyHpには個別登録しない。
       enemyHp: { stage1: 260, stage2: 340, stage3: 430, stage4: 540, stage5: 600, stage6: 700, stage7: 820, stage8: 980 },
       // 9の段中心・足し算カードなし・1×1ホーリー保証枠あり（要件定義書セクション70参照）。エリア単位の設定のため低層・高層(stage1〜8)双方に適用される。
       normalDeckComposition: { target: 18, holy: 1, other: 7, add: 0, sub: 4 },
       // ラスボス専用デッキ構成（第9戦のみ。stage1〜8のnormalDeckCompositionとは別枠。要件定義書セクション70参照）
       bossDeckComposition: { target: 23, holy: 1, other: 7, add: 0, sub: 4 },
-      // ラスボス4フェーズ連戦データ（第9戦専用。実装フェーズ0：データのみ追加、参照コードは未実装。要件定義書セクション70参照）
+      // ラスボス4フェーズ連戦データとして実装・参照済み（第9戦専用。要件定義書セクション70参照）
       finalBossPhases: [
         {
           key: "grass",
@@ -209,7 +209,7 @@
           atkDans: [1, 2, 3, 4, 5, 6, 7, 8, 9],
           zeroPrefixedQuestions: true, // 0付き問題の出題（未実装、フラグのみ）
           hasAbyssWall: null,
-          phaseTransitionBgm: "assets/audio/bgm/bgm_battle_final_boss_phase2_v01.mp3", // 変身演出開始時に切り替える設定項目のみ。再生処理は未実装
+          phaseTransitionBgm: "assets/audio/bgm/bgm_battle_final_boss_phase2_v01.mp3", // battleUI.jsで堕天移行時のBGM切替に使用済み
           actionProbs: {
             normal: [
               { type: "bossAttack", weight: 40 },
@@ -250,10 +250,53 @@
     return true;
   }
 
+  // ============================================================
+  // ステージ構成・ステージ解放判定（stage.html／battle.htmlの単一ソース）
+  // ============================================================
+
+  var DEFAULT_STAGE_ORDER = ["normal1", "normal2", "normal3", "boss"];
+
+  // 漆黒の塔は9ステージ構成のため専用の並び順を持つ。低層4戦＋高層4戦＋最上階(boss=最終決戦)を実装済み。
+  var STAGE_ORDER_BY_AREA = {
+    shikkoku: ["stage1", "stage2", "stage3", "stage4", "stage5", "stage6", "stage7", "stage8", "boss"]
+  };
+
+  // 呼び出し側が配列を書き換えても内部定数へ影響しないよう、常にコピーを返す。
+  function getStageOrderForArea(areaDef) {
+    var order = areaDef && STAGE_ORDER_BY_AREA[areaDef.id];
+    return (order || DEFAULT_STAGE_ORDER).slice();
+  }
+
+  // ステージが「解放済み」かを判定する。
+  // 存在しないstageはbossClearedの状態にかかわらず常にfalse（indexOf()が-1のケースを最優先で分離）。
+  // 実在するstageは、bossCleared済みなら全ステージ解放。それ以外はステージ順上の直前ステージのクリア状況を見る。
+  function isStageUnlocked(stage, progress, areaDef) {
+    if (!progress) return false;
+
+    var stageOrder = getStageOrderForArea(areaDef);
+    var idx = stageOrder.indexOf(stage);
+
+    if (idx === -1) return false;
+    if (progress.bossCleared) return true;
+    if (idx === 0) return true;
+
+    var prevStage = stageOrder[idx - 1];
+    return !!(progress.normalCleared && progress.normalCleared[prevStage]);
+  }
+
+  function isStageCleared(stage, progress) {
+    if (!progress) return false;
+    if (stage === "boss") return !!progress.bossCleared;
+    return !!(progress.normalCleared && progress.normalCleared[stage]);
+  }
+
   window.Kuku99 = window.Kuku99 || {};
   window.Kuku99.Areas = {
     LIST: AREA_LIST,
     getAreaById: getAreaById,
-    isAreaUnlocked: isAreaUnlocked
+    isAreaUnlocked: isAreaUnlocked,
+    getStageOrderForArea: getStageOrderForArea,
+    isStageUnlocked: isStageUnlocked,
+    isStageCleared: isStageCleared
   };
 })();

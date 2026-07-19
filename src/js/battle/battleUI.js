@@ -588,16 +588,20 @@
     var gameState = GameState.load();
     var areaDef   = Areas.getAreaById(areaId);
     if (!areaDef) {
-      document.body.textContent = "エリアが見つかりません: " + areaId;
+      window.location.replace("area.html");
       return;
     }
 
-    // 漆黒の塔ラスボス戦の未解放直接URLガード（stage8クリアで解放）。
-    // debugCardsパラメータ指定時は開発確認用として迂回を許可する。
-    if (areaId === "shikkoku" && stage === "boss" && !params.debugCards) {
-      var shikkokuProgress = GameState.getAreaProgress(gameState, areaId);
-      var stage8Cleared = !!(shikkokuProgress.normalCleared && shikkokuProgress.normalCleared.stage8);
-      if (!stage8Cleared) {
+    // エリア・ステージ未解放の直接URLガード。debugCardsパラメータ指定時は
+    // 開発確認用として迂回を許可する（既存の漆黒の塔bossガードの迂回仕様を維持）。
+    if (!params.debugCards) {
+      if (areaDef.implemented !== true || !Areas.isAreaUnlocked(gameState, areaDef)) {
+        window.location.replace("area.html");
+        return;
+      }
+
+      var guardProgress = GameState.getAreaProgress(gameState, areaId);
+      if (!Areas.isStageUnlocked(stage, guardProgress, areaDef)) {
         window.location.replace(buildStageUrl(areaId));
         return;
       }
